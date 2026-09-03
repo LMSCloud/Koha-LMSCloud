@@ -292,8 +292,8 @@
                                             <input type="checkbox" id="limitcopydaterangebranch" name="limitcopydaterange" value="yes" />
                                             Copy only unique holidays and holiday exceptions<br />
                                             <div id="limitcopydateselbranch" style="display: none;">
-                                                <span>from </span><input type="text" id="limitcopydatefrombranch" name="datefrom" maxlength="10" size="10" autocomplete="off" class="flatpickr" />
-                                                <span>to </span><input type="text" id="limitcopydatetobranch" name="dateto" maxlength="10" size="10" autocomplete="off" class="flatpickr" /><br />
+                                                <span>from </span><input type="text" id="limitcopydatefrombranch" name="datefrom" maxlength="10" size="10" autocomplete="off" class="flatpickr" /> <span>to </span
+                                                ><input type="text" id="limitcopydatetobranch" name="dateto" maxlength="10" size="10" autocomplete="off" class="flatpickr" /><br />
                                                 <input type="checkbox" id="limitcopydelbeforebranch" name="limitcopydeletebefore" value="yes" />
                                                 <span>Delete unique holidays and holiday exceptions of the target calendar during the selected date range before copying.</span>
                                             </div>
@@ -333,8 +333,8 @@
                                             <input type="checkbox" id="limitcopydaterangegroup" name="limitcopydaterange" value="yes" />
                                             Copy only unique holidays and holiday exceptions<br />
                                             <div id="limitcopydateselgroup" style="display: none;">
-                                                <span>from </span><input type="text" id="limitcopydatefromgroup" name="datefrom" maxlength="10" size="10" autocomplete="off" class="flatpickr" />
-                                                <span>to </span><input type="text" id="limitcopydatetogroup" name="dateto" maxlength="10" size="10" autocomplete="off" class="flatpickr" /><br />
+                                                <span>from </span><input type="text" id="limitcopydatefromgroup" name="datefrom" maxlength="10" size="10" autocomplete="off" class="flatpickr" /> <span>to </span
+                                                ><input type="text" id="limitcopydatetogroup" name="dateto" maxlength="10" size="10" autocomplete="off" class="flatpickr" /><br />
                                                 <input type="checkbox" id="limitcopydelbeforegroup" name="limitcopydeletebefore" value="yes" />
                                                 <span>Delete unique holidays and holiday exceptions of the target calendar during the selected date range before copying.</span>
                                             </div>

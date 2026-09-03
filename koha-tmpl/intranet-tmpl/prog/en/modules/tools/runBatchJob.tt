@@ -27,403 +27,431 @@
 [% END #/ WRAPPER sub-header.inc %]
 
 [% WRAPPER 'main-container.inc' aside='tools-menu' %]
-                <h1>Run batch jobs</h1>
-                <div class="help">
-                   <p>Use this function to run batch jobs ad hoc.</p>
-                   <p>Please fill options carefully before launching a batch job.</p>
-                   <p>Please run batch programs only if you know exactly what the programs do.</p>
-                </div>
-                [% IF ( pid ) %]
+    <h1>Run batch jobs</h1>
+    <div class="help">
+        <p>Use this function to run batch jobs ad hoc.</p>
+        <p>Please fill options carefully before launching a batch job.</p>
+        <p>Please run batch programs only if you know exactly what the programs do.</p>
+    </div>
+    [% IF ( pid ) %]
+        <div>
+            <h3 for="process_output">Program output</h3>
+            <form name="jobProgress" method="post" action="/cgi-bin/koha/tools/runBatchJob.pl">
+                [% INCLUDE 'csrf-token.inc' %]
+                <p>
+                    [% IF ( status == 'launched' ) %]
+                        Batch job launched.
+                    [% ELSIF ( status == 'running' ) %]
+                        The job runs currently.
+                    [% ELSIF ( status == 'completed' ) %]
+                        The job ended.
+                    [% END %]
+                </p>
+                <input type="hidden" name="op" value="cud-progress" />
+                <input type="hidden" name="cmd" value="" />
                 <div>
-                   <h3 for="process_output">Program output</h3>
-                   <form name="jobProgress" method="post" action="/cgi-bin/koha/tools/runBatchJob.pl">
-                       [% INCLUDE 'csrf-token.inc' %]
-                       <p>
-                       [% IF ( status == 'launched' ) %]
-                           Batch job launched.
-                       [% ELSIF ( status == 'running' ) %]
-                           The job runs currently.
-                       [% ELSIF ( status == 'completed' ) %]
-                           The job ended.
-                       [% END %] 
-                       </p>
-                       <input type="hidden" name="op" value="cud-progress" />
-                       <input type="hidden" name="cmd" value="" />
-                       <div>
-                           <div style="border:1px solid black;height:200px;width:100%;overflow-y:scroll;overflow-x:scroll;padding: 5px">
-                               <pre>[% outfilecontent | html %]</pre>
-                           </div>
-                       </div>
-                       [% IF ( status != 'completed' ) %]
-                       <p>
-                       <input type="hidden" name="filenamepart" value="[% filenamepart | html %]" />
-                       <button type="submit" name="action">Refresh</button>
-                       </p>
-                       [% END %] 
-                   </form>
+                    <div style="border:1px solid black;height:200px;width:100%;overflow-y:scroll;overflow-x:scroll;padding: 5px">
+                        <pre>[% outfilecontent | html %]</pre>
+                    </div>
                 </div>
+                [% IF ( status != 'completed' ) %]
+                    <p>
+                        <input type="hidden" name="filenamepart" value="[% filenamepart | html %]" />
+                        <button type="submit" name="action">Refresh</button>
+                    </p>
                 [% END %]
-                <h3 for="process_output">Available batch jobs</h3>
-                <form name="runJob" method="post" action="/cgi-bin/koha/tools/runBatchJob.pl">
-                    [% INCLUDE 'csrf-token.inc' %]
-                    <input type="hidden" name="op" value="cud-run" />
-                    <input type="hidden" id="jobcmd" name="cmd" value="" />
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Job</th>
-                                <th>Description</th>
-                                <th>Options</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <th>Advance notices</th>
-                                <td>
-                                    <p>Prepare pre-due and item due reminders to be sent to patrons.</p>
-                                    
-                                    <p>The job queues advance notices in the message queue. Prepared notices will be processed and sent with the next run of the message send or print jobs.</p>
-                                </td>
-                                <td>
-                                    <table>
-                                        <tr>
-                                            <td>Days in advance</td>
-                                            <td><input type="number" min="0" max="10" step="1" name="advance_notices_maxdays" id="advance_notices_maxdays" value="1"></td>
-                                        </tr>
-                                    </table>
-                                </td>
-                                <td><button class="btn btn-default btn-sm" onclick="start('advance_notices')"><i class="fa fa-play"></i> Start</button></td>
-                            </tr>
+            </form>
+        </div>
+    [% END %]
+    <h3 for="process_output">Available batch jobs</h3>
+    <form name="runJob" method="post" action="/cgi-bin/koha/tools/runBatchJob.pl">
+        [% INCLUDE 'csrf-token.inc' %]
+        <input type="hidden" name="op" value="cud-run" />
+        <input type="hidden" id="jobcmd" name="cmd" value="" />
+        <table>
+            <thead>
+                <tr>
+                    <th>Job</th>
+                    <th>Description</th>
+                    <th>Options</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <th>Advance notices</th>
+                    <td>
+                        <p>Prepare pre-due and item due reminders to be sent to patrons.</p>
 
+                        <p>The job queues advance notices in the message queue. Prepared notices will be processed and sent with the next run of the message send or print jobs.</p>
+                    </td>
+                    <td>
+                        <table>
                             <tr>
-                                <th>Membership expiry</th>
-                                <td>
-                                    This job prepares membership expiry reminder notices to patrons. Messages are prepared for each patron when the memberships are going to expire. These emails are staged in the outgoing message queue, as are messages
-produced by other features of Koha. The message queue must be processed regularly.
-                                </td>
-                                <td>
-                                    <table>
-                                        <tr>
-                                            <td><label for="membership_expiry_branch">Branch</label></td>
-                                            <td>
-                                                <select id="membership_expiry_branch" name="membership_expiry_branch">
-                                                    <option value="" selected="selected">All</option>
-                                                    [% PROCESS options_for_libraries libraries => branches %]
-                                                </select>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td><label for="membership_expiry_before">Optional parameter to extend the selection with a number of days before the date set by the preference.</label></td>
-                                            <td>
-                                                <input type="number" min="0" max="365" step="1" name="membership_expiry_before" id="membership_expiry_before" />
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td><label for="membership_expiry_after">Optional parameter to extend the selection with a number of days after the date set by the preference.</label></td>
-                                            <td>
-                                                <input type="number" min="0" max="365" step="1" name="membership_expiry_after" id="membership_expiry_after" />
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td><label for="membership_expiry_branch">Optional parameter to use another notice than the default one.</label></td>
-                                            <td>
-                                                <select id="membership_expiry_form" name="membership_expiry_form">
-                                                    <option value="" selected="selected">Default</option>
-                                                    [% FOREACH letterloo IN membershipReminderLetters %]
-                                                        <option value="[% letterloo.name | html %]">[% letterloo.name | html %]</option>
-                                                    [% END %]
-                                                </select>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                </td>
-                                <td><button class="btn btn-default btn-sm" onclick="start('membership_expiry')"><i class="fa fa-play"></i> Start</button></td>
+                                <td>Days in advance</td>
+                                <td><input type="number" min="0" max="10" step="1" name="advance_notices_maxdays" id="advance_notices_maxdays" value="1" /></td>
                             </tr>
+                        </table>
+                    </td>
+                    <td
+                        ><button class="btn btn-default btn-sm" onclick="start('advance_notices')"><i class="fa fa-play"></i> Start</button></td
+                    >
+                </tr>
 
+                <tr>
+                    <th>Membership expiry</th>
+                    <td>
+                        This job prepares membership expiry reminder notices to patrons. Messages are prepared for each patron when the memberships are going to expire. These emails are staged in the outgoing message queue, as are messages
+                        produced by other features of Koha. The message queue must be processed regularly.
+                    </td>
+                    <td>
+                        <table>
                             <tr>
-                                <th>Send overdue notices and calculate overdue fines</th>
+                                <td><label for="membership_expiry_branch">Branch</label></td>
                                 <td>
-                                    <p>The batch job creates overdue notices and charges overdue fines if configured.</p>
-                                    <p>Overdue notices will be prepared and added to the message queue. Prepared notices will be processed and sent with the next run of the message send or print jobs.</p>
-                                    <p>The program processes overdue items to a maximum number of overdue days. 
-                                    Items older than max days are assumed to be handled. The maximum number of overdue days default to 90.</p>
-                                    <p>Overdue notices are typically sent by mail or email.</p>
-                                    <p>Email notices to patrons who have no valid email address configured, are created in the specified output format (Parameter format).</p>
-                                    <p>It's supported to run the job only for a select patron category.</p>
-                                    <p>An important paramter is the 'Exact date'. This option causes a notice to be generated if and only if 
-                                       an item is overdue by the number of days defined in a notice trigger.
-                                       By default, a notice is sent each time the script runs, which is suitable for less frequent run cron script, 
-                                       but requires syncing notice triggers with the  cron schedule to ensure proper behavior. 
-                                       Running the program multiple times not suing the 'Exact date'-option may result that configured overdue 
-                                       fines are charged each time the program runs.</p>
+                                    <select id="membership_expiry_branch" name="membership_expiry_branch">
+                                        <option value="" selected="selected">All</option>
+                                        [% PROCESS options_for_libraries libraries => branches %]
+                                    </select>
                                 </td>
-                                <td>
-                                    <table>
-                                        <tr>
-                                            <td><label for="overdue_notices_branch">Branch</label></td>
-                                            <td>
-                                                <select id="overdue_notices_branch" name="overdue_notices_branch">
-                                                    <option value="" selected="selected">All</option>
-                                                    [% PROCESS options_for_libraries libraries => branches %]
-                                                </select>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td><label for="overdue_notices_max_days">Maximum overdue days</label></td>
-                                            <td>
-                                                <input type="number" min="1" max="9999" step="1" name="overdue_notices_max_days" id="overdue_notices_max_days" value="90" />
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td><label for="overdue_notices_groups">Patron category selection</label></td>
-                                            <td>
-                                                <select id="overdue_notices_groups" name="overdue_notices_groups" size="5" multiple="multiple">
-                                                    <option value="---all---" selected="selected">All</option>
-                                                    [% FOREACH categoryloo IN categories %]
-                                                        <option value="[% categoryloo.categorycode | html %]">[% categoryloo.description | html %]</option>
-                                                    [% END %]
-                                                </select>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td><label for="overdue_notices_listall">List all overdue items</label></td>
-                                            <td>
-                                                <label><input type="checkbox" name="overdue_notices_listall" id="overdue_notices_listall" value="yes"> Include all overdue items in the list</label>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td><label for="overdue_notices_triggered">Exact date</label></td>
-                                            <td>
-                                                <label><input type="checkbox" name="overdue_notices_triggered" id="overdue_notices_triggered" value="yes"> If activated a notice will be generated only if an item is overdue by the number of days defined in a notice trigger</label>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td><label for="overdue_notices_senddate">Run date. If set, the program runs not for the current but the provided date and creates notices for items that match with the configured overdue triggers on that date.</label></td>
-                                            <td><input type="text" size="10" id="overdue_notices_senddate" name="overdue_notices_senddate" value="" class="flatpickr"/></td>
-                                        </tr>
-                                        
-                                    </table>
-                                </td>
-                                <td><button class="btn btn-default btn-sm" onclick="start('overdue_notices')"><i class="fa fa-play"></i> Start</button></td>
                             </tr>
-                            
                             <tr>
-                                <th>Calculate and charge overdue fines defined in the circulation rules</th>
+                                <td><label for="membership_expiry_before">Optional parameter to extend the selection with a number of days before the date set by the preference.</label></td>
                                 <td>
-                                    <p>If the system parameter 'finesMode' is set to "Calculate and charge", the batch job calculates and charges
-                                       overdue fines which are configured with the circulation rules. In comparison to overdue fines
-                                       that are charged wtih overdue notices, these fines are calculated based on periods and charges 
-                                       configured with the circulation rules.</p>
+                                    <input type="number" min="0" max="365" step="1" name="membership_expiry_before" id="membership_expiry_before" />
                                 </td>
-                                <td>
-                                
-                                </td>
-                                <td><button class="btn btn-default btn-sm" onclick="start('fines')"><i class="fa fa-play"></i> Start</button></td>
                             </tr>
-                            
-                            
                             <tr>
-                                <th>Send email notifications</th>
+                                <td><label for="membership_expiry_after">Optional parameter to extend the selection with a number of days after the date set by the preference.</label></td>
                                 <td>
-                                    <p>Use the batch job to send prepared email notifications of the message queue.</p>
+                                    <input type="number" min="0" max="365" step="1" name="membership_expiry_after" id="membership_expiry_after" />
                                 </td>
-                                <td>
-                                </td>
-                                <td><button class="btn btn-default btn-sm" onclick="start('process_message_queue')"><i class="fa fa-play"></i> Start</button></td>
                             </tr>
-                            
-                            
                             <tr>
-                                <th>Process print notifications</th>
+                                <td><label for="membership_expiry_branch">Optional parameter to use another notice than the default one.</label></td>
                                 <td>
-                                    <p>Gather and process all prepared print notices. Print notices will be collected a file and prepared for download.</p>
+                                    <select id="membership_expiry_form" name="membership_expiry_form">
+                                        <option value="" selected="selected">Default</option>
+                                        [% FOREACH letterloo IN membershipReminderLetters %]
+                                            <option value="[% letterloo.name | html %]">[% letterloo.name | html %]</option>
+                                        [% END %]
+                                    </select>
                                 </td>
-                                <td>
-                                    <table>
-                                        <tr>
-                                            <td><label for="gather_print_notices_output_split">Seperate by branch</label></td>
-                                            <td>
-                                                <div style="white-space:nowrap"><label for="gather_print_notices_output_split_no">One file only </label><input type="radio" name="gather_print_notices_output_split" id="gather_print_notices_output_split_no" value="no" checked="checked" /></div>
-                                                <div style="white-space:nowrap"><label for="gather_print_notices_output_split_yes">Seperated by branch </label><input type="radio" name="gather_print_notices_output_split" id="gather_print_notices_output_split_yes" value="yes" /></div>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td><label for="gather_print_notices_output_split">Seperate by letter code</label></td>
-                                            <td>
-                                                <div style="white-space:nowrap"><label for="gather_print_notices_output_splitcode_no">No separation by letter code </label><input type="radio" name="gather_print_notices_output_splitcode" id="gather_print_notices_output_splitcode_no" value="no" checked="checked" /></div>
-                                                <div style="white-space:nowrap"><label for="gather_print_notices_output_splitcode_yes">Seperated by letter code </label><input type="radio" name="gather_print_notices_output_splitcode" id="gather_print_notices_output_splitcode_yes" value="yes" /></div>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td><label for="gather_print_notices_output_sent">Set sent mark</label></td>
-                                            <td>
-                                                <div style="white-space:nowrap"><label for="gather_print_notices_output_sent_yes">Mark processed notices as sent </label><input type="radio" name="gather_print_notices_output_sent" id="gather_print_notices_output_sent_yes" value="yes" checked="checked" /></div>
-                                                <div style="white-space:nowrap"><label for="gather_print_notices_output_split_no">Keep prepared state of the notices </label><input type="radio" name="gather_print_notices_output_sent" id="gather_print_notices_output_split_no" value="no" /></div>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td><label for="gather_print_notices_letter_code">Select letter code</label></td>
-                                            <td>
-                                                <select name="gather_print_notices_letter_code" id="gather_print_notices_letter_code">
-                                                    <option value="">All</option>
-                                                    [% FOREACH lettertypeloo IN printlettercodes %]
-                                                        <option value="[% lettertypeloo.lettercode | html %]">[% lettertypeloo.lettercode | html %]</option>
-                                                    [% END %]
-                                                </select>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td><label for="gather_print_notices_email">Send generated file to the following email address</label></td>
-                                            <td>
-                                                <input type="email" size="50" name="gather_print_notices_email" id="gather_print_notices_email" />
-                                            </td>
-                                        </tr>
-                                    </table>
-                                </td>
-                                <td><button class="btn btn-default btn-sm" onclick="start('gather_print_notices')"><i class="fa fa-play"></i> Start</button></td>
                             </tr>
+                        </table>
+                    </td>
+                    <td
+                        ><button class="btn btn-default btn-sm" onclick="start('membership_expiry')"><i class="fa fa-play"></i> Start</button></td
+                    >
+                </tr>
 
+                <tr>
+                    <th>Send overdue notices and calculate overdue fines</th>
+                    <td>
+                        <p>The batch job creates overdue notices and charges overdue fines if configured.</p>
+                        <p>Overdue notices will be prepared and added to the message queue. Prepared notices will be processed and sent with the next run of the message send or print jobs.</p>
+                        <p>The program processes overdue items to a maximum number of overdue days. Items older than max days are assumed to be handled. The maximum number of overdue days default to 90.</p>
+                        <p>Overdue notices are typically sent by mail or email.</p>
+                        <p>Email notices to patrons who have no valid email address configured, are created in the specified output format (Parameter format).</p>
+                        <p>It's supported to run the job only for a select patron category.</p>
+                        <p
+                            >An important paramter is the 'Exact date'. This option causes a notice to be generated if and only if an item is overdue by the number of days defined in a notice trigger. By default, a notice is sent each time
+                            the script runs, which is suitable for less frequent run cron script, but requires syncing notice triggers with the cron schedule to ensure proper behavior. Running the program multiple times not suing the 'Exact
+                            date'-option may result that configured overdue fines are charged each time the program runs.</p
+                        >
+                    </td>
+                    <td>
+                        <table>
+                            <tr>
+                                <td><label for="overdue_notices_branch">Branch</label></td>
+                                <td>
+                                    <select id="overdue_notices_branch" name="overdue_notices_branch">
+                                        <option value="" selected="selected">All</option>
+                                        [% PROCESS options_for_libraries libraries => branches %]
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="overdue_notices_max_days">Maximum overdue days</label></td>
+                                <td>
+                                    <input type="number" min="1" max="9999" step="1" name="overdue_notices_max_days" id="overdue_notices_max_days" value="90" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="overdue_notices_groups">Patron category selection</label></td>
+                                <td>
+                                    <select id="overdue_notices_groups" name="overdue_notices_groups" size="5" multiple="multiple">
+                                        <option value="---all---" selected="selected">All</option>
+                                        [% FOREACH categoryloo IN categories %]
+                                            <option value="[% categoryloo.categorycode | html %]">[% categoryloo.description | html %]</option>
+                                        [% END %]
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="overdue_notices_listall">List all overdue items</label></td>
+                                <td>
+                                    <label><input type="checkbox" name="overdue_notices_listall" id="overdue_notices_listall" value="yes" /> Include all overdue items in the list</label>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="overdue_notices_triggered">Exact date</label></td>
+                                <td>
+                                    <label
+                                        ><input type="checkbox" name="overdue_notices_triggered" id="overdue_notices_triggered" value="yes" /> If activated a notice will be generated only if an item is overdue by the number of days defined
+                                        in a notice trigger</label
+                                    >
+                                </td>
+                            </tr>
+                            <tr>
+                                <td
+                                    ><label for="overdue_notices_senddate"
+                                        >Run date. If set, the program runs not for the current but the provided date and creates notices for items that match with the configured overdue triggers on that date.</label
+                                    ></td
+                                >
+                                <td><input type="text" size="10" id="overdue_notices_senddate" name="overdue_notices_senddate" value="" class="flatpickr" /></td>
+                            </tr>
+                        </table>
+                    </td>
+                    <td
+                        ><button class="btn btn-default btn-sm" onclick="start('overdue_notices')"><i class="fa fa-play"></i> Start</button></td
+                    >
+                </tr>
 
+                <tr>
+                    <th>Calculate and charge overdue fines defined in the circulation rules</th>
+                    <td>
+                        <p
+                            >If the system parameter 'finesMode' is set to "Calculate and charge", the batch job calculates and charges overdue fines which are configured with the circulation rules. In comparison to overdue fines that are
+                            charged wtih overdue notices, these fines are calculated based on periods and charges configured with the circulation rules.</p
+                        >
+                    </td>
+                    <td> </td>
+                    <td
+                        ><button class="btn btn-default btn-sm" onclick="start('fines')"><i class="fa fa-play"></i> Start</button></td
+                    >
+                </tr>
+
+                <tr>
+                    <th>Send email notifications</th>
+                    <td>
+                        <p>Use the batch job to send prepared email notifications of the message queue.</p>
+                    </td>
+                    <td> </td>
+                    <td
+                        ><button class="btn btn-default btn-sm" onclick="start('process_message_queue')"><i class="fa fa-play"></i> Start</button></td
+                    >
+                </tr>
+
+                <tr>
+                    <th>Process print notifications</th>
+                    <td>
+                        <p>Gather and process all prepared print notices. Print notices will be collected a file and prepared for download.</p>
+                    </td>
+                    <td>
+                        <table>
                             <tr>
-                                <th>Anonymise patron history that is older than DAYS days</th>
+                                <td><label for="gather_print_notices_output_split">Seperate by branch</label></td>
                                 <td>
-                                    <p>Koha stores the patron lending history. The batch job can be used to anonymise the patron history that is older than the specified number of days.</p>
+                                    <div style="white-space:nowrap"
+                                        ><label for="gather_print_notices_output_split_no">One file only </label
+                                        ><input type="radio" name="gather_print_notices_output_split" id="gather_print_notices_output_split_no" value="no" checked="checked"
+                                    /></div>
+                                    <div style="white-space:nowrap"
+                                        ><label for="gather_print_notices_output_split_yes">Seperated by branch </label><input type="radio" name="gather_print_notices_output_split" id="gather_print_notices_output_split_yes" value="yes"
+                                    /></div>
                                 </td>
-                                <td>
-                                    <table>
-                                        <tr>
-                                            <td>Number of days</td>
-                                            <td><input type="number" min="0" max="10000" step="1" name="batch_anonymise_days" id="batch_anonymise_days" value="365"></td>
-                                        </tr>
-                                    </table>
-                                </td>
-                                <td><button class="btn btn-default btn-sm" onclick="start('batch_anonymise')"><i class="fa fa-play"></i> Start</button></td>
                             </tr>
-                            
-                            
                             <tr>
-                                <th>Deletes patron accounts</th>
+                                <td><label for="gather_print_notices_output_split">Seperate by letter code</label></td>
                                 <td>
-                                    <p>The batch job deletes patron accounts that match to the provided options.</p>
+                                    <div style="white-space:nowrap"
+                                        ><label for="gather_print_notices_output_splitcode_no">No separation by letter code </label
+                                        ><input type="radio" name="gather_print_notices_output_splitcode" id="gather_print_notices_output_splitcode_no" value="no" checked="checked"
+                                    /></div>
+                                    <div style="white-space:nowrap"
+                                        ><label for="gather_print_notices_output_splitcode_yes">Seperated by letter code </label
+                                        ><input type="radio" name="gather_print_notices_output_splitcode" id="gather_print_notices_output_splitcode_yes" value="yes"
+                                    /></div>
                                 </td>
-                                <td>
-                                    <table>
-                                        <tr>
-                                            <td><label for="delete_patrons_branch">Home branch</label></td>
-                                            <td>
-                                                <select id="delete_patrons_branch" name="delete_patrons_branch">
-                                                    <option value="" selected="selected">All</option>
-                                                    [% PROCESS options_for_libraries libraries => branches %]
-                                                </select>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td><label for="delete_patrons_categorycode">Patron category</label></td>
-                                            <td>
-                                                <select name="delete_patrons_categorycode" id="delete_patrons_categorycode">
-                                                    <option value="">All</option>
-                                                    [% FOREACH categoryloo IN categories %]
-                                                        <option value="[% categoryloo.categorycode | html %]">[% categoryloo.description | html %]</option>
-                                                    [% END %]
-                                                </select>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td><label for="delete_patrons_not_borrowed_since">Delete patrons who have not borrowed since this date.</label></td>
-                                            <td><input type="text" size="10" id="delete_patrons_not_borrowed_since" name="delete_patrons_not_borrowed_since" value="" class="flatpickr"/></td>
-                                        </tr>
-                                        <tr>
-                                            <td><label for="delete_patrons_expired_before">Delete patrons with an account expired before this date.</label></td>
-                                            <td><input type="text" size="10" id="delete_patrons_expired_before" name="delete_patrons_expired_before" value="" class="flatpickr"/></td>
-                                        </tr>
-                                    </table>
-                                </td>
-                                <td><button class="btn btn-default btn-sm" onclick="start('delete_patrons')"><i class="fa fa-play"></i> Start</button></td>
                             </tr>
-                            
-                            
                             <tr>
-                                <th>Patron category conversion</th>
+                                <td><label for="gather_print_notices_output_sent">Set sent mark</label></td>
                                 <td>
-                                    <p>Convert juvenile/child patrons from juvenile patron category and category code to corresponding adult patron category 
-                                       and category code when they reach the upper age limit defined in the Patron Categories.
-                                    <p>An option allows to simulate the change. It lists all patrons that match the options but does not process the patron category change.</p>
+                                    <div style="white-space:nowrap"
+                                        ><label for="gather_print_notices_output_sent_yes">Mark processed notices as sent </label
+                                        ><input type="radio" name="gather_print_notices_output_sent" id="gather_print_notices_output_sent_yes" value="yes" checked="checked"
+                                    /></div>
+                                    <div style="white-space:nowrap"
+                                        ><label for="gather_print_notices_output_split_no">Keep prepared state of the notices </label
+                                        ><input type="radio" name="gather_print_notices_output_sent" id="gather_print_notices_output_split_no" value="no"
+                                    /></div>
                                 </td>
-                                <td>
-                                    <table>
-                                        <tr>
-                                            <td><label for="juv2adult_branch">Home branch</label></td>
-                                            <td>
-                                                <select id="juv2adult_branch" name="juv2adult_branch">
-                                                    <option value="" selected="selected">All</option>
-                                                    [% PROCESS options_for_libraries libraries => branches %]
-                                                </select>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td><label for="juv2adult_from">Current patron category</label></td>
-                                            <td>
-                                                <select id="juv2adult_from" name="juv2adult_from">
-                                                    [% FOREACH categoryloo IN categories %]
-                                                        <option value="[% categoryloo.categorycode | html %]">[% categoryloo.description | html %]</option>
-                                                    [% END %]
-                                                </select>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td><label for="juv2adult_to">New patron category</label></td>
-                                            <td>
-                                                <select id="juv2adult_to" name="juv2adult_to">
-                                                    [% FOREACH categoryloo IN categories %]
-                                                        <option value="[% categoryloo.categorycode | html %]">[% categoryloo.description | html %]</option>
-                                                    [% END %]
-                                                </select>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td><label for="juv2adult_simulate">Simulate change</label></td>
-                                            <td>
-                                                <label><input type="checkbox" name="juv2adult_simulate" value="yes"> list the patrons but don't process the change</label>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                </td>
-                                <td><button class="btn btn-default btn-sm" onclick="start('juv2adult')"><i class="fa fa-play"></i> Start</button></td>
                             </tr>
-                            
                             <tr>
-                                <th>Unprocessed suggestions</th>
+                                <td><label for="gather_print_notices_letter_code">Select letter code</label></td>
                                 <td>
-                                    <p>Generate notification for unprocessed suggestions.</p>
+                                    <select name="gather_print_notices_letter_code" id="gather_print_notices_letter_code">
+                                        <option value="">All</option>
+                                        [% FOREACH lettertypeloo IN printlettercodes %]
+                                            <option value="[% lettertypeloo.lettercode | html %]">[% lettertypeloo.lettercode | html %]</option>
+                                        [% END %]
+                                    </select>
                                 </td>
-                                <td>
-                                    <table>
-                                        <tr>
-                                            <td><label for="notice_unprocessed_suggestions_days">Number of days elapsed since the last modification of suggestions to process</label></td>
-                                            <td>
-                                                <input type="number" min="1" max="9999" step="1" name="notice_unprocessed_suggestions_days" id="notice_unprocessed_suggestions_days" />
-                                            </td>
-                                        </tr>
-                                    </table>
-                                </td>
-                                <td><button class="btn btn-default btn-sm" onclick="start('notice_unprocessed_suggestions')"><i class="fa fa-play"></i> Start</button></td>
                             </tr>
-                            
-                            
-                        </tbody>
-                    </table>
-                
-                </form>
-            
+                            <tr>
+                                <td><label for="gather_print_notices_email">Send generated file to the following email address</label></td>
+                                <td>
+                                    <input type="email" size="50" name="gather_print_notices_email" id="gather_print_notices_email" />
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                    <td
+                        ><button class="btn btn-default btn-sm" onclick="start('gather_print_notices')"><i class="fa fa-play"></i> Start</button></td
+                    >
+                </tr>
+
+                <tr>
+                    <th>Anonymise patron history that is older than DAYS days</th>
+                    <td>
+                        <p>Koha stores the patron lending history. The batch job can be used to anonymise the patron history that is older than the specified number of days.</p>
+                    </td>
+                    <td>
+                        <table>
+                            <tr>
+                                <td>Number of days</td>
+                                <td><input type="number" min="0" max="10000" step="1" name="batch_anonymise_days" id="batch_anonymise_days" value="365" /></td>
+                            </tr>
+                        </table>
+                    </td>
+                    <td
+                        ><button class="btn btn-default btn-sm" onclick="start('batch_anonymise')"><i class="fa fa-play"></i> Start</button></td
+                    >
+                </tr>
+
+                <tr>
+                    <th>Deletes patron accounts</th>
+                    <td>
+                        <p>The batch job deletes patron accounts that match to the provided options.</p>
+                    </td>
+                    <td>
+                        <table>
+                            <tr>
+                                <td><label for="delete_patrons_branch">Home branch</label></td>
+                                <td>
+                                    <select id="delete_patrons_branch" name="delete_patrons_branch">
+                                        <option value="" selected="selected">All</option>
+                                        [% PROCESS options_for_libraries libraries => branches %]
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="delete_patrons_categorycode">Patron category</label></td>
+                                <td>
+                                    <select name="delete_patrons_categorycode" id="delete_patrons_categorycode">
+                                        <option value="">All</option>
+                                        [% FOREACH categoryloo IN categories %]
+                                            <option value="[% categoryloo.categorycode | html %]">[% categoryloo.description | html %]</option>
+                                        [% END %]
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="delete_patrons_not_borrowed_since">Delete patrons who have not borrowed since this date.</label></td>
+                                <td><input type="text" size="10" id="delete_patrons_not_borrowed_since" name="delete_patrons_not_borrowed_since" value="" class="flatpickr" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="delete_patrons_expired_before">Delete patrons with an account expired before this date.</label></td>
+                                <td><input type="text" size="10" id="delete_patrons_expired_before" name="delete_patrons_expired_before" value="" class="flatpickr" /></td>
+                            </tr>
+                        </table>
+                    </td>
+                    <td
+                        ><button class="btn btn-default btn-sm" onclick="start('delete_patrons')"><i class="fa fa-play"></i> Start</button></td
+                    >
+                </tr>
+
+                <tr>
+                    <th>Patron category conversion</th>
+                    <td>
+                        <p>Convert juvenile/child patrons from juvenile patron category and category code to corresponding adult patron category and category code when they reach the upper age limit defined in the Patron Categories. </p
+                        ><p>An option allows to simulate the change. It lists all patrons that match the options but does not process the patron category change.</p>
+                    </td>
+                    <td>
+                        <table>
+                            <tr>
+                                <td><label for="juv2adult_branch">Home branch</label></td>
+                                <td>
+                                    <select id="juv2adult_branch" name="juv2adult_branch">
+                                        <option value="" selected="selected">All</option>
+                                        [% PROCESS options_for_libraries libraries => branches %]
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="juv2adult_from">Current patron category</label></td>
+                                <td>
+                                    <select id="juv2adult_from" name="juv2adult_from">
+                                        [% FOREACH categoryloo IN categories %]
+                                            <option value="[% categoryloo.categorycode | html %]">[% categoryloo.description | html %]</option>
+                                        [% END %]
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="juv2adult_to">New patron category</label></td>
+                                <td>
+                                    <select id="juv2adult_to" name="juv2adult_to">
+                                        [% FOREACH categoryloo IN categories %]
+                                            <option value="[% categoryloo.categorycode | html %]">[% categoryloo.description | html %]</option>
+                                        [% END %]
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="juv2adult_simulate">Simulate change</label></td>
+                                <td>
+                                    <label><input type="checkbox" name="juv2adult_simulate" value="yes" /> list the patrons but don't process the change</label>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                    <td
+                        ><button class="btn btn-default btn-sm" onclick="start('juv2adult')"><i class="fa fa-play"></i> Start</button></td
+                    >
+                </tr>
+
+                <tr>
+                    <th>Unprocessed suggestions</th>
+                    <td>
+                        <p>Generate notification for unprocessed suggestions.</p>
+                    </td>
+                    <td>
+                        <table>
+                            <tr>
+                                <td><label for="notice_unprocessed_suggestions_days">Number of days elapsed since the last modification of suggestions to process</label></td>
+                                <td>
+                                    <input type="number" min="1" max="9999" step="1" name="notice_unprocessed_suggestions_days" id="notice_unprocessed_suggestions_days" />
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                    <td
+                        ><button class="btn btn-default btn-sm" onclick="start('notice_unprocessed_suggestions')"><i class="fa fa-play"></i> Start</button></td
+                    >
+                </tr>
+            </tbody>
+        </table>
+    </form>
 [% END %]
 
 [% MACRO jsinclude BLOCK %]
     [% Asset.js("js/tools-menu.js") | $raw %]
     [% INCLUDE 'calendar.inc' %]
-        <script type="text/javascript">
+    <script type="text/javascript">
         function start(func) {
-            document.getElementById('jobcmd').value = func;
+            document.getElementById("jobcmd").value = func;
             document.runJob.submit();
         }
     </script>

@@ -9,9 +9,9 @@
 <body id="circ_managecashregister" class="circ">
 [% WRAPPER 'main-container.inc' %]
     [% IF ( manageaction == 'payinoutoverview' ) %]
-    [% PROCESS 'cashregister-payin-payout-overview.inc' %]
+        [% PROCESS 'cashregister-payin-payout-overview.inc' %]
     [% ELSE %]
-    [% PROCESS 'cashregister-fines-overview.inc' %]
+        [% PROCESS 'cashregister-fines-overview.inc' %]
     [% END %]
 [% END %]
 
@@ -21,13 +21,13 @@
     [% Asset.js("lib/jquery/plugins/jquery.insertatcaret.js") | $raw %]
 [% END %]
 
-    <span id="audio-alert"></span>
-    [% IF ( footerjs ) %]
-        [% INCLUDE js_includes.inc %]
-        [% jsinclude | $raw # Parse the page template's JavaScript block if necessary %]
-        [% jsextrainclude | $raw %]
-    [% END %]
-    </body>
+<span id="audio-alert"></span>
+[% IF ( footerjs ) %]
+    [% INCLUDE js_includes.inc %]
+    [% jsinclude | $raw # Parse the page template's JavaScript block if necessary %]
+    [% jsextrainclude | $raw %]
+[% END %]
+</body>
 <!-- prettier-ignore-start -->
 </html>
 <!-- prettier-ignore-end -->

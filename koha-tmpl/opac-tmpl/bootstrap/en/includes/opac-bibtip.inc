@@ -6,11 +6,12 @@
     [% USE BibtipToken %]
     [% IF ( Koha.Preference('BibtipCatalog') ) %]
         <script type="text/javascript">
-        //<![CDATA[
-            var BibtipCatalog = "[% Koha.Preference('BibtipCatalog') | html %]";
-        //]]>
+            //<![CDATA[
+                var BibtipCatalog = "[% Koha.Preference('BibtipCatalog') | html %]";
+            //]]>
         </script>
     [% END %]
     <div id="bibtip_api_token" style="display:none">[% BibtipToken.generate | html %]</div>
-    <script src="https://static.lmscloud.net/js/[% BibtipClient | uri %]" type="text/javascript"></script>
+    <script src="https://static.lmscloud.net/js/[% BibtipClient | uri %]" type="text/javascript">
+</script>
 [% END %]

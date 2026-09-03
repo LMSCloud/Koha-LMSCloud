@@ -25,153 +25,150 @@
 [% END #/ WRAPPER sub-header.inc %]
 
 [% WRAPPER 'main-container.inc' aside='tools-menu' %]
-                [% IF (action != 'edit') %]
-                <h1>
-                    Manage cash registers
-                </h1>
-                <div class="help">
-                    <p>Define cash registers and staff members who are authorized to perform cash register transactions.</p>
-                    <p>Staff members need to have the permission 'cash_management' activated to perform cash register transactions. Add the permission allowance if you miss staff members in the selection.</p>
-                </div><!-- help-->
-                <div id="new-cash-register">
-                    <div>
-                        <form id="new" name="new" action="/cgi-bin/koha/tools/cash-register-management.pl">
-                            <input type="hidden" name="op" value="new" />
-                            <button class="btn btn-default btn-xs" submit=""><i class="fa fa-plus"></i> New cash register</button>
-                        </form>
-                    </div>
-                </div>
-                <div  id="manage-cash-registers">
-                    <table id="cashregt">
-                       <thead>
-                           <tr>
-                               <th>Cash register</th>
-                               <th>Library</th>
-                               <th>Permitted Staff</th>
-                               <th>Balance</th>
-                               <th>Opened By</th>
-                               <th class="nosort">Actions</th>
-                           </tr>
-                       </thead>
-                       <tbody>
-                           [% FOREACH cashreg IN cash_registers %]
-                           <tr>
-                               <td>[% cashreg.name | html %]</td>
-                               <td>
+    [% IF (action != 'edit') %]
+        <h1> Manage cash registers </h1>
+        <div class="help">
+            <p>Define cash registers and staff members who are authorized to perform cash register transactions.</p>
+            <p>Staff members need to have the permission 'cash_management' activated to perform cash register transactions. Add the permission allowance if you miss staff members in the selection.</p> </div
+        ><!-- help-->
+        <div id="new-cash-register">
+            <div>
+                <form id="new" name="new" action="/cgi-bin/koha/tools/cash-register-management.pl">
+                    <input type="hidden" name="op" value="new" />
+                    <button class="btn btn-default btn-xs" submit=""><i class="fa fa-plus"></i> New cash register</button>
+                </form>
+            </div>
+        </div>
+        <div id="manage-cash-registers">
+            <table id="cashregt">
+                <thead>
+                    <tr>
+                        <th>Cash register</th>
+                        <th>Library</th>
+                        <th>Permitted Staff</th>
+                        <th>Balance</th>
+                        <th>Opened By</th>
+                        <th class="nosort">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    [% FOREACH cashreg IN cash_registers %]
+                        <tr>
+                            <td>[% cashreg.name | html %]</td>
+                            <td>
                                 [% IF (cashreg.no_branch_restriction == 1) %]
                                     All libraries
                                 [% ELSE %]
                                     [% Branches.GetName(cashreg.branchcode) | html %]
                                 [% END %]
-                               </td>
-                               <td>
-                                    [% FOREACH man IN cashreg.managers %]
-                                        [% IF (loop.index > 0) %]<br />[% END %][% man.firstname | html %] [% man.surname | html %]
-                                    [% END %]
-                               </td>
-                               <td>[% cashreg.balance | html %]</td>
-                               <td>[% cashreg.manager_name | html %]</td>
-                               <td class="actions">
-                                   <form method="post" action="/cgi-bin/koha/tools/cash-register-management.pl">
-                                       [% INCLUDE 'csrf-token.inc' %]
-                                       <input type="hidden" name="cash_register_id" value="[% cashreg.id | html %]" />
-                                       <input type="hidden" name="op" value="cud-edit" />
-                                       <button class="btn btn-default btn-xs"><i class="fa fa-pencil"></i> Edit</button>
-                                   </form>
-                               </td>
-                           </tr>
-                           [% END %]
-                       </tbody>
-                    </table>
-                </div>
-                [% END %]
-                [% IF (action == 'edit') %]
-                <h1>
-                    Edit cash register settings
-                </h1>
-                <div  id="edit-cash-register-settings">
-                    <p>
-                    <form name="input" action="/cgi-bin/koha/tools/cash-register-management.pl" method="post">
-                        [% INCLUDE 'csrf-token.inc' %]
-                        <input type="hidden" name="op" value="cud-save" />
-                        <fieldset class="rows">
-                            <legend>[% IF ( cash_register_id ) %]Edit[% ELSE %]New[% END %] cash register settings</legend>
-                            <ol>
-                                <!-- name -->
-                                <li>
-                                    <input type="hidden" name="cash_register_id" value="[% cash_register_id | html %]">
-                                    <label for="cash_register_name">Cash register name: </label>
-                                    <input type="text" name="cash_register_name" id="cash_register_name" size="20" maxlength="100" value="[% cash_register_name | html %]" required="true" />
-                                </li>
-                                
-                                <!-- branch -->
-                                <li>
-                                    <label for="cash_register_branchcode">Library: </label>
-                                    <select name="cash_register_branchcode" id="cash_register_branchcode">
-                                        [% PROCESS options_for_libraries libraries => Branches.all( selected => cash_register_branchcode, restrict => 'NoMobileStations' ) %]
-                                    </select>
-                                </li>
-                                
-                                <!-- permitted staff -->
-                                <li>
-                                    <label for="cash_register_manager">Authorized cash register manager: </label>
-                                    <table style="clear: none">
-                                        <tr>
-                                            <td style="width:15em">Authorized staff members:</td>
-                                            <td></td>
-                                            <td style="width:15em">Staff:</td>
-                                        </tr>
-                                        <tr>
-                                            <td>
-                                                <input type="hidden" id="cash_register_manager_list" name="cash_register_manager_list" value="[% cash_register_id | html %]">
-                                                <select name="cash_register_manager" id="cash_register_manager" size="10" style="width:15em">
-                                                </select>
-                                            </td>
-                                            <td>
-                                                <button name="authorize" id="authorize"><i class="fa fa-arrow-left" aria-hidden="true"></i></button><br />
-                                                <button name="unauthorize" id="unauthorize"><i class="fa fa-arrow-right" aria-hidden="true"></i></button>
-                                            </td>
-                                            <td>
-                                                <select name="cash_register_staffselect" id="cash_register_staffselect" size="10" style="width:15em">
-                                                </select>
-                                            </td>
-                                        </tr>
-                                    </table> 
-                                </li>
-                                <li>
-                                    <label for="no_branch_restriction">Don't restrict use to associated library: </label>[% IF ( cash_register_no_branch_restriction == 1 ) %][% unrestricted = "checked" %][% END %]
-                                    [% IF unrestricted %]
-                                    <input type="checkbox" id="no_branch_restriction" name="cash_register_no_branch_restriction" value="1" checked="checked" />
-                                    [% ELSE %]
-                                    <input type="checkbox" id="no_branch_restriction" name="cash_register_no_branch_restriction" value="1" />
-                                    [% END %]
-                                </li>
-                                
-                                [% IF ( cash_register_id ) %]
-                                <!-- open by -->
-                                <li>
-                                    <label for="created_by_name">Currently opened by: </label>
-                                    <input type="text" name="created_by_name" minsize="40" value="[% cash_register_manager | html %]" readonly="true" />
-                                </li>
-                                <!-- current -->
-                                <li>
-                                    <label for="balance">Account balance: </label>
-                                    <input type="text" name="balance" size="10" value="[% cash_register_balance | html %]" readonly="true" />
-                                </li>
+                            </td>
+                            <td>
+                                [% FOREACH man IN cashreg.managers %]
+                                    [% IF (loop.index > 0) %]<br />[% END %][% man.firstname | html %]
+                                    [% man.surname | html %]
                                 [% END %]
-                                <!-- name -->
-                                <li>
-                                    <label>&nbsp;</label>
-                                    <button class="btn btn-default btn-xs btn-primary" name="op" value="cud-save" id="savedata" type="submit"><i class="fa fa-save"></i> Save</button>
-                                    <button onclick="window.location.href='/cgi-bin/koha/tools/cash-register-management.pl';" class="clear_edit btn btn-default btn-xs" data-bs-dismiss="modal" aria-hidden="true"><i class="fa fa-times"></i> Cancel</button>
-                                    <!-- <a class="cancel" href="/cgi-bin/koha/tools/cash-register-management.pl" class="clear_edit btn btn-default btn-xs">Cancel</a> -->
-                                </li>
-                            </ol>
-                        </fieldset>
-                    </form>
-                    <p>
-                </div>
-                [% END %]
+                            </td>
+                            <td>[% cashreg.balance | html %]</td>
+                            <td>[% cashreg.manager_name | html %]</td>
+                            <td class="actions">
+                                <form method="post" action="/cgi-bin/koha/tools/cash-register-management.pl">
+                                    [% INCLUDE 'csrf-token.inc' %]
+                                    <input type="hidden" name="cash_register_id" value="[% cashreg.id | html %]" />
+                                    <input type="hidden" name="op" value="cud-edit" />
+                                    <button class="btn btn-default btn-xs"><i class="fa fa-pencil"></i> Edit</button>
+                                </form>
+                            </td>
+                        </tr>
+                    [% END %]
+                </tbody>
+            </table>
+        </div>
+    [% END %]
+    [% IF (action == 'edit') %]
+        <h1> Edit cash register settings </h1>
+        <div id="edit-cash-register-settings">
+            <p> </p
+            ><form name="input" action="/cgi-bin/koha/tools/cash-register-management.pl" method="post">
+                [% INCLUDE 'csrf-token.inc' %]
+                <input type="hidden" name="op" value="cud-save" />
+                <fieldset class="rows">
+                    <legend>[% IF ( cash_register_id ) %]Edit[% ELSE %]New[% END %] cash register settings</legend>
+                    <ol>
+                        <!-- name -->
+                        <li>
+                            <input type="hidden" name="cash_register_id" value="[% cash_register_id | html %]" />
+                            <label for="cash_register_name">Cash register name: </label>
+                            <input type="text" name="cash_register_name" id="cash_register_name" size="20" maxlength="100" value="[% cash_register_name | html %]" required="true" />
+                        </li>
+
+                        <!-- branch -->
+                        <li>
+                            <label for="cash_register_branchcode">Library: </label>
+                            <select name="cash_register_branchcode" id="cash_register_branchcode">
+                                [% PROCESS options_for_libraries libraries => Branches.all( selected => cash_register_branchcode, restrict => 'NoMobileStations' ) %]
+                            </select>
+                        </li>
+
+                        <!-- permitted staff -->
+                        <li>
+                            <label for="cash_register_manager">Authorized cash register manager: </label>
+                            <table style="clear: none">
+                                <tr>
+                                    <td style="width:15em">Authorized staff members:</td>
+                                    <td></td>
+                                    <td style="width:15em">Staff:</td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <input type="hidden" id="cash_register_manager_list" name="cash_register_manager_list" value="[% cash_register_id | html %]" />
+                                        <select name="cash_register_manager" id="cash_register_manager" size="10" style="width:15em"> </select>
+                                    </td>
+                                    <td>
+                                        <button name="authorize" id="authorize"><i class="fa fa-arrow-left" aria-hidden="true"></i></button><br />
+                                        <button name="unauthorize" id="unauthorize"><i class="fa fa-arrow-right" aria-hidden="true"></i></button>
+                                    </td>
+                                    <td>
+                                        <select name="cash_register_staffselect" id="cash_register_staffselect" size="10" style="width:15em"> </select>
+                                    </td>
+                                </tr>
+                            </table>
+                        </li>
+                        <li>
+                            <label for="no_branch_restriction">Don't restrict use to associated library: </label>[% IF ( cash_register_no_branch_restriction == 1 ) %][% unrestricted = "checked" %][% END %]
+                            [% IF unrestricted %]
+                                <input type="checkbox" id="no_branch_restriction" name="cash_register_no_branch_restriction" value="1" checked="checked" />
+                            [% ELSE %]
+                                <input type="checkbox" id="no_branch_restriction" name="cash_register_no_branch_restriction" value="1" />
+                            [% END %]
+                        </li>
+
+                        [% IF ( cash_register_id ) %]
+                            <!-- open by -->
+                            <li>
+                                <label for="created_by_name">Currently opened by: </label>
+                                <input type="text" name="created_by_name" minsize="40" value="[% cash_register_manager | html %]" readonly="true" />
+                            </li>
+                            <!-- current -->
+                            <li>
+                                <label for="balance">Account balance: </label>
+                                <input type="text" name="balance" size="10" value="[% cash_register_balance | html %]" readonly="true" />
+                            </li>
+                        [% END %]
+                        <!-- name -->
+                        <li>
+                            <label>&nbsp;</label>
+                            <button class="btn btn-default btn-xs btn-primary" name="op" value="cud-save" id="savedata" type="submit"><i class="fa fa-save"></i> Save</button>
+                            <button onclick="window.location.href='/cgi-bin/koha/tools/cash-register-management.pl';" class="clear_edit btn btn-default btn-xs" data-bs-dismiss="modal" aria-hidden="true"
+                                ><i class="fa fa-times"></i> Cancel</button
+                            >
+                            <!-- <a class="cancel" href="/cgi-bin/koha/tools/cash-register-management.pl" class="clear_edit btn btn-default btn-xs">Cancel</a> -->
+                        </li>
+                    </ol>
+                </fieldset>
+            </form>
+            <p> </p
+        ></div>
+    [% END %]
 [% END %]
 
 [% MACRO jsinclude BLOCK %]
@@ -203,14 +200,14 @@
                 $.each( enabledStaff, function( i, l ) {
                         $('#cash_register_manager').append( '<option value=' + l.borrowernumber + '>' + l.name + '</option>' );
                 });
-                
+
                 if ( permittedStaff.length > 0 ) {
                     $("#cash_register_staffselect").val($("#cash_register_staffselect option:first").val());
                 }
                 if ( enabledStaff.length > 0 ) {
                 $("#cash_register_manager").val($("#cash_register_manager option:first").val());
             }
-                
+
                 $('#authorize').click( function(event) {
                                 event.preventDefault();
                                 if ($('#cash_register_staffselect option:selected').length > 0) {
@@ -237,8 +234,8 @@
                     var arr = $('#cash_register_manager').find("option").map(function() { return this.value; }).get();
                     $("#cash_register_manager_list").val(arr.join());
                 });
-                
-                
+
+
         });
     </script>
 [% END %]

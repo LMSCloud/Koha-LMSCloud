@@ -1,16 +1,16 @@
 [% INCLUDE 'doc-head-open.inc' %]
 [% USE raw %]
-    <title>ILL print notices for [% today | html %]</title>
+<title>ILL print notices for [% today | html %]</title>
 
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    [% IF ( stylesheet ) %]
-    <link rel="stylesheet" type="text/css" href="[% stylesheet | url %]">
-    [% END %]
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+[% IF ( stylesheet ) %]
+    <link rel="stylesheet" type="text/css" href="[% stylesheet | url %]" />
+[% END %]
 </head>
 <body id="batch_print-notices" class="batch">
-    [% FOREACH message IN messages %]
-        [% message.content | $raw %]
-    [% END %]
+[% FOREACH message IN messages %]
+    [% message.content | $raw %]
+[% END %]
 </body>
 <!-- prettier-ignore-start -->
 </html>

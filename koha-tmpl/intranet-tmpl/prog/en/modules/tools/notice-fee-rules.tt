@@ -27,62 +27,64 @@
 [% branches = Branches.all( selected => branch, restrict => 'NoMobileStations' ) %]
 
 [% WRAPPER 'main-container.inc' aside='tools-menu' %]
-                <h1>
-                    [% IF ( branch && branch != '*' ) %]
-                    Defining rules for notice fees: [% Branches.GetName( branch ) | html %]
-                    [% ELSE %]
-                    Defining rules for notice fees: all libraries
-                    [% END %]
-                </h1>
-                <div class="help">
-                    <p>The rules are applied from most specific to less specific, using the first found in this order:</p>
-                    <ul>
-                    <li>same library, same patron type, same letter, same message transport type</li>
-                    <li>same library, same patron type, same letter, all message transport types</li>
-                    <li>same library, same patron type, all letters, same message transport type</li>
-                    <li>same library, same patron type, all letters, all message transport types</li>
-                    <li>same library, all patron types, same letter, same message transport type</li>
-                    <li>same library, all patron types, same letter, all message transport types</li>
-                    <li>same library, all patron types, all letters, same message transport type</li>
-                    <li>same library, all patron types, all letters, all message transport types</li>
-                    <li>default (all libraries), same patron type, same letter, same message transport type</li>
-                    <li>default (all libraries), same patron type, same letter, all message transport types</li>
-                    <li>default (all libraries), same patron type, all letters, same message transport type</li>
-                    <li>default (all libraries), same patron type, all letters, all message transport types</li>
-                    <li>default (all libraries), all patron types, same letter, same message transport type</li>
-                    <li>default (all libraries), all patron types, same letter, all message transport types</li>
-                    <li>default (all libraries), all patron types, all letters, same message transport type</li>
-                    <li>default (all libraries), all patron types, all letters, all message transport types</li>
-                    </ul>
-                    <p>To modify a rule, create a new one with the same patron type, message transport type, and letter (code) selection</p>
-                </div><!-- help-->
+    <h1>
+        [% IF ( branch && branch != '*' ) %]
+            Defining rules for notice fees: [% Branches.GetName( branch ) | html %]
+        [% ELSE %]
+            Defining rules for notice fees: all libraries
+        [% END %]
+    </h1>
+    <div class="help">
+        <p>The rules are applied from most specific to less specific, using the first found in this order:</p>
+        <ul>
+            <li>same library, same patron type, same letter, same message transport type</li>
+            <li>same library, same patron type, same letter, all message transport types</li>
+            <li>same library, same patron type, all letters, same message transport type</li>
+            <li>same library, same patron type, all letters, all message transport types</li>
+            <li>same library, all patron types, same letter, same message transport type</li>
+            <li>same library, all patron types, same letter, all message transport types</li>
+            <li>same library, all patron types, all letters, same message transport type</li>
+            <li>same library, all patron types, all letters, all message transport types</li>
+            <li>default (all libraries), same patron type, same letter, same message transport type</li>
+            <li>default (all libraries), same patron type, same letter, all message transport types</li>
+            <li>default (all libraries), same patron type, all letters, same message transport type</li>
+            <li>default (all libraries), same patron type, all letters, all message transport types</li>
+            <li>default (all libraries), all patron types, same letter, same message transport type</li>
+            <li>default (all libraries), all patron types, same letter, all message transport types</li>
+            <li>default (all libraries), all patron types, all letters, same message transport type</li>
+            <li>default (all libraries), all patron types, all letters, all message transport types</li>
+        </ul>
+        <p>To modify a rule, create a new one with the same patron type, message transport type, and letter (code) selection</p> </div
+    ><!-- help-->
 
-                <div>
-                    <div>
-                    <form method="get" action="/cgi-bin/koha/tools/notice-fee-rules.pl" id="selectlibrary">
-                    Select a library :
-                        <select name="branch" id="branch" style="width:20em;">
-                            <option value="*">Default</option>
-                            [% PROCESS options_for_libraries libraries => branches %]
-                        </select>
-                    </form>
-                    [% IF ( definedbranch ) %]
-                    <form action="/cgi-bin/koha/tools/notice-fee-rules.pl" method="post">
-                        [% INCLUDE 'csrf-token.inc' %]
-                        <label for="tobranch"><strong>Clone these rules to:</strong></label><input type="hidden" name="frombranch" value="[% branch | html %]" /><input type="hidden" name="op" value="cud-cloneRules" />
-                        <select name="tobranch" id="tobranch">
-                            [% PROCESS options_for_libraries libraries => branches %]
-                        </select> <input type="submit" value="Clone" />
-                    </form>
-                    [% END %]
-                    </div>
-                    <div>
-                    <form id="saveRule" method="post" action="/cgi-bin/koha/tools/notice-fee-rules.pl">
-                        [% INCLUDE 'csrf-token.inc' %]
-                        <input type="hidden" name="op" value="cud-addRule" />
-                        <input type="hidden" name="branch" value="[% branch | html %]"/>
-                        <table id="notice-fee-rules">
-                        <thead>
+    <div>
+        <div>
+            <form method="get" action="/cgi-bin/koha/tools/notice-fee-rules.pl" id="selectlibrary">
+                Select a library :
+                <select name="branch" id="branch" style="width:20em;">
+                    <option value="*">Default</option>
+                    [% PROCESS options_for_libraries libraries => branches %]
+                </select>
+            </form>
+            [% IF ( definedbranch ) %]
+                <form action="/cgi-bin/koha/tools/notice-fee-rules.pl" method="post">
+                    [% INCLUDE 'csrf-token.inc' %]
+                    <label for="tobranch"><strong>Clone these rules to:</strong></label
+                    ><input type="hidden" name="frombranch" value="[% branch | html %]" /><input type="hidden" name="op" value="cud-cloneRules" />
+                    <select name="tobranch" id="tobranch">
+                        [% PROCESS options_for_libraries libraries => branches %]
+                    </select>
+                    <input type="submit" value="Clone" />
+                </form>
+            [% END %]
+        </div>
+        <div>
+            <form id="saveRule" method="post" action="/cgi-bin/koha/tools/notice-fee-rules.pl">
+                [% INCLUDE 'csrf-token.inc' %]
+                <input type="hidden" name="op" value="cud-addRule" />
+                <input type="hidden" name="branch" value="[% branch | html %]" />
+                <table id="notice-fee-rules">
+                    <thead>
                         <tr>
                             <th>Patron category</th>
                             <th>Letter</th>
@@ -90,149 +92,157 @@
                             <th>Notice fee</th>
                             <th>Action</th>
                         </tr>
-                        </thead>
-                        <tbody>
+                    </thead>
+                    <tbody>
                         [% FOREACH rule IN rules %]
-                        <tr id="row_[% loop.count | html %]">
-                            <td>
-                            [% IF ( rule.default_humancategorycode ) %]
-                                <em>All</em>
-                            [% ELSE %]
-                                [% rule.humancategorycode | html %]
-                            [% END %]
-                            </td>
-                            <td>
-                            [% IF rule.letter_code == '*' %]
-                                <em>All</em>
-                            [% ELSE %]
-                                [% FOREACH letter IN letters %]
-                                [% IF (rule.letter_code == letter.code) %]
-                                    [% letter.name | html %]
-                                [% END %]
-                                [% END %]
-                            [% END %]
-                            </td>
-                            <td>
-                            [% IF rule.message_transport_type == '*' %]
-                                <em>All</em>
-                            [% ELSE %]
-                                [% SWITCH rule.message_transport_type %]
-                                [% CASE 'email' %]
-                                  Email
-                                [% CASE 'print' %]
-                                  Print
-                                [% CASE 'sms' %]
-                                  SMS
-                                [% CASE 'feed' %]
-                                  Feed
-                                [% CASE 'phone' %]
-                                  Phone
-                                [% CASE %]
-                                  [% rule.message_transport_type | html %]
-                                [% END %]
-                            [% END %]
-                            </td>
-                            <td>
-                            [% rule.notice_fee | html %]
-                            </td>
-                            <td class="actions">
-                            <a href="#" class="editrule btn btn-default btn-xs"><i class="fa fa-pencil"></i> Edit</a>
-                            <a class="btn btn-default btn-xs delete" href="#" data-message_transport_type="[% rule.message_transport_type | html %]" data-categorycode="[% rule.categorycode | html %]" data-branch="[% rule.current_branch | html %]" data-letter_code="[% rule.letter_code | html %]"><i class="fa fa-trash"></i> Delete</a>
-                            </td>
-                         </tr>
+                            <tr id="row_[% loop.count | html %]">
+                                <td>
+                                    [% IF ( rule.default_humancategorycode ) %]
+                                        <em>All</em>
+                                    [% ELSE %]
+                                        [% rule.humancategorycode | html %]
+                                    [% END %]
+                                </td>
+                                <td>
+                                    [% IF rule.letter_code == '*' %]
+                                        <em>All</em>
+                                    [% ELSE %]
+                                        [% FOREACH letter IN letters %]
+                                            [% IF (rule.letter_code == letter.code) %]
+                                                [% letter.name | html %]
+                                            [% END %]
+                                        [% END %]
+                                    [% END %]
+                                </td>
+                                <td>
+                                    [% IF rule.message_transport_type == '*' %]
+                                        <em>All</em>
+                                    [% ELSE %]
+                                        [% SWITCH rule.message_transport_type %]
+                                        [% CASE 'email' %]
+                                            Email
+                                        [% CASE 'print' %]
+                                            Print
+                                        [% CASE 'sms' %]
+                                            SMS
+                                        [% CASE 'feed' %]
+                                            Feed
+                                        [% CASE 'phone' %]
+                                            Phone
+                                        [% CASE %]
+                                            [% rule.message_transport_type | html %]
+                                        [% END %]
+                                    [% END %]
+                                </td>
+                                <td> [% rule.notice_fee | html %] </td>
+                                <td class="actions">
+                                    <a href="#" class="editrule btn btn-default btn-xs"><i class="fa fa-pencil"></i> Edit</a>
+                                    <a
+                                        class="btn btn-default btn-xs delete"
+                                        href="#"
+                                        data-message_transport_type="[% rule.message_transport_type | html %]"
+                                        data-categorycode="[% rule.categorycode | html %]"
+                                        data-branch="[% rule.current_branch | html %]"
+                                        data-letter_code="[% rule.letter_code | html %]"
+                                        ><i class="fa fa-trash"></i> Delete</a
+                                    >
+                                </td>
+                            </tr>
                         [% END %]
                         <tr id="edit_row">
                             <td>
-                            <select name="categorycode" id="categorycode">
-                                <option value="*">All</option>
-                                [% FOREACH categoryloo IN categoryloop %]
-                                <option value="[% categoryloo.categorycode | html %]">[% categoryloo.description | html %]</option>
-                                [% END %]
-                            </select>
+                                <select name="categorycode" id="categorycode">
+                                    <option value="*">All</option>
+                                    [% FOREACH categoryloo IN categoryloop %]
+                                        <option value="[% categoryloo.categorycode | html %]">[% categoryloo.description | html %]</option>
+                                    [% END %]
+                                </select>
                             </td>
                             <td>
-                            <select name="letter_code" id="letter_code">
-                                <option value="*">All</option>
-                                [% FOREACH letter IN letters %]
-                                <option value="[% letter.code | html %]">[% letter.name | html %]</option>
-                                [% END %]
-                            </select>
+                                <select name="letter_code" id="letter_code">
+                                    <option value="*">All</option>
+                                    [% FOREACH letter IN letters %]
+                                        <option value="[% letter.code | html %]">[% letter.name | html %]</option>
+                                    [% END %]
+                                </select>
                             </td>
                             <td>
-                            <select name="message_transport_type" id="message_transport_type">
-                                <option value="*">All</option>
-                                [% FOREACH message_transport_type IN message_transport_types %]
-                                <option value="[% message_transport_type | html %]">
-                                [% SWITCH message_transport_type %]
-                                [% CASE 'email' %]
-                                  Email
-                                [% CASE 'print' %]
-                                  Print
-                                [% CASE 'sms' %]
-                                  SMS
-                                [% CASE 'feed' %]
-                                  Feed
-                                [% CASE 'phone' %]
-                                  Phone
-                                [% CASE %]
-                                  [% message_transport_type | html %]
-                                [% END %]
-                                </option>
-                                [% END %]
-                            </select>
+                                <select name="message_transport_type" id="message_transport_type">
+                                    <option value="*">All</option>
+                                    [% FOREACH message_transport_type IN message_transport_types %]
+                                        <option value="[% message_transport_type | html %]">
+                                            [% SWITCH message_transport_type %]
+                                            [% CASE 'email' %]
+                                                Email
+                                            [% CASE 'print' %]
+                                                Print
+                                            [% CASE 'sms' %]
+                                                SMS
+                                            [% CASE 'feed' %]
+                                                Feed
+                                            [% CASE 'phone' %]
+                                                Phone
+                                            [% CASE %]
+                                                [% message_transport_type | html %]
+                                            [% END %]
+                                        </option>
+                                    [% END %]
+                                </select>
                             </td>
                             <td>
-                            <input type="number" min="0.00" max="99999.99" step="0.01" name="notice_fee" id="notice_fee" size="5" />
+                                <input type="number" min="0.00" max="99999.99" step="0.01" name="notice_fee" id="notice_fee" size="5" />
                             </td>
                             <td class="actions">
-                            <input type="hidden" name="branch" value="[% branch | html %]"/>
-                            <button type="submit" class="btn btn-default btn-xs"><i class="fa fa-save"></i> Save</button>
-                            <button name="cancel" onclick="clear_edit();return false;" class="clear_edit btn btn-default btn-xs"><i class="fa fa-undo"></i> Clear</button>
+                                <input type="hidden" name="branch" value="[% branch | html %]" />
+                                <button type="submit" class="btn btn-default btn-xs"><i class="fa fa-save"></i> Save</button>
+                                <button name="cancel" onclick="clear_edit();return false;" class="clear_edit btn btn-default btn-xs"><i class="fa fa-undo"></i> Clear</button>
                             </td>
                         </tr>
-                        </tbody>
-                    </table>
-                    </form>
+                    </tbody>
+                </table>
+            </form>
 
-                    <!-- This is a placeholder form to be filled by JS functions attached to buttons/links -->
-                    <form id="delete_form" method="post" action="/cgi-bin/koha/tools/notice-fee-rules.pl">
-                        [% INCLUDE 'csrf-token.inc' %]
-                        <input type="hidden" name="op" value="cud-deleteRule" />
-                        <input type="hidden" name="message_transport_type" value="" />
-                        <input type="hidden" name="categorycode" value="" />
-                        <input type="hidden" name="branch" value="" />
-                        <input type="hidden" name="letter_code" value="" />
-                    </form>
-                    </div>
-                </div>
+            <!-- This is a placeholder form to be filled by JS functions attached to buttons/links -->
+            <form id="delete_form" method="post" action="/cgi-bin/koha/tools/notice-fee-rules.pl">
+                [% INCLUDE 'csrf-token.inc' %]
+                <input type="hidden" name="op" value="cud-deleteRule" />
+                <input type="hidden" name="message_transport_type" value="" />
+                <input type="hidden" name="categorycode" value="" />
+                <input type="hidden" name="branch" value="" />
+                <input type="hidden" name="letter_code" value="" />
+            </form>
+        </div>
+    </div>
 [% END %]
 
 [% MACRO jsinclude BLOCK %]
     [% Asset.js("js/tools-menu.js") | $raw %]
     <script type="text/javascript">
-        function clear_edit(){
-            $('#default-claiming-rules td').removeClass('highlighted-row');
+        function clear_edit() {
+            $("#default-claiming-rules td").removeClass("highlighted-row");
             var edit_row = $("#edit_row");
-            $(edit_row).find("input").each(function(){
-                var type = $(this).attr("type");
-                if (type != "button" && type != "submit" ) {
-                    $(this).val("");
-                    $(this).prop('disabled', false);
-                }
-                if ( type == "checkbox" ) {
-                    $(this).prop('checked', true);
-                }
-            });
-            $(edit_row).find("select").prop('disabled', false);
-            $(edit_row).find("select option:selected").prop('selected', false);
+            $(edit_row)
+                .find("input")
+                .each(function () {
+                    var type = $(this).attr("type");
+                    if (type != "button" && type != "submit") {
+                        $(this).val("");
+                        $(this).prop("disabled", false);
+                    }
+                    if (type == "checkbox") {
+                        $(this).prop("checked", true);
+                    }
+                });
+            $(edit_row).find("select").prop("disabled", false);
+            $(edit_row).find("select option:selected").prop("selected", false);
             $(edit_row).find("select option:first").attr("selected", "selected");
             $(edit_row).find("td:last input[name='clear']").remove();
         }
 
-        $(document).ready(function() {
-            $('#selectlibrary').find("input:submit").hide();
-            $('#branch').change(function() {
-                    $('#selectlibrary').submit();
+        $(document).ready(function () {
+            $("#selectlibrary").find("input:submit").hide();
+            $("#branch").change(function () {
+                $("#selectlibrary").submit();
             });
 
             $(".delete").on("click", function (e) {
@@ -248,40 +258,48 @@
                 return f.submit();
             });
 
-            $(".editrule").click(function(){
-            $('#notice-fee-rules td').removeClass('highlighted-row');
+            $(".editrule").click(function () {
+                $("#notice-fee-rules td").removeClass("highlighted-row");
 
-            $(this).parent().parent().find("td").each(function (i) {
-                $(this).addClass('highlighted-row');
-                itm = $(this).text();
-                itm = itm.replace(/^\s*|\s*$/g,'');
-                var current_column = $("#edit_row td:eq("+i+")");
+                $(this)
+                    .parent()
+                    .parent()
+                    .find("td")
+                    .each(function (i) {
+                        $(this).addClass("highlighted-row");
+                        itm = $(this).text();
+                        itm = itm.replace(/^\s*|\s*$/g, "");
+                        var current_column = $("#edit_row td:eq(" + i + ")");
 
-                $(current_column).find("input[type='number']").val(itm);
-                $(current_column).find("input[type='text']").val(itm);
-                // select the corresponding option
-                if ( i == 1 ) {
-                $(current_column).find("#letter_code option").each(function(){
-                    opt = $(this).text().normalize().toLowerCase();
-                    opt = opt.replace(/^\s*|\s*$/g,'');
-                    
-                    if ( opt == itm.normalize().toLowerCase() ) {
-                    $(this).attr('selected', 'selected');
-                    }
-                });
-                }
-                if ( i != 1 ) {
-                $(current_column).find("select option").each(function(){
-                    opt = $(this).text().normalize().toLowerCase();
-                    opt = opt.replace(/^\s*|\s*$/g,'');
-                    
-                    if ( opt == itm.normalize().toLowerCase() ) {
-                    $(this).attr('selected', 'selected');
-                    }
-                });
-                    }
-            });
-            return false;
+                        $(current_column).find("input[type='number']").val(itm);
+                        $(current_column).find("input[type='text']").val(itm);
+                        // select the corresponding option
+                        if (i == 1) {
+                            $(current_column)
+                                .find("#letter_code option")
+                                .each(function () {
+                                    opt = $(this).text().normalize().toLowerCase();
+                                    opt = opt.replace(/^\s*|\s*$/g, "");
+
+                                    if (opt == itm.normalize().toLowerCase()) {
+                                        $(this).attr("selected", "selected");
+                                    }
+                                });
+                        }
+                        if (i != 1) {
+                            $(current_column)
+                                .find("select option")
+                                .each(function () {
+                                    opt = $(this).text().normalize().toLowerCase();
+                                    opt = opt.replace(/^\s*|\s*$/g, "");
+
+                                    if (opt == itm.normalize().toLowerCase()) {
+                                        $(this).attr("selected", "selected");
+                                    }
+                                });
+                        }
+                    });
+                return false;
             });
         });
     </script>

@@ -218,10 +218,14 @@
                                         <li>
                                             <label>Opened cash register:</label>
                                             <span>
-                                                [% IF lms_payment_type == 'SEPA' %]<i class="fa fa-university" aria-hidden="true"></i>
-                                                [% ELSIF lms_payment_type == 'ONLINE' %]<i class="fa fa-credit-card" aria-hidden="true"></i>
-                                                [% ELSIF lms_payment_type == 'SIP00' %]<i class="fa fa-money-bill" aria-hidden="true"></i>
-                                                [% ELSE %]<i class="fa fa-euro-sign" aria-hidden="true"></i>
+                                                [% IF lms_payment_type == 'SEPA' %]
+                                                    <i class="fa fa-university" aria-hidden="true"></i>
+                                                [% ELSIF lms_payment_type == 'ONLINE' %]
+                                                    <i class="fa fa-credit-card" aria-hidden="true"></i>
+                                                [% ELSIF lms_payment_type == 'SIP00' %]
+                                                    <i class="fa fa-money-bill" aria-hidden="true"></i>
+                                                [% ELSE %]
+                                                    <i class="fa fa-euro-sign" aria-hidden="true"></i>
                                                 [% END %]
                                                 [% openedCashRegister.name | html %]
                                             </span>
@@ -553,10 +557,14 @@
                                             <li>
                                                 <label>Opened cash register:</label>
                                                 <span>
-                                                    [% IF lms_payment_type == 'SEPA' %]<i class="fa fa-university" aria-hidden="true"></i>
-                                                    [% ELSIF lms_payment_type == 'ONLINE' %]<i class="fa fa-credit-card" aria-hidden="true"></i>
-                                                    [% ELSIF lms_payment_type == 'SIP00' %]<i class="fa fa-money-bill" aria-hidden="true"></i>
-                                                    [% ELSE %]<i class="fa fa-euro-sign" aria-hidden="true"></i>
+                                                    [% IF lms_payment_type == 'SEPA' %]
+                                                        <i class="fa fa-university" aria-hidden="true"></i>
+                                                    [% ELSIF lms_payment_type == 'ONLINE' %]
+                                                        <i class="fa fa-credit-card" aria-hidden="true"></i>
+                                                    [% ELSIF lms_payment_type == 'SIP00' %]
+                                                        <i class="fa fa-money-bill" aria-hidden="true"></i>
+                                                    [% ELSE %]
+                                                        <i class="fa fa-euro-sign" aria-hidden="true"></i>
                                                     [% END %]
                                                     [% openedCashRegister.name | html %]
                                                 </span>
@@ -630,7 +638,7 @@
             </div>
         </div>
     </div>
-  </div>
+</div>
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'str/members-menu.inc' %]
@@ -753,7 +761,6 @@
 
             $('#modal_change').html(change.innerHTML);
         }
-        
     </script>
 [% END %]
 

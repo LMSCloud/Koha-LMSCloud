@@ -10,19 +10,21 @@
 [% PROCESS 'patron-search.inc' %]
 <title>Patron search &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
-<style> .modal-body .close { display: none; } </style>[%# FIXME This is not great, we should make members/memberentrygen.tt use a modal as well and we won't need that here %]
+<style>
+    .modal-body .close {
+        display: none;
+    }</style
+>[%# FIXME This is not great, we should make members/memberentrygen.tt use a modal as well and we won't need that here %]
 </head>
 
 <body id="common_patron_search" class="common">
 <div id="patron_search">
     <div class="container-fluid">
-
         [% PROCESS patron_search_filters categories => categories, libraries => libraries, filters => ['branch', 'category'], search_filter => searchmember %]
 
         [% PROCESS patron_search_table table_id => 'memberresultst' columns => columns %]
 
         <div id="closewindow"><a href="#" class="btn btn-default btn-default close">Close</a></div>
-
     </div>
 </div>
 

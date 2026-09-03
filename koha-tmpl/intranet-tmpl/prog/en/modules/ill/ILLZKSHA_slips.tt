@@ -1,33 +1,35 @@
-
 <title>Print all ILL order slips</title>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <link rel="shortcut icon" href="[% IF ( IntranetFavicon ) %][% IntranetFavicon | html %][% ELSE %][% interface | html %]/[% theme | html %]/img/favicon.ico[% END %]" type="image/x-icon" />
 
-    <style type="text/css">
-        @media screen {
+<style type="text/css">
+    @media screen {
         .message {
             color: black;
             background-color: white;
             display: block;
             page-break-after: always;
-            border-bottom: 1px solid black; 
+            border-bottom: 1px solid black;
             font-weight: bold;
         }
     }
-    </style>
+</style>
 
 </head>
 
 <body id="ill_slips_print_all" class="batch">
 
-    [% FOREACH generatedSlip IN generatedSlips %]
-        <div class="message">
-            <iframe id="ProcessingSlip_[% generatedSlip.illrequestid | html %]" style="height:271mm; width:184mm; border:none; margin-top: -2mm; margin-bottom: 0mm; margin-left: -2mm; margin-right: 0mm;"
-                title="ProcessingSlip [% generatedSlip.illrequestid | html %]"
-                src="https:/cgi-bin/koha/tools/download-files.pl?filename=[% generatedSlip.filename | uri %]&op=download">
-            </iframe>
-        </div>
-    [% END %]
+[% FOREACH generatedSlip IN generatedSlips %]
+    <div class="message">
+        <iframe
+            id="ProcessingSlip_[% generatedSlip.illrequestid | html %]"
+            style="height:271mm; width:184mm; border:none; margin-top: -2mm; margin-bottom: 0mm; margin-left: -2mm; margin-right: 0mm;"
+            title="ProcessingSlip [% generatedSlip.illrequestid | html %]"
+            src="https:/cgi-bin/koha/tools/download-files.pl?filename=[% generatedSlip.filename | uri %]&op=download"
+        >
+        </iframe>
+    </div>
+[% END %]
 
 </body>
 <!-- prettier-ignore-start -->

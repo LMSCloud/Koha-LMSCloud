@@ -225,7 +225,8 @@
                                                             [% IF rownum < numrows %]
                                                                 [% itemtypeloo = advsearchloo.code_loop.$rownum %]
                                                                 [% IF (advsearchloo.advanced_search_type != 'itemtypes') OR (((!itemtypeloo.searchcategory) AND (itemtypeloo.cat == 0)) OR (itemtypeloo.cat == 1)) %]
-                                                                    <input type="checkbox"
+                                                                    <input
+                                                                        type="checkbox"
                                                                         id="[% itemtypeloo.ccl FILTER remove(',') | html %]-[% itemtypeloo.number | html %]"
                                                                         name="[% IF ( itemtypeloo.cat == 1 ) %]searchcat[% ELSE %]limit[% END %]"
                                                                         value="[% IF ( itemtypeloo.cat == 1 ) %][% itemtypeloo.code | html %][% ELSE %]mc-[% itemtypeloo.ccl | html %]:[% itemtypeloo.code | html %][% END %]"
@@ -237,8 +238,8 @@
                                                                             [% END %]
                                                                             &nbsp;
                                                                         [% END %]
-                                                                        <span class="itypetext">[% itemtypeloo.description | html %]</span>
-                                                                    </label><br />
+                                                                        <span class="itypetext">[% itemtypeloo.description | html %]</span> </label
+                                                                    ><br />
                                                                 [% END # IF advsearchloo.advanced_search_type %]
                                                             [% END # rownum < numrows %]
                                                         [% END # FOREACH rownum %]
@@ -253,10 +254,10 @@
                     </div>
                     <!-- / .col -->
                 [% END # /IF OpacAdvSearchOptions %]
-            </div> <!-- /.row -->
-            
-           <div id="age_limits" class="row">
-           
+            </div>
+            <!-- /.row -->
+
+            <div id="age_limits" class="row">
                 <div class="col-sm-6 col-lg-3">
                     <div id="age" class="advsearch_limit">
                         <fieldset>
@@ -273,7 +274,7 @@
                         </fieldset>
                     </div>
                 </div>
-                
+
                 <div class="col-sm-6 col-lg-3">
                     <div id="usk" class="advsearch_limit">
                         <fieldset>
@@ -293,7 +294,7 @@
                         </fieldset>
                     </div>
                 </div>
-            
+
                 <div class="col-sm-6 col-lg-3">
                     <div id="fsk" class="advsearch_limit">
                         <fieldset>
@@ -403,7 +404,7 @@
                             <fieldset>
                                 <label for="limit-copydate">Publication date range</label>
                                 <input type="text" size="30" id="limit-copydate" name="limit-copydate" title="Enter search terms" value="" />
-                                <div class="hint">For example:  1999-2001.  You could also use "-1987" for everything published in and before 1987 or "2008-" for everything published in 2008 and after.</div>
+                                <div class="hint">For example: 1999-2001. You could also use "-1987" for everything published in and before 1987 or "2008-" for everything published in 2008 and after.</div>
                             </fieldset>
                             <!-- /PUB RANGE OPTION -->
                         </div>
@@ -586,126 +587,126 @@
     [% Asset.js("lib/jquery/plugins/jquery.deserialize.min.js") | $raw %]
     <script>
         window.addEventListener('pageshow', function( e ){
-            $('.form-control:visible').prop('disabled' , false );
-        });
-        $(document).ready(function() {
-            [% IF search_groups %]
-                function branch_limit() {
-                    if( $("#branchloop").val() != "" ){
-                        $("#categoryloop").val("").prop('disabled',true);
-                    } else {
-                        $("#categoryloop").prop('disabled',false);
+                $('.form-control:visible').prop('disabled' , false );
+            });
+            $(document).ready(function() {
+                [% IF search_groups %]
+                    function branch_limit() {
+                        if( $("#branchloop").val() != "" ){
+                            $("#categoryloop").val("").prop('disabled',true);
+                        } else {
+                            $("#categoryloop").prop('disabled',false);
+                        }
+                        if ( $("#categoryloop").val() != "" ){
+                            $("#branchloop").val("").prop('disabled',true);
+                        } else {
+                            $("#branchloop").prop('disabled',false);
+                        }
                     }
-                    if ( $("#categoryloop").val() != "" ){
-                        $("#branchloop").val("").prop('disabled',true);
-                    } else {
-                        $("#branchloop").prop('disabled',false);
-                    }
-                }
-                branch_limit();
-                $("#branchloop,#categoryloop").on("change",function(){
                     branch_limit();
-                });
-            [% END %]
+                    $("#branchloop,#categoryloop").on("change",function(){
+                        branch_limit();
+                    });
+                [% END %]
 
-            if( $("#advsearches .tab-pane.active").length < 1 ){
-                $("#advsearches li:first a").tab("show");
-            }
+                if( $("#advsearches .tab-pane.active").length < 1 ){
+                    $("#advsearches li:first a").tab("show");
+                }
 
-            $('.search-term-row .search-term-input select[name="op"]').first().prop("disabled",true).hide();
+                $('.search-term-row .search-term-input select[name="op"]').first().prop("disabled",true).hide();
 
-    [% IF ( ReturnToSearch ) %]
-        if (form_serialized = JSON.parse( Cookies.get("form_serialized") ) ) {
-            // Add missing term inputs if there were more than 3
-            var count = (form_serialized.match(/&q=/g) || []).length;
-            for(var i = 3 ; i < count ; i++) {
-                $("a.ButtonPlus:last").click();
+        [% IF ( ReturnToSearch ) %]
+            if (form_serialized = JSON.parse( Cookies.get("form_serialized") ) ) {
+                // Add missing term inputs if there were more than 3
+                var count = (form_serialized.match(/&q=/g) || []).length;
+                for(var i = 3 ; i < count ; i++) {
+                    $("a.ButtonPlus:last").click();
+                }
+                $('#advsearch form').deserialize(form_serialized);
             }
-            $('#advsearch form').deserialize(form_serialized);
-        }
-        if (form_serialized_limits = JSON.parse( Cookies.get("form_serialized_limits") ) ) {
-            $('#language-limit')     .val(form_serialized_limits[0]);
-            $('#branchloop')         .val(form_serialized_limits[1]);
-            $('#subtype_audience')   .val(form_serialized_limits[2]);
-            $('#subtype_content')    .val(form_serialized_limits[3]);
-            $('#subtype_format')     .val(form_serialized_limits[4]);
-            $('#subtype_additional') .val(form_serialized_limits[5]);
-            $('#locloop')            .val(form_serialized_limits[6]);
-            $('#age-limit')          .val(form_serialized_limits[7]);
-            $('#fsk-limit')          .val(form_serialized_limits[8]);
-            $('#usk-limit')          .val(form_serialized_limits[9]);
-        }
-    [% ELSE %]
-        //Clear all form cookies
-        Cookies.remove("form_serialized", { path: '/'});
-        Cookies.remove("form_serialized_limits", { path: '/'});
-        Cookies.remove("search_path_code", { path: '/'});
-    [% END %]
-    $('#advsearch_form').submit(function() {
-        $('[name^="limit"]').each(function(){
-            if( $(this).val() == '' ){
-                $(this).prop("disabled","disabled");
+            if (form_serialized_limits = JSON.parse( Cookies.get("form_serialized_limits") ) ) {
+                $('#language-limit')     .val(form_serialized_limits[0]);
+                $('#branchloop')         .val(form_serialized_limits[1]);
+                $('#subtype_audience')   .val(form_serialized_limits[2]);
+                $('#subtype_content')    .val(form_serialized_limits[3]);
+                $('#subtype_format')     .val(form_serialized_limits[4]);
+                $('#subtype_additional') .val(form_serialized_limits[5]);
+                $('#locloop')            .val(form_serialized_limits[6]);
+                $('#age-limit')          .val(form_serialized_limits[7]);
+                $('#fsk-limit')          .val(form_serialized_limits[8]);
+                $('#usk-limit')          .val(form_serialized_limits[9]);
             }
-        });
-        $(".search-term-row").each(function(){
-            if( $(this).find('input[name="q"]').val() == "" ){
-                $(this).find('input[name="q"]').prop("disabled","disabled");
-                $(this).find('select[name="op"]').prop("disabled","disabled");
-                $(this).find('select[name="idx"]').prop("disabled","disabled");
-            }
-        });
-        form_serialized = $(this).serialize();
-        Cookies.set("form_serialized", JSON.stringify( form_serialized ), { path: '/', sameSite: 'Lax' });
-        form_serialized_limits = [
-            $('#language-limit').val(),   $('#branchloop').val(),
-            $('#subtype_audience').val(), $('#subtype_content').val(),
-            $('#subtype_format').val(),   $('#subtype_additional').val(),
-            $('#locloop').val(),          $('#age-limit').val(),
-            $('#fsk-limit').val(),        $('#usk-limit').val()
-        ];
-        Cookies.set("form_serialized_limits", JSON.stringify( form_serialized_limits ),{ path: '/', sameSite: 'Lax' });
-        [% IF ( expanded_options ) %]
-            Cookies.set("search_path_code", 'exs', { path: '/', sameSite: 'Lax' });
         [% ELSE %]
-            Cookies.set("search_path_code", 'ads', { path: '/', sameSite: 'Lax' });
+            //Clear all form cookies
+            Cookies.remove("form_serialized", { path: '/'});
+            Cookies.remove("form_serialized_limits", { path: '/'});
+            Cookies.remove("search_path_code", { path: '/'});
         [% END %]
-    });
+        $('#advsearch_form').submit(function() {
+            $('[name^="limit"]').each(function(){
+                if( $(this).val() == '' ){
+                    $(this).prop("disabled","disabled");
+                }
+            });
+            $(".search-term-row").each(function(){
+                if( $(this).find('input[name="q"]').val() == "" ){
+                    $(this).find('input[name="q"]').prop("disabled","disabled");
+                    $(this).find('select[name="op"]').prop("disabled","disabled");
+                    $(this).find('select[name="idx"]').prop("disabled","disabled");
+                }
+            });
+            form_serialized = $(this).serialize();
+            Cookies.set("form_serialized", JSON.stringify( form_serialized ), { path: '/', sameSite: 'Lax' });
+            form_serialized_limits = [
+                $('#language-limit').val(),   $('#branchloop').val(),
+                $('#subtype_audience').val(), $('#subtype_content').val(),
+                $('#subtype_format').val(),   $('#subtype_additional').val(),
+                $('#locloop').val(),          $('#age-limit').val(),
+                $('#fsk-limit').val(),        $('#usk-limit').val()
+            ];
+            Cookies.set("form_serialized_limits", JSON.stringify( form_serialized_limits ),{ path: '/', sameSite: 'Lax' });
+            [% IF ( expanded_options ) %]
+                Cookies.set("search_path_code", 'exs', { path: '/', sameSite: 'Lax' });
+            [% ELSE %]
+                Cookies.set("search_path_code", 'ads', { path: '/', sameSite: 'Lax' });
+            [% END %]
         });
+            });
 
-        $(document).on("click", '.ButtonPlus', function(e) {
-            e.preventDefault();
-            $('.ButtonLess').show();
-            var thisLine = $(this).parent().parent();
-            var newLine = thisLine.clone();
-            $(newLine).find('.search-term-input select[name="op"]').first().prop("disabled",false).show();
-            newLine.find('input').val('');
-            thisLine.after(newLine);
-        });
+            $(document).on("click", '.ButtonPlus', function(e) {
+                e.preventDefault();
+                $('.ButtonLess').show();
+                var thisLine = $(this).parent().parent();
+                var newLine = thisLine.clone();
+                $(newLine).find('.search-term-input select[name="op"]').first().prop("disabled",false).show();
+                newLine.find('input').val('');
+                thisLine.after(newLine);
+            });
 
-        $(document).on('click', '.ButtonLess', function (e) {
-            e.preventDefault();
-            if ($('a.ButtonLess').length <= 2) {
-                $('.ButtonLess').hide();
-            }
+            $(document).on('click', '.ButtonLess', function (e) {
+                e.preventDefault();
+                if ($('a.ButtonLess').length <= 2) {
+                    $('.ButtonLess').hide();
+                }
 
-            let first = $(this).parent().parent().first();
-            let next = $(this).parent().parent().next();
-            let prev = $(this).parent().parent().prev();
+                let first = $(this).parent().parent().first();
+                let next = $(this).parent().parent().next();
+                let prev = $(this).parent().parent().prev();
 
-            $(this).parent().parent().remove();
-            $('.search-term-row .search-term-input select[name="op"]').first().prop('disabled', true).hide();
+                $(this).parent().parent().remove();
+                $('.search-term-row .search-term-input select[name="op"]').first().prop('disabled', true).hide();
 
-            let firstInput = first.find(':input:not(:disabled)').first();
-            let nextInput = next.find(':input:not(:disabled)').first();
-            let prevInput = prev.find(':input:not(:disabled)').first();
+                let firstInput = first.find(':input:not(:disabled)').first();
+                let nextInput = next.find(':input:not(:disabled)').first();
+                let prevInput = prev.find(':input:not(:disabled)').first();
 
-            if (nextInput.length > 0) {
-                nextInput.focus();
-            } else if (prevInput.length > 0) {
-                prevInput.focus();
-            } else {
-                firstInput.focus();
-            }
-        });
+                if (nextInput.length > 0) {
+                    nextInput.focus();
+                } else if (prevInput.length > 0) {
+                    prevInput.focus();
+                } else {
+                    firstInput.focus();
+                }
+            });
     </script>
 [% END %]
