@@ -130,6 +130,11 @@ describe("Accounts", () => {
         );
 
         // Click the button in the toolbar
+        cy.intercept("GET", "/api/v1/item_types*", {
+            statusCode: 200,
+            body: cy.getItemTypes(),
+        });
+
         cy.visit("/cgi-bin/koha/sip2/accounts");
         cy.contains("New account").click();
         cy.get("#accounts_add h2").contains("New account");
@@ -173,10 +178,6 @@ describe("Accounts", () => {
         );
 
         //TODO: intercept http://localhost:8081/api/v1/item_types?_per_page=-1
-        cy.intercept("GET", "/api/v1/item_types*", {
-            statusCode: 200,
-            body: cy.getItemTypes(),
-        });
         // blocked_item_types
         cy.get("#blocked_item_types .vs__search").click();
         cy.get("#blocked_item_types [id*=__option-0]").contains("Books");
