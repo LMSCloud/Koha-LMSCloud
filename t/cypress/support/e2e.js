@@ -2140,6 +2140,18 @@ Cypress.Commands.add("mock_table_settings", (settings, table_settings_var) => {
             is_hidden: 0,
             cannot_be_toggled: 0,
         }));
+        // Columns that a preference gates out of the markup are still listed in
+        // columns_settings.yml; only count the ones this page rendered.
+        let rendered = new Set(
+            [...win.document.querySelectorAll("th[data-colname]")].map(
+                th => th.dataset.colname
+            )
+        );
+        if (rendered.size) {
+            table_settings.columns = table_settings.columns.filter(c =>
+                rendered.has(c.columnname)
+            );
+        }
         if (settings && settings.hasOwnProperty("default_save_state")) {
             table_settings.default_save_state = settings.default_save_state;
         }
