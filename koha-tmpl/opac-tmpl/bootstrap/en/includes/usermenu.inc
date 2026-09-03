@@ -10,12 +10,7 @@
             [% END %]
 
             [% IF ( Koha.Preference('BibtipPatronSpecificRecommendations') && Koha.Preference('opacreadinghistory') ) %]
-                [% IF ( recommendationview ) %]
-                    <li class="active">
-                [% ELSE %]
-                    <li>
-                [% END %]
-                <a href="/cgi-bin/koha/opac-user-recommendations.pl">Recommendations</a></li>
+                <li [% IF ( recommendationview ) %]class="active"[% END %]> <a href="/cgi-bin/koha/opac-user-recommendations.pl">Recommendations</a></li>
             [% END %]
 
             [% IF ( OPACFinesTab ) %]
@@ -39,12 +34,7 @@
             [% END %]
 
             [% IF ( OpacRenewCard ) %]
-                [% IF ( renewcardview ) %]
-                    <li class="active">
-                [% ELSE %]
-                    <li>
-                [% END %]
-                <a href="/cgi-bin/koha/opac-renewcard.pl">renew your card</a></li>
+                <li [% IF ( renewcardview ) %]class="active"[% END %]> <a href="/cgi-bin/koha/opac-renewcard.pl">renew your card</a></li>
             [% END %]
 
             [% IF EnableOpacSearchHistory %]
@@ -81,12 +71,7 @@
             [% END %]
 
             [% IF Koha.Preference('OPACBookings') && logged_in_user.bookings.count %]
-                [% IF ( bookingsview ) %]
-                    <li class="active">
-                [% ELSE %]
-                    <li>
-                [% END %]
-                <a href="/cgi-bin/koha/opac-bookings.pl">Bookings ([% logged_in_user.bookings.count | html %])</a></li>
+                <li [% IF ( bookingsview ) %]class="active"[% END %]> <a href="/cgi-bin/koha/opac-bookings.pl">Bookings ([% logged_in_user.bookings.count | html %])</a></li>
             [% END %]
 
             [% IF Koha.Preference( 'RoutingSerials' ) && logged_in_user && logged_in_user.get_routing_lists.count %]
@@ -102,12 +87,7 @@
             [% END %]
 
             [% IF Koha.Preference( 'CurbsidePickup' ) %]
-                [% IF ( curbside_pickups_view ) %]
-                    <li class="active">
-                [% ELSE %]
-                    <li>
-                [% END %]
-                <a href="/cgi-bin/koha/opac-curbside-pickups.pl">Curbside pickups</a></li>
+                <li [% IF ( curbside_pickups_view ) %]class="active"[% END %]> <a href="/cgi-bin/koha/opac-curbside-pickups.pl">Curbside pickups</a></li>
             [% END %]
 
             [% IF logged_in_user.alert_subscriptions.count %]

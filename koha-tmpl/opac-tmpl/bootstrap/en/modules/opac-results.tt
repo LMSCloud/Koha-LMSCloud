@@ -9,7 +9,7 @@
 [% SET TagsInputEnabled = ( ( Koha.Preference( 'opacuserlogin' ) == 1 ) && ( Koha.Preference( 'TagsEnabled' ) == 1 ) && TagsInputOnList ) %]
 
 [% IF firstPage %]
-     [% SET OverDriveEnabled = Koha.Preference('OverDriveLibraryID') && Koha.Preference('OverDriveClientKey') && Koha.Preference('OverDriveClientSecret') %]
+    [% SET OverDriveEnabled = Koha.Preference('OverDriveLibraryID') && Koha.Preference('OverDriveClientKey') && Koha.Preference('OverDriveClientSecret') %]
 [% END %]
 [% SET CartEnabled = ( Koha.Preference('opacbookbag') == 1 ) %]
 [% SET ListsEnabled = ( Koha.Preference('virtualshelves') == 1 ) && LoginEnabled %]
@@ -63,81 +63,82 @@
 [% INCLUDE 'bodytag.inc' bodyid='results' bodyclass='scrollto' %]
 [% INCLUDE 'masthead.inc' %]
 
-    <main class="main">
-        [% WRAPPER breadcrumbs %]
-            [% IF ( searchdesc ) %]
-                [% IF ( ReturnPath ) %]
-                    [% WRAPPER breadcrumb_item %]
-                        <a href="[% ReturnPath | url %]">Advanced search</a>
-                    [% END %]
-                    <li class="breadcrumb-item active">
-                        [% IF ( ms_value ) %]
-                            <a href="#" aria-current="page" title="You searched [% IF ( query_desc ) %]for '[% query_desc | html %]'[% END %][% IF ( limit_desc ) %] with limit(s): '[% limit_desc | html %]'[% END %]">Results of search for '[% ms_value | html %]'[% IF ( pages > 1) %], page [% current_page_number | html %] of [% pages | html %][% END %]</a>
-                        [% ELSE %]
-                            <a href="#" aria-current="page" title="You searched [% IF ( query_desc ) %]for '[% query_desc | html %]'[% END %][% IF ( limit_desc ) %] with limit(s): '[% limit_desc | html %]'[% END %]">Search results</a>
-                        [% END %]
-                    </li>
-                [% ELSE %]
-                    [% WRAPPER breadcrumb_item %]
-                        <a href="/cgi-bin/koha/opac-search.pl">Advanced search</a>
-                    [% END %]
+<main class="main">
+    [% WRAPPER breadcrumbs %]
+        [% IF ( searchdesc ) %]
+            [% IF ( ReturnPath ) %]
+                [% WRAPPER breadcrumb_item %]
+                    <a href="[% ReturnPath | url %]">Advanced search</a>
                 [% END %]
-                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <li class="breadcrumb-item active">
                     [% IF ( ms_value ) %]
-                        <span title="You searched [% IF ( query_desc ) %]for '[% query_desc | html %]'[% END %][% IF ( limit_desc ) %] with limit(s): '[% limit_desc | html %]'[% END %]">Results of search for '[% ms_value | html %]'[% IF ( pages && pages > 1) %], page [% current_page_number | html %] of [% pages | html %][% END %]</span>
+                        <a href="#" aria-current="page" title="You searched [% IF ( query_desc ) %]for '[% query_desc | html %]'[% END %] [% IF ( limit_desc ) %]with limit(s): '[% limit_desc | html %]'[% END %]"
+                            >Results of search for '[% ms_value | html %]'[% IF ( pages > 1) %], page [% current_page_number | html %] of [% pages | html %][% END %]</a
+                        >
                     [% ELSE %]
-                        <span title="You searched [% IF ( query_desc ) %]for '[% query_desc | html %]'[% END %][% IF ( limit_desc ) %] with limit(s): '[% limit_desc | html %]'[% END %]">Search results</span>
+                        <a href="#" aria-current="page" title="You searched [% IF ( query_desc ) %]for '[% query_desc | html %]'[% END %] [% IF ( limit_desc ) %]with limit(s): '[% limit_desc | html %]'[% END %]">Search results</a>
                     [% END %]
-                [% END %]
+                </li>
             [% ELSE %]
                 [% WRAPPER breadcrumb_item %]
                     <a href="/cgi-bin/koha/opac-search.pl">Advanced search</a>
                 [% END %]
             [% END %]
-        [% END #/ WRAPPER breadcrumbs %]
-
-        [% UNLESS ( total ) %]
-            <div class="container-fluid">
-                <div class="row">
-                    <div class="col">
-                        <h1 id="numresults">The local catalog search returned no results!</h1>
-                        <p>
-                            [% IF ( searchdesc ) %]
-                                No results found for that in [% LibraryName | html %] catalog.
-                                <a href="[% OPACBaseURL | url %]/cgi-bin/koha/opac-search.pl?[% query_cgi | $raw %][% limit_cgi | $raw %]&amp;count=[% countrss |uri %]&amp;sort_by=acqdate_dsc&amp;format=rss" aria-label="Subscribe to this search" class="btn btn-link rsssearchlink noprint">
-                                    <i class="fa fa-rss rsssearchicon" aria-hidden="true" title="Subscribe to this search"></i>
-                                </a>
-                            [% ELSE %]
-                                You did not specify any search criteria.
-                            [% END %]
-                        </p>
-                        [% IF ( ReturnPath ) %]
-                           <div class="returntosearch">
-                                <p><a href="[% ReturnPath | url %]">Return to the last advanced search</a></p>
-                            </div>
-                        [% END %]
-                        [% IF ( OPACNoResultsFound ) %]
-                            <div id="noresultsfound">
-                                [% OPACNoResultsFound | $raw %]
-                            </div>
-                        [% END %]
-                    </div> <!-- / .col -->
-                </div> <!-- / .row -->
-            </div> <!-- / .container-fluid -->
-        [% END # / UNLESS searchdesc %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                [% IF ( ms_value ) %]
+                    <span title="You searched [% IF ( query_desc ) %]for '[% query_desc | html %]'[% END %] [% IF ( limit_desc ) %]with limit(s): '[% limit_desc | html %]'[% END %]"
+                        >Results of search for '[% ms_value | html %]'[% IF ( pages && pages > 1) %], page [% current_page_number | html %] of [% pages | html %][% END %]</span
+                    >
+                [% ELSE %]
+                    <span title="You searched [% IF ( query_desc ) %]for '[% query_desc | html %]'[% END %] [% IF ( limit_desc ) %]with limit(s): '[% limit_desc | html %]'[% END %]">Search results</span>
+                [% END %]
+            [% END %]
+        [% ELSE %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/opac-search.pl">Advanced search</a>
+            [% END %]
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
 
     [% UNLESS ( total ) %]
         <div class="container-fluid">
             <div class="row">
-                [% IF ( opacfacets && total ) %]
-                    <div class="col-lg-3">
-                        <div id="facetcontainer">
-                            <!-- FACETS START -->
-                            [% INCLUDE 'additional-offer-facets.inc' %]
-                            [% INCLUDE 'opac-facets.inc' %]
-                            <!-- FACETS END -->
+                <div class="col">
+                    <h1 id="numresults">The local catalog search returned no results!</h1>
+                    <p>
+                        [% IF ( searchdesc ) %]
+                            No results found for that in [% LibraryName | html %] catalog.
+                            <a
+                                href="[% OPACBaseURL | url %]/cgi-bin/koha/opac-search.pl?[% query_cgi | $raw %][% limit_cgi | $raw %]&amp;count=[% countrss |uri %]&amp;sort_by=acqdate_dsc&amp;format=rss"
+                                aria-label="Subscribe to this search"
+                                class="btn btn-link rsssearchlink noprint"
+                            >
+                                <i class="fa fa-rss rsssearchicon" aria-hidden="true" title="Subscribe to this search"></i>
+                            </a>
+                        [% ELSE %]
+                            You did not specify any search criteria.
+                        [% END %]
+                    </p>
+                    [% IF ( ReturnPath ) %]
+                        <div class="returntosearch">
+                            <p><a href="[% ReturnPath | url %]">Return to the last advanced search</a></p>
                         </div>
                     [% END %]
+                    [% IF ( OPACNoResultsFound ) %]
+                        <div id="noresultsfound"> [% OPACNoResultsFound | $raw %] </div>
+                    [% END %]
+                </div>
+                <!-- / .col -->
+            </div>
+            <!-- / .row -->
+        </div>
+        <!-- / .container-fluid -->
+    [% END # / UNLESS searchdesc %]
+
+    [% UNLESS ( total ) %]
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col">
                     [% IF ( OPACNoResultsFound ) %]
                         <div id="noresultsfound"> [% OPACNoResultsFound | $raw %] </div>
                     [% END %]
@@ -194,24 +195,28 @@
                         [% END %]
                     [% ELSE %]
                         [% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) || Koha.Preference( 'BrockhausSearchActive' ) || Koha.Preference( 'FilmfriendSearchActive' ) || Koha.Preference( 'HelimaSearchActive' ) ) %]
-                        <h1 id="numresultsAdditionalOffers"></h1>
+                            <h1 id="numresultsAdditionalOffers"></h1>
                         [% END %]
                     [% END # / IF total %]
                 [% END # / IF searchdesc %]
 
                 [% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) || Koha.Preference( 'BrockhausSearchActive' ) || Koha.Preference( 'FilmfriendSearchActive' ) || Koha.Preference( 'HelimaSearchActive' ) ) %]
                     <div id="encyclopediaresults">
-                        <div id="encyclopedianumresults"><strong>The search at <span class="encyclopediaprovider"></span> in collection <span class="encyclopediasource"></span> returned <span class="encyclopediasearchhitcount"></span> hits [% IF ( total ) %]<a id="showCatalogHitList" href="javascript:showCatalogHitList()"> - Back to cataloge result list</a>[% END %]</strong></div>
+                        <div id="encyclopedianumresults"
+                            ><strong
+                                >The search at <span class="encyclopediaprovider"></span> in collection <span class="encyclopediasource"></span> returned <span class="encyclopediasearchhitcount"></span> hits
+                                [% IF ( total ) %]<a id="showCatalogHitList" href="javascript:showCatalogHitList()"> - Back to cataloge result list</a>[% END %]</strong
+                            ></div
+                        >
                         <div id="encyclopediaheader" class="toolbar clearfix">
                             <strong><span class="encyclopediasource"></span></strong>
                         </div>
                         <table class="table table-striped">
-                            <tbody id="encyclopediahits">
-                            </tbody>
+                            <tbody id="encyclopediahits"> </tbody>
                         </table>
                     </div>
                 [% END # / IF MunzingerEncyclopediaSearchEnabled or BrockhausSearchActive or FilmfriendSearchActive or HelimaSearchActive %]
-                
+
                 <div id="userresults">
                     [% maxResultCountForDidYouMean = Koha.Preference( 'DidYouMeanMaxResultCount' ) || total %]
                     [% IF ( DidYouMean && total <= maxResultCountForDidYouMean ) %]
@@ -279,27 +284,26 @@
                                             </div>
                                             <!-- /.sort_by -->
                                         [% END # /UNLESS tag %]
-                                        <div id="top-pages" class="col-sm-auto">
-                                            [% INCLUDE 'page-numbers-lmscloud.inc' %]
-                                        </div>
-                                    </div> <!-- / #toolbar -->
+                                        <div id="top-pages" class="col-sm-auto"> [% INCLUDE 'page-numbers-lmscloud.inc' %] </div>
+                                    </div>
+                                    <!-- / #toolbar -->
 
                                     <!--
                                     <div class="selections-toolbar toolbar noprint">
                                     -->
-                                        <!--
+                                    <!--
                                         [% IF ( OpacHighlightedWords ) %]
-                                            <div class="highlight_controls noprint">
-                                                <a href="#" class="btn btn-link btn-sm highlight_toggle" id="highlight_toggle_off"><i class="fa fa-fw fa-pencil" aria-hidden="true"></i> Unhighlight</a>
-                                                <a href="#" class="btn btn-link btn-sm highlight_toggle" id="highlight_toggle_on"><i class="fa fa-fw fa-pencil" aria-hidden="true"></i> Highlight</a>
-                                            </div>
-                                        [% END %]
+                                        <div class="highlight_controls noprint">
+                                            <a href="#" class="btn btn-link btn-sm highlight_toggle" id="highlight_toggle_off"><i class="fa fa-fw fa-pencil" aria-hidden="true"></i> Unhighlight</a>
+                                            <a href="#" class="btn btn-link btn-sm highlight_toggle" id="highlight_toggle_on"><i class="fa fa-fw fa-pencil" aria-hidden="true"></i> Highlight</a>
+                                        </div>
+                                    [% END %]
                                         -->
-                                        
-                                        <!--
+
+                                    <!--
                                         <div class="check_control"> -->
-                                            <!-- checkall, clearall are now needed for placehold -->
-                                            <!-- <span class="clearall">
+                                    <!-- checkall, clearall are now needed for placehold -->
+                                    <!-- <span class="clearall">
                                                 <a id="CheckAll" class="btn btn-link btn-sm" href="#">Select all</a>
                                             </span>
                                             <span class="checkall">
@@ -307,80 +311,76 @@
                                             </span>
                                         </div>
                                         -->
-                                        
-                                        <!--
+
+                                    <!--
                                         <div class="links">
                                             [% IF ( ( Koha.Preference( 'opacbookbag' ) == 1 ) || ( Koha.Preference( 'virtualshelves' ) == 1 ) || loggedinusername ) %]
-                                                <span class="selections">Select titles to:</span>
-                                            [% END %]
+                                        <span class="selections">Select titles to:</span>
+                                    [% END %]
                                             [% IF Koha.Preference( 'opacbookbag' ) == 1 OR Koha.Preference('virtualshelves') %]
-                                                <span class="addto">
-                                                    <select class="disabled form-control form-control-sm" name="addto" id="addto">
-                                                        <option>Add to...</option>
-                                                        [% IF Koha.Preference( 'opacbookbag' ) == 1 %]
-                                                            <option value="addtocart">Cart</option>
-                                                        [% END %]
-                                                        [% IF Koha.Preference('virtualshelves') %]
-                                                            [% IF loggedinusername AND add_to_some_private_shelves.count %]
-                                                                <optgroup label="Your lists:">
-                                                                [% SET number_of_private_shelves = 0 %]
-                                                                [% FOREACH s IN add_to_some_private_shelves %]
-                                                                    [% IF shelfnumber != s.shelfnumber %]
-                                                                        <option id="s[% s.shelfnumber | html %]" value="addtolist">[% s.shelfname | html %]</option>
-                                                                        [% SET number_of_private_shelves = number_of_private_shelves + 1 %]
-                                                                        [% IF number_of_private_shelves == 10 %][% LAST %][% END %]
-                                                                    [% END %]
+                                        <span class="addto">
+                                            <select class="disabled form-control form-control-sm" name="addto" id="addto">
+                                                <option>Add to...</option>
+                                                [% IF Koha.Preference( 'opacbookbag' ) == 1 %]
+                                                    <option value="addtocart">Cart</option>
+                                                [% END %]
+                                                [% IF Koha.Preference('virtualshelves') %]
+                                                    [% IF loggedinusername AND add_to_some_private_shelves.count %]
+                                                        <optgroup label="Your lists:">
+                                                            [% SET number_of_private_shelves = 0 %]
+                                                            [% FOREACH s IN add_to_some_private_shelves %]
+                                                                [% IF shelfnumber != s.shelfnumber %]
+                                                                    <option id="s[% s.shelfnumber | html %]" value="addtolist">[% s.shelfname | html %]</option>
+                                                                    [% SET number_of_private_shelves = number_of_private_shelves + 1 %]
+                                                                    [% IF number_of_private_shelves == 10 %][% LAST %][% END %]
                                                                 [% END %]
-                                                                </optgroup>
                                                             [% END %]
-                                                            [% IF add_to_some_public_shelves.count %]
-                                                                <optgroup label="Public lists:">
-                                                                [% SET number_of_public_shelves = 0 %]
-                                                                [% FOREACH s IN add_to_some_public_shelves %]
-                                                                    [% IF shelfnumber != s.shelfnumber %]
-                                                                        <option id="s[% s.shelfnumber | html %]" value="addtolist">[% s.shelfname | html %]</option>
-                                                                        [% SET number_of_public_shelves = number_of_public_shelves + 1 %]
-                                                                        [% IF number_of_public_shelves == 10 %][% LAST %][% END %]
-                                                                    [% END %]
+                                                        </optgroup>
+                                                    [% END %]
+                                                    [% IF add_to_some_public_shelves.count %]
+                                                        <optgroup label="Public lists:">
+                                                            [% SET number_of_public_shelves = 0 %]
+                                                            [% FOREACH s IN add_to_some_public_shelves %]
+                                                                [% IF shelfnumber != s.shelfnumber %]
+                                                                    <option id="s[% s.shelfnumber | html %]" value="addtolist">[% s.shelfname | html %]</option>
+                                                                    [% SET number_of_public_shelves = number_of_public_shelves + 1 %]
+                                                                    [% IF number_of_public_shelves == 10 %][% LAST %][% END %]
                                                                 [% END %]
-                                                                </optgroup>
                                                             [% END %]
-                                                            [% IF ( add_to_some_private_shelves and add_to_some_private_shelves.count > 10 ) or ( add_to_some_public_shelves and add_to_some_public_shelves.count > 10 ) %]
-                                                                <option value="morelists">[ More lists ]</option>
-                                                            [% END %]
-                                                            <option value="newlist">[ New list ]</option>
-                                                        [% END # /IF virtualshelves %]
-                                                    </select>
-                                                    <input type="submit" class="btn btn-sm btn-primary" value="Save" />
-                                                </span>
-                                            [% END # /IF opacbookbag || virtualshelves %]
-
-                                            [% IF ( ( Koha.Preference( 'OPACHoldRequests' ) == 1 ) && ( Koha.Preference( 'opacuserlogin' ) == 1 ) && DisplayMultiPlaceHold ) %]
-                                                <button class="btn btn-link btn-sm hold disabled" type="button">
-                                                    <i class="fa fa-fw fa-bookmark" aria-hidden="true"></i> Place hold
-                                                </button>
-                                            [% END %]
+                                                        </optgroup>
+                                                    [% END %]
+                                                    [% IF ( add_to_some_private_shelves and add_to_some_private_shelves.count > 10 ) or ( add_to_some_public_shelves and add_to_some_public_shelves.count > 10 ) %]
+                                                        <option value="morelists">[ More lists ]</option>
+                                                    [% END %]
+                                                    <option value="newlist">[ New list ]</option>
+                                                [% END # /IF virtualshelves %]
+                                            </select>
+                                            <input type="submit" class="btn btn-sm btn-primary" value="Save" />
+                                        </span>
+                                    [% END # /IF opacbookbag || virtualshelves %]
+                                    [% IF ( ( Koha.Preference( 'OPACHoldRequests' ) == 1 ) && ( Koha.Preference( 'opacuserlogin' ) == 1 ) && DisplayMultiPlaceHold ) %]
+                                        <button class="btn btn-link btn-sm hold disabled" type="button"> <i class="fa fa-fw fa-bookmark" aria-hidden="true"></i> Place hold </button>
+                                    [% END %]
                                             [% IF ( TagsInputEnabled && loggedinusername ) %]
-                                                <span id="tagsel_span">
-                                                    <button id="tagsel_tag" class="btn btn-link btn-sm disabled" type="submit" style="display:none"><i class="fa fa-fw fa-tag" aria-hidden="true"></i> Tag</button>
-                                                </span>
-                                            [% END %]
-                                        </div> --> <!-- / .links -->
-                                        <!--
+                                        <span id="tagsel_span">
+                                            <button id="tagsel_tag" class="btn btn-link btn-sm disabled" type="submit" style="display:none"><i class="fa fa-fw fa-tag" aria-hidden="true"></i> Tag</button>
+                                        </span>
+                                    [% END %]
+                                        </div> -->
+                                    <!-- / .links -->
+                                    <!--
                                         [% IF ( TagsInputEnabled && loggedinusername ) %]
-                                            <div id="tagsel_form" style="display:none">
-                                                <label for="tagsel_new">New tag:</label>
-                                                <input type="text" name="tagsel_new" id="tagsel_new" maxlength="100" />
-                                                <input id="tagsel_button" name="tagsel_button" class="tagsel_button btn btn-sm btn-primary" title="Add" type="submit" value="Add" />
-                                                <a href="#" id="tagsel_cancel">(done)</a>
-                                            </div>
-                                            <div id="tagsel_status" class="tagsel_tatus" style="display:none;">
-                                                Tag status here.
-                                            </div>
-                                        [% END %]
+                                        <div id="tagsel_form" style="display:none">
+                                            <label for="tagsel_new">New tag:</label>
+                                            <input type="text" name="tagsel_new" id="tagsel_new" maxlength="100" />
+                                            <input id="tagsel_button" name="tagsel_button" class="tagsel_button btn btn-sm btn-primary" title="Add" type="submit" value="Add" />
+                                            <a href="#" id="tagsel_cancel">(done)</a>
+                                        </div>
+                                        <div id="tagsel_status" class="tagsel_tatus" style="display:none;"> Tag status here. </div>
+                                    [% END %]
                                         -->
-                                    <!-- </div> --><!-- / .selections-toolbar -->
-                                </div><!-- /#floating -->
+                                    <!-- </div> --><!-- / .selections-toolbar --> </div
+                                ><!-- /#floating -->
 
                                 <!-- TABLE RESULTS START -->
                                 <table class="table table-striped" role="presentation">
@@ -398,6 +398,17 @@
                                             [% END %]
                                             <td class="selectcol">
                                                 [% IF Koha.Preference( 'opacbookbag' ) == 1 %]
+                                                <input
+                                                    type="checkbox"
+                                                    class="cb"
+                                                    id="bib[% SEARCH_RESULT.biblionumber | html %]"
+                                                    name="biblionumber"
+                                                    value="[% SEARCH_RESULT.biblionumber | html %]"
+                                                    aria-label="Select search result: [% check_title | html %]"
+                                                />
+                                                <label for="bib[% SEARCH_RESULT.biblionumber | html %]"></label>
+                                            [% ELSE %]
+                                                [% IF Koha.Preference( 'virtualshelves' ) == 1 %]
                                                     <input
                                                         type="checkbox"
                                                         class="cb"
@@ -408,41 +419,30 @@
                                                     />
                                                     <label for="bib[% SEARCH_RESULT.biblionumber | html %]"></label>
                                                 [% ELSE %]
-                                                    [% IF Koha.Preference( 'virtualshelves' ) == 1 %]
-                                                        <input
-                                                            type="checkbox"
-                                                            class="cb"
-                                                            id="bib[% SEARCH_RESULT.biblionumber | html %]"
-                                                            name="biblionumber"
-                                                            value="[% SEARCH_RESULT.biblionumber | html %]"
-                                                            aria-label="Select search result: [% check_title | html %]"
-                                                        />
-                                                        <label for="bib[% SEARCH_RESULT.biblionumber | html %]"></label>
-                                                    [% ELSE %]
-                                                        [% IF Koha.Preference( 'OPACHoldRequests' ) == 1 %]
-                                                            [% UNLESS ( SEARCH_RESULT.norequests ) %]
-                                                                [% IF Koha.Preference( 'opacuserlogin' ) == 1 %]
-                                                                    <input
-                                                                        type="checkbox"
-                                                                        class="cb"
-                                                                        id="bib[% SEARCH_RESULT.biblionumber | html %]"
-                                                                        name="biblionumber"
-                                                                        value="[% SEARCH_RESULT.biblionumber | html %]"
-                                                                        aria-label="Select search result: [% check_title | html %]"
-                                                                    />
-                                                                    <label for="bib[% SEARCH_RESULT.biblionumber | html %]"></label>
-                                                                [% END %]
+                                                    [% IF Koha.Preference( 'OPACHoldRequests' ) == 1 %]
+                                                        [% UNLESS ( SEARCH_RESULT.norequests ) %]
+                                                            [% IF Koha.Preference( 'opacuserlogin' ) == 1 %]
+                                                                <input
+                                                                    type="checkbox"
+                                                                    class="cb"
+                                                                    id="bib[% SEARCH_RESULT.biblionumber | html %]"
+                                                                    name="biblionumber"
+                                                                    value="[% SEARCH_RESULT.biblionumber | html %]"
+                                                                    aria-label="Select search result: [% check_title | html %]"
+                                                                />
+                                                                <label for="bib[% SEARCH_RESULT.biblionumber | html %]"></label>
                                                             [% END %]
-                                                        [% END # IF OPACHoldRequests %]
-                                                    [% END # IF virtualshelves %]
-                                                [% END # IF opacbookbag %]
+                                                        [% END %]
+                                                    [% END # IF OPACHoldRequests %]
+                                                [% END # IF virtualshelves %]
+                                            [% END # IF opacbookbag %]
                                             </td>
 
                                             [%# Cell 2: Show result number if OpacHiddenItems is empty %]
                                             <td class="numcol[%- IF suppress_result_number -%]hidden[%- END -%]">
                                                 [% UNLESS suppress_result_number %]
-                                                    [% SEARCH_RESULT.result_number | html %].
-                                                [% END %]
+                                                [% SEARCH_RESULT.result_number | html %].
+                                            [% END %]
                                             </td>
 
                                             [% IF ( !item_level_itypes || Koha.Preference('BiblioItemtypeInfo') ) && !Koha.Preference('OpacNoItemTypeImages') %]
@@ -472,14 +472,16 @@
                                                         [% END %]
 
                                                         [% IF ( SEARCH_RESULT.titlecoverurls && (Koha.Preference('EKZCover') || Koha.Preference('DivibibEnabled')) ) %]
-                                                            [% FOREACH myurl IN SEARCH_RESULT.titlecoverurls %] 
-                                                                <img src="[% myurl | url %]" class="ekzcover" title="[% SEARCH_RESULT.biblionumber |url %]">[% LAST %]
-                                                            [% END # /FOREACH  %]
+                                                            [% FOREACH myurl IN SEARCH_RESULT.titlecoverurls %]
+                                                                <img src="[% myurl | url %]" class="ekzcover" title="[% SEARCH_RESULT.biblionumber |url %]" />[% LAST %]
+                                                            [% END # /FOREACH %]
                                                         [% END # / IF url %]
 
                                                         [% IF ( OPACAmazonCoverImages ) %]
                                                             [% IF ( SEARCH_RESULT.normalized_isbn ) %]
-                                                                    <span title="[% img_title | html %]" id="amazon-thumbnail[% loop.count | html %]"><img src="https://images-na.ssl-images-amazon.com/images/P/[% SEARCH_RESULT.normalized_isbn | html %].01.TZZZZZZZ.jpg" alt="" class="item-thumbnail" /></span>
+                                                                <span title="[% img_title | html %]" id="amazon-thumbnail[% loop.count | html %]"
+                                                                    ><img src="https://images-na.ssl-images-amazon.com/images/P/[% SEARCH_RESULT.normalized_isbn | html %].01.TZZZZZZZ.jpg" alt="" class="item-thumbnail"
+                                                                /></span>
                                                             [% ELSE %]
                                                                 <span class="no-image">No cover image available</span>
                                                             [% END %]
@@ -487,7 +489,12 @@
 
                                                         [% IF ( SyndeticsEnabled && SyndeticsCoverImages ) %]
                                                             [% IF ( SEARCH_RESULT.normalized_isbn || SEARCH_RESULT.normalized_upc || SEARCH_RESULT.normalized_oclc ) %]
-                                                                    <span title="[% img_title | html %]" id="syndetics-thumbnail[% loop.count | html %]"><img src="https://secure.syndetics.com/index.aspx?isbn=[% SEARCH_RESULT.normalized_isbn | html %]/[% SyndeticsCoverImageSize | uri %].GIF&amp;client=[% SyndeticsClientCode | html %]&amp;type=xw10&amp;upc=[% SEARCH_RESULT.normalized_upc | html %]&amp;oclc=[% SEARCH_RESULT.normalized_oclc | html %]" alt="" class="item-thumbnail" /></span>
+                                                                <span title="[% img_title | html %]" id="syndetics-thumbnail[% loop.count | html %]"
+                                                                    ><img
+                                                                        src="https://secure.syndetics.com/index.aspx?isbn=[% SEARCH_RESULT.normalized_isbn | html %]/[% SyndeticsCoverImageSize | uri %].GIF&amp;client=[% SyndeticsClientCode | html %]&amp;type=xw10&amp;upc=[% SEARCH_RESULT.normalized_upc | html %]&amp;oclc=[% SEARCH_RESULT.normalized_oclc | html %]"
+                                                                        alt=""
+                                                                        class="item-thumbnail"
+                                                                /></span>
                                                             [% ELSE %]
                                                                 <span class="no-image">No cover image available</span>
                                                             [% END %]
@@ -502,12 +509,12 @@
                                                         [% END %]
 
                                                         [% IF ( Koha.Preference('OpacCoce') && Koha.Preference('CoceProviders') ) %]
-                                                          [% coce_id = SEARCH_RESULT.normalized_ean || SEARCH_RESULT.normalized_isbn | html %]
-                                                          [% IF ( coce_id ) %]
-                                                            <span title="[% img_title | html %]" class="[% coce_id | html %]" id="coce-thumbnail[% loop.count | html %]"></span>
-                                                          [% ELSE %]
-                                                            <span class="no-image">No cover image available</span>
-                                                          [% END %]
+                                                            [% coce_id = SEARCH_RESULT.normalized_ean || SEARCH_RESULT.normalized_isbn | html %]
+                                                            [% IF ( coce_id ) %]
+                                                                <span title="[% img_title | html %]" class="[% coce_id | html %]" id="coce-thumbnail[% loop.count | html %]"></span>
+                                                            [% ELSE %]
+                                                                <span class="no-image">No cover image available</span>
+                                                            [% END %]
                                                         [% END %]
 
                                                         [% IF OpenLibraryCovers %]
@@ -549,7 +556,6 @@
                                                             [% END %]
                                                         [% END %]
                                                     [% END %]
-
                                                 </div>
                                                 [% IF ( COinSinOPACResults && SEARCH_RESULT.coins ) %]
                                                     <!-- COinS / Openurl -->
@@ -675,7 +681,6 @@
                         <!-- / .searchresults -->
 
                         <div id="bottom-pages" class="float-end">[% INCLUDE 'page-numbers-lmscloud.inc' %]</div>
-
                     [% END # / IF total %]
 
                     [%# Display "Not finding what you're looking for" for suggestion or ILL %]
@@ -892,9 +897,9 @@
         });
 
         $(document).ready(function(){
-            
+
             var query_desc = "[% query_desc |replace("'", "\'") |replace('\n', '\\n') |replace('\r', '\\r') | html %]";
-            
+
             [% IF ( Koha.Preference( 'BrockhausSearchActive' ) ) %]
                 getBrockhausFacet(query_desc,[% ( Koha.Preference('BrockhausNumSearchResults') or 20 ) | html %], _("Prev &laquo;"), _("Next &raquo;"));
             [% END %]
@@ -906,15 +911,15 @@
             [% END %]
             [% IF ( Koha.Preference( 'HelimaSearchActive' ) ) %]
                 getHeLiMaFacet(query_desc,
-                                [% ( Koha.Preference('HelimaNumSearchResults') or 20 ) | html %], 
-                                "[% Koha.Preference('HelimaAdditionalOfferName') | html %]", 
-                                _("Prev &laquo;"), 
-                                _("Next &raquo;"), 
-                                _("Read more »"), 
-                                _("« Read less"), 
-                                _("by/with"), 
-                                _("Duration: "), 
-                                _("suitable for "), 
+                                [% ( Koha.Preference('HelimaNumSearchResults') or 20 ) | html %],
+                                "[% Koha.Preference('HelimaAdditionalOfferName') | html %]",
+                                _("Prev &laquo;"),
+                                _("Next &raquo;"),
+                                _("Read more »"),
+                                _("« Read less"),
+                                _("by/with"),
+                                _("Duration: "),
+                                _("suitable for "),
                                 _("suitable for grade "));
             [% END %]
 
@@ -1021,21 +1026,19 @@
                 if (e.keyCode == 13) { e.preventDefault(); }
             });
         });
-        </script>
-        
-        [% Asset.js("js/LMSEllipsis.js") | $raw %]
-        <script>
-            // init LMSEllipis
-            document.addEventListener('DOMContentLoaded', () => {
-                const lmse = new LMSEllipsis({
-                    identifier: 'truncable-txt',
-                    ellipsis: ' ... ',
-                    watch: false,
-                    lines: 2,
-                    explanations: { collapsed: _("Read More »"), expanded: _("« Read Less")}
-                })
-                lmse.truncate();
-            })
-        </script>
+    </script>
+    [% Asset.js("js/LMSEllipsis.js") | $raw %]
+    <script>
+        // init LMSEllipis
+        document.addEventListener("DOMContentLoaded", () => {
+            const lmse = new LMSEllipsis({
+                identifier: "truncable-txt",
+                ellipsis: " ... ",
+                watch: false,
+                lines: 2,
+                explanations: { collapsed: _("Read More »"), expanded: _("« Read Less") },
+            });
+            lmse.truncate();
+        });
     </script>
 [% END %]

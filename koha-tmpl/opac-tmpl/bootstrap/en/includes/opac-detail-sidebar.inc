@@ -8,7 +8,9 @@
         [% IF Koha.Preference( 'OPACHoldRequests' ) == 1 %]
             [% IF ( ReservableItems ) %]
                 <li
-                    ><a class="reserve btn btn-link btn-lg" href="/cgi-bin/koha/opac-reserve.pl?biblionumber=[% biblio.biblionumber | html %]"><i class="fa fa-fw fa-bookmark" aria-hidden="true"></i> [% IF ( OrderableItems ) %]Place order[% ELSE %]Place hold[% END %]</a></li
+                    ><a class="reserve btn btn-link btn-lg" href="/cgi-bin/koha/opac-reserve.pl?biblionumber=[% biblio.biblionumber | html %]"
+                        ><i class="fa fa-fw fa-bookmark" aria-hidden="true"></i> [% IF ( OrderableItems ) %]Place order[% ELSE %]Place hold[% END %]</a
+                    ></li
                 >
             [% END %]
         [% END %]
@@ -101,71 +103,61 @@
     [% END %]
 
     [% IF ( ( MARCURLS ) && ( Koha.Preference('OpacDetailAntolinLinks') ) ) %]
-        [% AntolinLinks = 0 %]
+        [% antolin_links = [] %]
         [% FOREACH MARCurl IN MARCURLS %]
-            [% IF MARCurl.linktext.match('^Antolin') %]
-                [% AntolinLinks = AntolinLinks + 1 %]
-                [% IF AntolinLinks == 1 %]
-                    <li>
-                        <div id="antolinquiz_menu">
-                            <div class="dropdown">
-                                <a id="open_antolinquiz_menu" class="btn btn-link btn-lg dropdown-toggle" data-bs-toggle="dropdown" href="#"><img src="/webcustom/images/Antolin16.png" alt="Antolin book" title="Antolin book" class="antolin_menu_icon" aria-hidden="true" /> Antolin Quiz <b class="caret"></b></a>
-                                <div class="dropdown-menu dropdown-menu-end" aria-labelledby="format">
-                [% END # / AntolinLinks == 1 %]
-                    [% IF ( OPACURLOpenInNewWindow ) %]
-                        <a class="dropdown-item" href="[% MARCurl.MARCURL | url %]" title="[% MARCurl.MARCURL | html %]" target="_blank">
-                    [% ELSE %]
-                        <a class="dropdown-item" href="[% MARCurl.MARCURL | url %]" title="[% MARCurl.MARCURL | html %]">
-                    [% END %]
-                    [% MARCurl.linktext | html %]</a>
-            [% END # / IF MARCurl.linktext.match('^Antolin') %]
-        [% END # / FOREACH MARCURLS %]
-        [% IF AntolinLinks >= 1 %]
+            [% IF MARCurl.linktext.match('^Antolin') %][% CALL antolin_links.push(MARCurl) %][% END %]
+        [% END %]
+        [% IF antolin_links.size %]
+            <li>
+                <div id="antolinquiz_menu">
+                    <div class="dropdown">
+                        <a id="open_antolinquiz_menu" class="btn btn-link btn-lg dropdown-toggle" data-bs-toggle="dropdown" href="#"
+                            ><img src="/webcustom/images/Antolin16.png" alt="Antolin book" title="Antolin book" class="antolin_menu_icon" aria-hidden="true" /> Antolin Quiz <b class="caret"></b
+                        ></a>
+                        <div class="dropdown-menu dropdown-menu-end" aria-labelledby="format">
+                            [% FOREACH MARCurl IN antolin_links %]
+                                <a class="dropdown-item" href="[% MARCurl.MARCURL | url %]" title="[% MARCurl.MARCURL | html %]" [% IF ( OPACURLOpenInNewWindow ) %]target="_blank"[% END %]>[% MARCurl.linktext | html %]</a>
+                            [% END %]
                         </div>
                     </div>
                 </div>
             </li>
-        [% END # / AntolinLinks >= 1 %]
-    [% END # / IF MARCURL &&Koha.Preference('OpacDetailAntolinLinks') %]
-
+        [% END %]
+    [% END # / IF MARCURLS && OpacDetailAntolinLinks %]
 
     [% IF ( ( MARCURLS ) && ( Koha.Preference('OpacDetailWikipediaLinks') ) ) %]
-        [% WikipediaLinks = 0 %]
+        [% wikipedia_links = [] %]
         [% FOREACH MARCurl IN MARCURLS %]
-            [% IF MARCurl.MARCURL.match('wikipedia') %]
-                [% WikipediaLinks = WikipediaLinks + 1 %]
-                [% IF WikipediaLinks == 1 %]
-                    <li>
-                        <div id="wikipedia_menu">
-                            <div class="dropdown">
-                                <a id="format" class="btn btn-link btn-lg dropdown-toggle" data-bs-toggle="dropdown" href="#"><i class="fa fa-fw fa-wikipedia-w" aria-hidden="true"></i> Wikipedia-Article <b class="caret"></b></a>
-                                <div class="dropdown-menu dropdown-menu-end" aria-labelledby="format">
-                [% END # / WikipediaLinks == 1 %]
-                [% IF ( OPACURLOpenInNewWindow ) %]
-                    <a class="dropdown-item" href="[% MARCurl.MARCURL | replace('Ä', '%C3%84') | replace('Ö', '%C3%96') | replace('Ü', '%C3%9C') | replace('ä', '%C3%A4') | replace('ö', '%C3%B6') | replace('ü', '%C3%BC') | replace('ß', '%C3%9F') | replace('ẞ', '%E1%BA%9E') | url %]" title="[% MARCurl.MARCURL | html %]" target="_blank">
-                [% ELSE %]
-                    <a class="dropdown-item" href="[% MARCurl.MARCURL | replace('Ä', '%C3%84') | replace('Ö', '%C3%96') | replace('Ü', '%C3%9C') | replace('ä', '%C3%A4') | replace('ö', '%C3%B6') | replace('ü', '%C3%BC') | replace('ß', '%C3%9F') | replace('ẞ', '%E1%BA%9E') | url %]" title="[% MARCurl.MARCURL | html %]">
-                [% END %]
-                [% MARCurl.linktext | html %]</a>
-                
-            [% END # / IF MARCurl.MARCURL.match('wikipedia') %]
-        [% END # / FOREACH MARCURLS %]
-        [% IF WikipediaLinks >= 1 %]
+            [% IF MARCurl.MARCURL.match('wikipedia') %][% CALL wikipedia_links.push(MARCurl) %][% END %]
+        [% END %]
+        [% IF wikipedia_links.size %]
+            <li>
+                <div id="wikipedia_menu">
+                    <div class="dropdown">
+                        <a id="format" class="btn btn-link btn-lg dropdown-toggle" data-bs-toggle="dropdown" href="#"><i class="fa fa-fw fa-wikipedia-w" aria-hidden="true"></i> Wikipedia-Article <b class="caret"></b></a>
+                        <div class="dropdown-menu dropdown-menu-end" aria-labelledby="format">
+                            [% FOREACH MARCurl IN wikipedia_links %]
+                                <a
+                                    class="dropdown-item"
+                                    href="[% MARCurl.MARCURL | replace('Ä', '%C3%84') | replace('Ö', '%C3%96') | replace('Ü', '%C3%9C') | replace('ä', '%C3%A4') | replace('ö', '%C3%B6') | replace('ü', '%C3%BC') | replace('ß', '%C3%9F') | replace('ẞ', '%E1%BA%9E') | url %]"
+                                    title="[% MARCurl.MARCURL | html %]"
+                                    [% IF ( OPACURLOpenInNewWindow ) %]target="_blank"[% END %]
+                                    >[% MARCurl.linktext | html %]</a
+                                >
+                            [% END %]
                         </div>
                     </div>
                 </div>
             </li>
-        [% END # / WikipediaLinks >= 1 %]
-    [% END # / IF MARCURL && Koha.Preference('OpacDetailWikipediaLinks') %]
-    
+        [% END %]
+    [% END # / IF MARCURLS && OpacDetailWikipediaLinks %]
+
     [% IF ( Koha.Preference('OpacDetailBookShopLinks') ) %]
         <li>
             <div id="bookshop_menu">
-                <div class="dropdown"> 
-                   <a id="open_bookshop_menu" class="btn btn-link btn-lg dropdown-toggle" class="dropdown-toggle" data-bs-toggle="dropdown" href="#"><i class="fa fa-fw fa-eur" aria-hidden="true"></i> Buy here<b class="caret"></b></a>
-                    <div class="dropdown-menu dropdown-menu-end" aria-labelledby="format">
-                        [% OpacDetailBookShopLinkContent | $raw %]
-                    </div>
+                <div class="dropdown">
+                    <a id="open_bookshop_menu" class="btn btn-link btn-lg dropdown-toggle" class="dropdown-toggle" data-bs-toggle="dropdown" href="#"><i class="fa fa-fw fa-eur" aria-hidden="true"></i> Buy here<b class="caret"></b></a>
+                    <div class="dropdown-menu dropdown-menu-end" aria-labelledby="format"> [% OpacDetailBookShopLinkContent | $raw %] </div>
                 </div>
             </div>
         </li>

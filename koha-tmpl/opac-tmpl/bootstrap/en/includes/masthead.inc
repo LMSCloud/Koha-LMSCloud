@@ -67,7 +67,9 @@
                                     <a class="dropdown-item" href="/cgi-bin/koha/opac-shelves.pl?op=list&amp;public=1" tabindex="0" role="menuitem"><strong>Public lists</strong></a>
                                     [% SET number_of_public_shelves = 0 %]
                                     [% FOREACH s IN some_public_shelves %]
-                                        <a class="dropdown-item" href="/cgi-bin/koha/opac-shelves.pl?op=view&amp;shelfnumber=[% s.shelfnumber | uri %]&amp;sortfield=[% s.sortfield | uri %]" tabindex="0" role="menuitem">[% s.shelfname | html %]</a>
+                                        <a class="dropdown-item" href="/cgi-bin/koha/opac-shelves.pl?op=view&amp;shelfnumber=[% s.shelfnumber | uri %]&amp;sortfield=[% s.sortfield | uri %]" tabindex="0" role="menuitem"
+                                            >[% s.shelfname | html %]</a
+                                        >
                                         [% SET number_of_public_shelves = number_of_public_shelves + 1 %]
                                         [% IF number_of_public_shelves >= 10 %][% LAST %][% END %]
                                     [% END %]
@@ -84,7 +86,9 @@
                                         [% IF some_private_shelves.count %]
                                             [% SET number_of_private_shelves = 0 %]
                                             [% FOREACH s IN some_private_shelves %]
-                                                <a class="dropdown-item" href="/cgi-bin/koha/opac-shelves.pl?op=view&amp;shelfnumber=[% s.shelfnumber | uri %]&amp;sortfield=[% s.sortfield | uri %]" tabindex="0" role="menuitem">[% s.shelfname | html %]</a>
+                                                <a class="dropdown-item" href="/cgi-bin/koha/opac-shelves.pl?op=view&amp;shelfnumber=[% s.shelfnumber | uri %]&amp;sortfield=[% s.sortfield | uri %]" tabindex="0" role="menuitem"
+                                                    >[% s.shelfname | html %]</a
+                                                >
                                                 [% SET number_of_private_shelves = number_of_private_shelves + 1 %]
                                                 [% IF number_of_private_shelves >= 10 %][% LAST %][% END %]
                                             [% END %]
@@ -379,85 +383,88 @@
             <!-- /.row -->
         [% END # / UNLESS advsearch %]
 
-            <div class="row">
-                [% SET opacmoresearchescontentname = 'OpacMoreSearchesContent' %]
-                [% IF ( lang ) %]
-                    [% SET testname = "OpacMoreSearchesContent_$lang" %]
-                    [% IF ( Koha.Preference( "$testname" ) ) %]
-                        [% SET opacmoresearchescontentname = "$testname" %]
-                    [% END %]
+        <div class="row">
+            [% SET opacmoresearchescontentname = 'OpacMoreSearchesContent' %]
+            [% IF ( lang ) %]
+                [% SET testname = "OpacMoreSearchesContent_$lang" %]
+                [% IF ( Koha.Preference( "$testname" ) ) %]
+                    [% SET opacmoresearchescontentname = "$testname" %]
                 [% END %]
-                [% IF ( Koha.Preference( opacmoresearchescontentname ) ) %]
-                    [% Koha.Preference( opacmoresearchescontentname ) | eval | $raw %]
-                [% ELSE %]
-                    <ul class="nav" id="moresearches">
+            [% END %]
+            [% IF ( Koha.Preference( opacmoresearchescontentname ) ) %]
+                [% Koha.Preference( opacmoresearchescontentname ) | eval | $raw %]
+            [% ELSE %]
+                <ul class="nav" id="moresearches">
+                    <li class="nav-item">
+                        <a href="/cgi-bin/koha/opac-search.pl">Advanced search</a>
+                    </li>
+                    [% IF ( Koha.Preference( 'UseCourseReserves' ) == 1 ) %]
                         <li class="nav-item">
-                            <a href="/cgi-bin/koha/opac-search.pl">Advanced search</a>
+                            <a href="/cgi-bin/koha/opac-course-reserves.pl">Course reserves</a>
                         </li>
-                        [% IF ( Koha.Preference( 'UseCourseReserves' ) == 1 ) %]
+                    [% END %]
+                    [% IF Koha.Preference( 'OpacBrowser' ) == 1 %]
+                        <li class="nav-item">
+                            <a href="/cgi-bin/koha/opac-browser.pl">Browse by hierarchy</a>
+                        </li>
+                    [% END %]
+                    [% IF Koha.Preference( 'OpacAuthorities' ) == 1 %]
+                        <li class="nav-item">
+                            <a href="/cgi-bin/koha/opac-authorities-home.pl">Authority search</a>
+                        </li>
+                    [% END %]
+                    [% IF ( ( Koha.Preference( 'opacuserlogin' ) == 1 ) && ( Koha.Preference( 'OPACComments' ) == 1 ) && ( Koha.Preference( 'OpacShowRecentComments' ) == 1 ) ) %]
+                        <li class="nav-item">
+                            <a href="/cgi-bin/koha/opac-showreviews.pl">Recent comments</a>
+                        </li>
+                    [% END %]
+                    [% IF Koha.Preference( 'TagsEnabled' ) == 1 %]
+                        <li class="nav-item">
+                            <a href="/cgi-bin/koha/opac-tags.pl">Tag cloud</a>
+                        </li>
+                    [% END %]
+                    [% IF Koha.Preference( 'OpacCloud' ) == 1 %]
+                        <li class="nav-item">
+                            <a href="/cgi-bin/koha/opac-tags_subject.pl">Subject cloud</a>
+                        </li>
+                    [% END %]
+                    [% IF Koha.Preference( 'OpacTopissue' ) == 1 %]
+                        <li class="nav-item">
+                            <a href="/cgi-bin/koha/opac-topissues.pl">Most popular</a>
+                        </li>
+                    [% END %]
+                    [% IF Koha.Preference('SearchEngine') == 'Elasticsearch' && Koha.Preference( 'OpacBrowseSearch' ) == 1 %]
+                        <li class="nav-item">
+                            <a href="/cgi-bin/koha/opac-browse.pl">Browse search</a>
+                        </li>
+                    [% END %]
+                    [% IF suggestion %]
+                        [% IF Koha.Preference( 'AnonSuggestions' ) == 1 || Koha.Preference( 'OPACViewOthersSuggestions' ) == 1 %]
                             <li class="nav-item">
-                                <a href="/cgi-bin/koha/opac-course-reserves.pl">Course reserves</a>
+                                <a href="/cgi-bin/koha/opac-suggestions.pl?suggested_by_anyone=1">Purchase suggestions</a>
                             </li>
                         [% END %]
-                        [% IF Koha.Preference( 'OpacBrowser' ) == 1 %]
-                            <li class="nav-item">
-                                <a href="/cgi-bin/koha/opac-browser.pl">Browse by hierarchy</a>
-                            </li>
-                        [% END %]
-                        [% IF Koha.Preference( 'OpacAuthorities' ) == 1 %]
-                            <li class="nav-item">
-                                <a href="/cgi-bin/koha/opac-authorities-home.pl">Authority search</a>
-                            </li>
-                        [% END %]
-                        [% IF ( ( Koha.Preference( 'opacuserlogin' ) == 1 ) && ( Koha.Preference( 'OPACComments' ) == 1 ) && ( Koha.Preference( 'OpacShowRecentComments' ) == 1 ) ) %]
-                            <li class="nav-item">
-                                <a href="/cgi-bin/koha/opac-showreviews.pl">Recent comments</a>
-                            </li>
-                        [% END %]
-                        [% IF Koha.Preference( 'TagsEnabled' ) == 1 %]
-                            <li class="nav-item">
-                                <a href="/cgi-bin/koha/opac-tags.pl">Tag cloud</a>
-                            </li>
-                        [% END %]
-                        [% IF Koha.Preference( 'OpacCloud' ) == 1 %]
-                            <li class="nav-item">
-                                <a href="/cgi-bin/koha/opac-tags_subject.pl">Subject cloud</a>
-                            </li>
-                        [% END %]
-                        [% IF Koha.Preference( 'OpacTopissue' ) == 1 %]
-                            <li class="nav-item">
-                                <a href="/cgi-bin/koha/opac-topissues.pl">Most popular</a>
-                            </li>
-                        [% END %]
-                        [% IF Koha.Preference('SearchEngine') == 'Elasticsearch' && Koha.Preference( 'OpacBrowseSearch' ) == 1 %]
-                            <li class="nav-item">
-                                <a href="/cgi-bin/koha/opac-browse.pl">Browse search</a>
-                            </li>
-                        [% END %]
-                        [% IF suggestion %]
-                            [% IF Koha.Preference( 'AnonSuggestions' ) == 1 || Koha.Preference( 'OPACViewOthersSuggestions' ) == 1 %]
-                                <li class="nav-item">
-                                    <a href="/cgi-bin/koha/opac-suggestions.pl?suggested_by_anyone=1">Purchase suggestions</a>
-                                </li>
-                            [% END %]
-                        [% END %]
-                        [% IF ( Koha.Preference('OPACShowLibraries') && AllPublicBranches.size > 0 ) %]
-                            <li class="nav-item">
-                                <a id="library_page" href="/cgi-bin/koha/opac-library.pl">
-                                    [% IF ( singleBranchMode || AllPublicBranches.size == 1 ) %]
-                                        <span>Library</span>
-                                    [% ELSE %]
-                                        <span>Libraries</span>
-                                    [% END %]
-                                </a>
-                            </li>
-                        [% END %]
-                        [% PROCESS koha_news_block news => OpacMoreSearches %]
-                    </ul> <!-- /.nav#moresearches -->
-                [% END %]
-            </div> <!-- /.row -->
-        </div> <!-- /.container-fluid -->
-    [% END # / OpacPublic %]
+                    [% END %]
+                    [% IF ( Koha.Preference('OPACShowLibraries') && AllPublicBranches.size > 0 ) %]
+                        <li class="nav-item">
+                            <a id="library_page" href="/cgi-bin/koha/opac-library.pl">
+                                [% IF ( singleBranchMode || AllPublicBranches.size == 1 ) %]
+                                    <span>Library</span>
+                                [% ELSE %]
+                                    <span>Libraries</span>
+                                [% END %]
+                            </a>
+                        </li>
+                    [% END %]
+                    [% PROCESS koha_news_block news => OpacMoreSearches %]
+                </ul>
+                <!-- /.nav#moresearches -->
+            [% END %]
+        </div>
+        <!-- /.row -->
+    </div>
+    <!-- /.container-fluid -->
+[% END # / OpacPublic %]
 
 [% IF ( Koha.Preference( 'opacuserlogin' ) == 1 ) %]
     <!-- Login form hidden by default, used for modal window -->
@@ -534,26 +541,37 @@
                             </fieldset>
                         [% END %]
                     </div>
-                </form> <!-- /#auth -->
-                </div> <!-- /.modal-content -->
-            </div> <!-- /.modal-dialog -->
-        </div>  <!-- /#modalAuth  -->
-    [% END # / IF opacuserlogin %]
+                </form>
+                <!-- /#auth -->
+            </div>
+            <!-- /.modal-content -->
+        </div>
+        <!-- /.modal-dialog -->
+    </div>
+    <!-- /#modalAuth  -->
+[% END # / IF opacuserlogin %]
 
-    [% IF Koha.Preference( 'CookieConsent' ) %]
-            <!-- Cookie consent bar -->
-            <div id="cookieConsentBar" aria-hidden="true">
-                [% IF ( CookieConsentBar ) %]
-                    <div id="cookieConsentBar_content">
-                        [% PROCESS koha_news_block news => CookieConsentBar %]
-                    </div>
-                [% END %]
-                <div class="consentButtons">
-                    [% IF ( JSConsents.all('opacConsent').size ) %]
-                        <button type="button" class="btn btn-primary consentAcceptAll">Accept all cookies</button>
-                    [% END %]
-                    <button type="button" class="btn btn-primary consentAcceptEssential">Accept essential cookies</button>
-                    <button type="button" class="btn btn-info" id="consentMoreInfo" aria-label="Click to view more information about your cookie consents">More information</button>
+[% IF Koha.Preference( 'CookieConsent' ) %]
+    <!-- Cookie consent bar -->
+    <div id="cookieConsentBar" aria-hidden="true">
+        [% IF ( CookieConsentBar ) %]
+            <div id="cookieConsentBar_content"> [% PROCESS koha_news_block news => CookieConsentBar %] </div>
+        [% END %]
+        <div class="consentButtons">
+            [% IF ( JSConsents.all('opacConsent').size ) %]
+                <button type="button" class="btn btn-primary consentAcceptAll">Accept all cookies</button>
+            [% END %]
+            <button type="button" class="btn btn-primary consentAcceptEssential">Accept essential cookies</button>
+            <button type="button" class="btn btn-info" id="consentMoreInfo" aria-label="Click to view more information about your cookie consents">More information</button>
+        </div>
+    </div>
+    <!-- /#cookieConsentBar -->
+    <!-- Cookie consent modal -->
+    <div id="cookieConsentModal" class="modal" tabindex="-1" role="dialog" aria-labelledby="cookieConsentModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title" id="cookieConsentModalLabel">Cookies policy</h1>
                 </div>
                 <div class="modal-body">
                     [% IF ( CookieConsentPopup ) %]
@@ -590,4 +608,4 @@
         <!-- /.modal-dialog -->
     </div>
     <!-- /#cookieConsentModal  -->
-    [% END # / IF CookieConsent %]
+[% END # / IF CookieConsent %]

@@ -48,14 +48,14 @@
 [% END %]
 [% Asset.css("lib/Chocolat/css/chocolat.css") | $raw %]
 [% INCLUDE 'doc-head-close.inc' %]
-    [% Asset.css("lib/emoji-picker/css/emoji.css") | $raw %]
-    [% IF ( Koha.Preference('OPACShowMusicalInscripts') ) %]
-        [% Asset.css("lib/verovio/midiplayer.css") | $raw %]
-    [% END %]
-    [% Asset.css("lib/Chocolat/css/chocolat.css") | $raw %]
-    [% IF ( Koha.Preference('OPACBookings') ) %]
-        [% INCLUDE 'js-date-format.inc' %]
-    [% END %]
+[% Asset.css("lib/emoji-picker/css/emoji.css") | $raw %]
+[% IF ( Koha.Preference('OPACShowMusicalInscripts') ) %]
+    [% Asset.css("lib/verovio/midiplayer.css") | $raw %]
+[% END %]
+[% Asset.css("lib/Chocolat/css/chocolat.css") | $raw %]
+[% IF ( Koha.Preference('OPACBookings') ) %]
+    [% INCLUDE 'js-date-format.inc' %]
+[% END %]
 </head>
 [% BLOCK cssinclude %][% END %]
 [% INCLUDE 'bodytag.inc' bodyid='opac-detail' bodyclass='scrollto' %]
@@ -74,24 +74,24 @@
             <div class="col-lg-9">
                 <div id="catalogue_detail_biblio" class="maincontent" data-biblionumber="[% biblio.biblionumber | html %]">
                     <div class="bookcover">
-                        
                         [% IF ( contentsample && Koha.Preference('DivibibEnabled') ) %]
                             <div class="contentsamplelink">
-                            [% sample_lang = lang.match('^de') ? 'de' : 'en' %]
-                            [% IF ( contentsample.type == 'ebook' ) %]
-                                <a href="[% contentsample.link | url %]" target="_new"><img src="https://static.lmscloud.net/images/Preview_[% sample_lang | html %].png" alt="Preview" title="Preview" /></a><br />
-                            [% ELSIF ( contentsample.type == 'eaudio' ) %]
-                                <a href="[% contentsample.link | url %]" target="_new"><img src="https://static.lmscloud.net/images/Sample_[% sample_lang | html %].png" alt="Preview" title="Sample" /></a><br />
-                            [% ELSIF ( contentsample.type == 'emusic' ) %]
-                                <a href="[% contentsample.link | url %]" target="_new"><img src="https://static.lmscloud.net/images/Sample_[% sample_lang | html %].png" alt="Preview" title="Sample" /></a><br />
-                            [% ELSIF ( contentsample.type == 'evideo' ) %]
-                                <a href="[% contentsample.link | url %]" target="_new"><img src="https://static.lmscloud.net/images/Preview_[% sample_lang | html %].png" alt="Preview" title="Preview" /></a><br />
-                            [% ELSE %]
-                                <a href="[% contentsample.link | url %]" target="_new"><img src="https://static.lmscloud.net/images/Preview_[% sample_lang | html %].png" alt="Preview" title="Preview" /></a><br />
-                            [% END %]
+                                [% sample_lang = lang.match('^de') ? 'de' : 'en' %]
+                                [% IF ( contentsample.type == 'ebook' ) %]
+                                    <a href="[% contentsample.link | url %]" target="_new"><img src="https://static.lmscloud.net/images/Preview_[% sample_lang | html %].png" alt="Preview" title="Preview" /></a><br />
+                                [% ELSIF ( contentsample.type == 'eaudio' ) %]
+                                    <a href="[% contentsample.link | url %]" target="_new"><img src="https://static.lmscloud.net/images/Sample_[% sample_lang | html %].png" alt="Preview" title="Sample" /></a><br />
+                                [% ELSIF ( contentsample.type == 'emusic' ) %]
+                                    <a href="[% contentsample.link | url %]" target="_new"><img src="https://static.lmscloud.net/images/Sample_[% sample_lang | html %].png" alt="Preview" title="Sample" /></a><br />
+                                [% ELSIF ( contentsample.type == 'evideo' ) %]
+                                    <a href="[% contentsample.link | url %]" target="_new"><img src="https://static.lmscloud.net/images/Preview_[% sample_lang | html %].png" alt="Preview" title="Preview" /></a><br />
+                                [% ELSE %]
+                                    <a href="[% contentsample.link | url %]" target="_new"><img src="https://static.lmscloud.net/images/Preview_[% sample_lang | html %].png" alt="Preview" title="Preview" /></a><br />
+                                [% END %]
                             </div>
                         [% END # / IF contentsample %]
-                        <div id="biblio-cover-slider" class="cover-slider cover-slides"><!-- cover-slides shows spinner -->
+                        <div id="biblio-cover-slider" class="cover-slider cover-slides"
+                            ><!-- cover-slides shows spinner -->
                             [% IF ( OPACLocalCoverImages ) %]
                                 [% IF localimages.count %]
                                     [% FOREACH image IN localimages %]
@@ -108,23 +108,23 @@
                                     [% END %]
                                 [% END %]
                             [% END %]
-                            
+
                             [% IF ( titlecoverurls && ( Koha.Preference('EKZCover') || Koha.Preference('DivibibEnabled') ) ) %]
                                 [% FOREACH myurl IN titlecoverurls %]
                                     [% IF myurl.match('ekz') %]
                                         <div class="cover-image" id="ekz-coverimg">
-                                            <img src="[% myurl | url %]" alt="ekz Cover of [% img_title | html %]" title="[% img_title | html %]">
+                                            <img src="[% myurl | url %]" alt="ekz Cover of [% img_title | html %]" title="[% img_title | html %]" />
                                         </div>
                                     [% ELSIF myurl.match('onleihe') %]
                                         <div class="cover-image" id="onleihe-coverimg">
-                                            <img src="[% myurl | url %]" alt="Onleihe Cover of [% img_title | html %]" title="[% img_title | html %]">
+                                            <img src="[% myurl | url %]" alt="Onleihe Cover of [% img_title | html %]" title="[% img_title | html %]" />
                                         </div>
                                     [% ELSE %]
                                         <div class="cover-image" id="other-coverimg">
-                                            <img src="[% myurl | url %]" alt="Cover of [% img_title | html %]" title="[% img_title | html %]">
+                                            <img src="[% myurl | url %]" alt="Cover of [% img_title | html %]" title="[% img_title | html %]" />
                                         </div>
                                     [% END %]
-                                [% END # /FOREACH  %]
+                                [% END # /FOREACH %]
                             [% END # / IF titlecoverurls %]
 
                             [% IF ( OPACAmazonCoverImages && normalized_isbn) %]
@@ -460,11 +460,11 @@
                         <div id="BW_critiques"></div>
                         <div id="BW_critiques_pro"></div>
                         <div id="BW_citations"></div>
-                    [% END # / IF Babeltheque%]
-                    
-                    [% IF (OpacDetailVolumeDisplay) %][% INCLUDE 'opac-detail-volumes.inc' %][% END %]
+                    [% END # / IF Babeltheque %]
 
-                </div> <!-- / #catalogue_detail_biblio -->
+                    [% IF (OpacDetailVolumeDisplay) %][% INCLUDE 'opac-detail-volumes.inc' %][% END %]
+                </div>
+                <!-- / #catalogue_detail_biblio -->
 
                 [% WRAPPER tabs id= "bibliodescriptions" %]
                     [% WRAPPER tabs_nav %]
@@ -602,10 +602,9 @@
                             [% END %]
                         [% END %]
 
-
                         [% IF ( Koha.Preference('OPACBookings') && biblio.bookings.filter_by_active.count ) %]
                             [% WRAPPER tab_item tabname= "bookings" %]
-                                <span class="bookings_count">Bookings ( [% biblio.bookings.filter_by_active.count | html%] )
+                                <span class="bookings_count">Bookings ( [% biblio.bookings.filter_by_active.count | html %] ) </span>
                             [% END %]
                         [% END %]
                     [% END # /WRAPPER tabs_nav %]
@@ -709,11 +708,11 @@
                                         <div id="marcnotes">
                                             [% FOREACH MARCNOTE IN MARCNOTES %]
                                                 <p class="marcnote marcnote-[% MARCNOTE.tag | html %]" id="marcnote-[% MARCNOTE.tag | html %]-[% loop.count | html %]">
-                                                [% IF MARCNOTE.marcnote.match('^https?://\S+$') %]
-                                                    <a href="[% MARCNOTE.marcnote | url %]">[% MARCNOTE.marcnote | html %]</a>
-                                                [% ELSE %]
-                                                    [% MARCNOTE.marcnote | html | html_line_break %]
-                                                [% END %]
+                                                    [% IF MARCNOTE.marcnote.match('^https?://\S+$') %]
+                                                        <a href="[% MARCNOTE.marcnote | url %]">[% MARCNOTE.marcnote | html %]</a>
+                                                    [% ELSE %]
+                                                        [% MARCNOTE.marcnote | html | html_line_break %]
+                                                    [% END %]
                                                 </p>
                                             [% END %]
                                         </div>
@@ -722,7 +721,6 @@
                                 <!-- /.content_set -->
                             [% END # /tab_panel#descriptions %]
                         [% END # / IF MARCNOTES %]
-
 
                         [% IF ComponentParts && ComponentParts.size %]
                             [% WRAPPER tab_panel tabname="components" %]
@@ -1077,9 +1075,7 @@
 
                         [% IF ( Koha.Preference('OPACBookings') && biblio.bookings.filter_by_active.count ) %]
                             [% WRAPPER tab_panel tabname="bookings" %]
-                                <div class="card bg-white p-3">
-                                    [% INCLUDE 'bookings-timeline.inc' %]
-                                </div>
+                                <div class="card bg-white p-3"> [% INCLUDE 'bookings-timeline.inc' %] </div>
                                 <table class="table table-bordered table-striped" id="bookingst">
                                     <caption class="sr-only">Bookings</caption>
                                     <thead>
@@ -1099,7 +1095,7 @@
                                     <tbody>
                                         [% FOREACH booking IN biblio.bookings.filter_by_active %]
                                             <tr>
-                                            [% SET is_own_booking = booking.patron.borrowernumber == logged_in_user.borrowernumber %]
+                                                [% SET is_own_booking = booking.patron.borrowernumber == logged_in_user.borrowernumber %]
                                                 [% IF is_own_booking %]
                                                     <td>[% INCLUDE 'patron-title.inc' patron => booking.patron %]</td>
                                                 [% ELSE %]
@@ -1139,11 +1135,7 @@
                                                     [% IF is_own_booking %]
                                                         [% IF booking.status == 'new' || booking.status == 'active' || booking.status == 'pending' %]
                                                             <div class="btn-group">
-                                                                <button type="button" 
-                                                                    class="btn btn-sm btn-default" 
-                                                                    data-bs-toggle="modal"
-                                                                    data-bs-target="#cancelBookingModal"
-                                                                    data-booking="[% booking.booking_id | html %]">
+                                                                <button type="button" class="btn btn-sm btn-default" data-bs-toggle="modal" data-bs-target="#cancelBookingModal" data-booking="[% booking.booking_id | html %]">
                                                                     <i class="fa fa-times" aria-hidden="true"></i> Cancel
                                                                 </button>
                                                             </div>
@@ -1185,8 +1177,8 @@
                 <span class="results_summary">
                     <div id="bibtip_reclist" style="display:none"></div>
                 </span>
-
-            </div> <!-- /.col-lg-10 -->
+            </div>
+            <!-- /.col-lg-10 -->
 
             <div class="col-lg-3">
                 <div id="ulactioncontainer">
@@ -1427,7 +1419,6 @@
         <caption class="sr-only">Holdings</caption>
         <thead>
             <tr>
-
                 <th id="item_cover" data-colname="item_cover" class="cover">Cover image</th>
                 <th id="item_itemtype" data-colname="item_itemtype" class="itype">Item type</th>
                 <th id="item_current_location" data-colname="item_current_location" class="item_location">Current library</th>
@@ -1564,7 +1555,9 @@
                             [% IF ( ITEM_RESULT.itemcallnumber ) %]
                                 [% ITEM_RESULT.itemcallnumber | html %]
                                 [% IF ( OPACShelfBrowser ) %]
-                                    (<a href="#" class="lmscoverflow-shelfbrowser" data-biblionumber="[% ITEM_RESULT.biblionumber | html %]" data-itemnumber="[% ITEM_RESULT.itemnumber | html %]">Browse shelf<span class="sr-only">(Opens below)</span></a>)
+                                    (<a href="#" class="lmscoverflow-shelfbrowser" data-biblionumber="[% ITEM_RESULT.biblionumber | html %]" data-itemnumber="[% ITEM_RESULT.itemnumber | html %]"
+                                        >Browse shelf<span class="sr-only">(Opens below)</span></a
+                                    >)
                                 [% END %]
                             [% END %]
                             [% IF ( Koha.Preference('DivibibEnabled') && ITEM_RESULT.onleihe ) %]
@@ -1575,7 +1568,9 @@
                                         </a>
                                     [% ELSE %]
                                         [% IF Koha.Preference( 'DivibibTitleAccessURL' ) %]
-                                            <a class="external-offer-link" href="[% Koha.Preference( 'DivibibTitleAccessURL' ).replace('{TITLEID}',ITEM_RESULT.itemId) | url %]" alt="Link to Onleihe" target="_blank"><b><span class="available">Available as digital version. Click here for online lending.</span></b></a>
+                                            <a class="external-offer-link" href="[% Koha.Preference( 'DivibibTitleAccessURL' ).replace('{TITLEID}',ITEM_RESULT.itemId) | url %]" alt="Link to Onleihe" target="_blank"
+                                                ><b><span class="available">Available as digital version. Click here for online lending.</span></b></a
+                                            >
                                         [% ELSE %]
                                             <span class="available">Download available for logged in users.</span>
                                         [% END %]
@@ -1583,12 +1578,15 @@
                                 [% ELSIF ITEM_RESULT.reservable %]
                                     [% IF ( loggedinusername ) %]
                                         <a class="external-offer-link" href="#" onclick="accessDivibibResource('reservation','[% ITEM_RESULT.itemId | html %]'); return false;">
-                                            <b><span class="available">A copy is available on the [% ITEM_RESULT.datedue | $KohaDates %]. Click here to place a hold.</span></b></a>
+                                            <b><span class="available">A copy is available on the [% ITEM_RESULT.datedue | $KohaDates %]. Click here to place a hold.</span></b></a
+                                        >
                                     [% ELSE %]
                                         [% IF Koha.Preference( 'DivibibTitleAccessURL' ) %]
-                                            <a class="external-offer-link" href="[% Koha.Preference( 'DivibibTitleAccessURL' ).replace('{TITLEID}',ITEM_RESULT.itemId) | url %]" alt="Link to Onleihe" target="_blank"><b><span class="available">Becomes available as digital version on [% ITEM_RESULT.datedue | $KohaDates %]. Click here to make a reservation.</span></b></a>
+                                            <a class="external-offer-link" href="[% Koha.Preference( 'DivibibTitleAccessURL' ).replace('{TITLEID}',ITEM_RESULT.itemId) | url %]" alt="Link to Onleihe" target="_blank"
+                                                ><b><span class="available">Becomes available as digital version on [% ITEM_RESULT.datedue | $KohaDates %]. Click here to make a reservation.</span></b></a
+                                            >
                                         [% ELSE %]
-                                            <span class="available"><b>Available on the  [% ITEM_RESULT.datedue | $KohaDates %]. Reservable for logged in users.</b></span>
+                                            <span class="available"><b>Available on the [% ITEM_RESULT.datedue | $KohaDates %]. Reservable for logged in users.</b></span>
                                         [% END %]
                                     [% END %]
                                 [% ELSE %]
@@ -1761,7 +1759,7 @@
             [% END %]
         </tbody>
     </table>
-    
+
     [% IF OPACShelfBrowser %]
         <div id="shelfbrowser">
             <div id="lmscoverflow"></div>
@@ -1813,9 +1811,8 @@
         [% Asset.js("js/openlibrary.js") | $raw %]
     [% END %]
     [% IF ( Koha.Preference('DivibibEnabled') ) %]
-    [% INCLUDE 'divibib-js.inc' %]
+        [% INCLUDE 'divibib-js.inc' %]
     [% END %]
-
 
     [% IF ( Koha.Preference('OPACBookings') && biblio.bookings.filter_by_active.count ) %]
         [% Asset.js("lib/vis-timeline/vis-timeline-graph2d.min.js") | $raw %]
@@ -2430,22 +2427,20 @@
 
         }
     </script>
-
     [% Asset.js("js/LMSEllipsis.js") | $raw %]
     <script>
         // init LMSEllipis
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener("DOMContentLoaded", () => {
             const lmse = new LMSEllipsis({
-                identifier: 'truncable-txt',
-                ellipsis: ' ... ',
+                identifier: "truncable-txt",
+                ellipsis: " ... ",
                 watch: false,
                 lines: 2,
-                explanations: { collapsed: _("Read More »"), expanded: _("« Read Less")}
-            })
+                explanations: { collapsed: _("Read More »"), expanded: _("« Read Less") },
+            });
             lmse.truncate();
-        })
+        });
     </script>
-
     [% Asset.js("js/LMSCoverFlow.js") | $raw %]
     <script>
         const { createLcfInstance, ShelfBrowser, externalSources } = LMSCoverFlow;
@@ -2475,7 +2470,7 @@
         [% ELSIF ( GoogleJackets ) %]
             externalSources.subscribe((isLoaded) => {
                 if (isLoaded) {
-                    KOHA.Google.GetCoverFromIsbn([% covernewwindow | html %]); 
+                    KOHA.Google.GetCoverFromIsbn([% covernewwindow | html %]);
                 }
             });
 
@@ -2485,10 +2480,9 @@
         [% END %]
         ShelfBrowser(args);
     </script>
-    
     [% INCLUDE 'opac-bibtip.inc' %]
 
     [% IF bundlesEnabled %]
-    [% INCLUDE 'show-bundle-modal.inc' %]
+        [% INCLUDE 'show-bundle-modal.inc' %]
     [% END %]
 [% END %]

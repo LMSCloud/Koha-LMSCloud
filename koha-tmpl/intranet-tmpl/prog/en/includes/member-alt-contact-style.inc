@@ -58,25 +58,20 @@
     [% UNLESS noaltcontacttitle %]
         [% IF Koha.Preference('BorrowersTitles') %]
             <li>
-            [% IF ( mandatoryaltcontacttitle ) %]
-                <label for="altcontacttitle" class="required">
-            [% ELSE %]
-                <label for="altcontacttitle">
-            [% END %]
-            Salutation: </label>
-            <select id="altcontacttitle" name="altcontacttitle">
-                <option value=""></option>
-                [% FOREACH t IN Koha.Preference('BorrowersTitles').split('\|') %]
-                    [% IF patron.altcontacttitle == t %]
-                        <option value="[% t | html %]" selected="selected">[% t | html %]</option>
-                    [% ELSE %]
-                        <option value="[% t | html %]">[% t | html %]</option>
+                <label for="altcontacttitle" [% IF ( mandatoryaltcontacttitle ) %]class="required"[% END %]> Salutation: </label>
+                <select id="altcontacttitle" name="altcontacttitle">
+                    <option value=""></option>
+                    [% FOREACH t IN Koha.Preference('BorrowersTitles').split('\|') %]
+                        [% IF patron.altcontacttitle == t %]
+                            <option value="[% t | html %]" selected="selected">[% t | html %]</option>
+                        [% ELSE %]
+                            <option value="[% t | html %]">[% t | html %]</option>
+                        [% END %]
                     [% END %]
-                [% END %]
-            </select>
-            [% IF ( mandatoryaltcontacttitle ) %]<span class="required">Required</span>[% END %]
+                </select>
+                [% IF ( mandatoryaltcontacttitle ) %]<span class="required">Required</span>[% END %]
             </li>
-		[% END %]
+        [% END %]
     [% END %]
 [% END %]
 

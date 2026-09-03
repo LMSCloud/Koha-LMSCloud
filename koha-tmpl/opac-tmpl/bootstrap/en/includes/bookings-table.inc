@@ -29,9 +29,7 @@
                     [% BOOKING.item.enumchron | html %]
                     [% BOOKING.biblio.author | html %]
                 </td>
-                <td class="creation-date">
-                    [% BOOKING.creation_date | $KohaDates %]
-                </td>
+                <td class="creation-date"> [% BOOKING.creation_date | $KohaDates %] </td>
                 <td class="pickup-library">
                     [% BOOKING.pickup_library.branchname | html %]
                     [% IF BOOKING.status == 'new' && !Koha.Preference('OPACBookingDefaultLibraryEnabled') %]
@@ -41,27 +39,15 @@
                         [% PROCESS 'modals/booking.inc' action = 'change-pickup-location' %]
                     [% END %]
                 </td>
-                [% IF BOOKING.start_date %]
-                <td class="start-date" data-start-date="[% BOOKING.start_date | html %]" data-order="[% BOOKING.start_date | html %]">
-                [% ELSE %]
-                <td class="start-date">
-                [% END %]
-                    [% BOOKING.start_date | $KohaDates %]
-                </td>
-                [% IF BOOKING.end_date %]
-                <td class="end-date" data-end-date="[% BOOKING.end_date | html %]" data-order="[% BOOKING.end_date | html %]">
-                [% ELSE %]
-                <td class="end-date">
-                [% END %]
-                    [% BOOKING.end_date | $KohaDates %]
-                </td>
+                <td class="start-date" [% IF BOOKING.start_date %]data-start-date="[% BOOKING.start_date | html %]" data-order="[% BOOKING.start_date | html %]"[% END %]> [% BOOKING.start_date | $KohaDates %] </td>
+                <td class="end-date" [% IF BOOKING.end_date %]data-end-date="[% BOOKING.end_date | html %]" data-order="[% BOOKING.end_date | html %]"[% END %]> [% BOOKING.end_date | $KohaDates %] </td>
                 <td class="status" data-status="[% BOOKING.status | html %]" data-raw-status="[% BOOKING.status | html %]">
                     [% IF BOOKING.status == 'new' %]
                         <span class="badge text-bg-primary">Active</span>
                     [% ELSIF BOOKING.status == 'cancelled' %]
                         <span class="badge text-bg-secondary">Cancelled</span>
                         [% IF BOOKING.cancellation_reason %]
-                            <br><small class="text-muted">[% BOOKING.cancellation_reason | html %]</small>
+                            <br /><small class="text-muted">[% BOOKING.cancellation_reason | html %]</small>
                         [% END %]
                     [% ELSIF BOOKING.status == 'completed' %]
                         <span class="badge text-bg-success">Completed</span>
@@ -70,31 +56,17 @@
                     [% END %]
                 </td>
                 [% IF BOOKING.item %]
-                    <td class="item-type">
-                        [% BOOKING.item.itemtype.description | html %]
-                    </td>
-                    <td class="barcode">
-                        [% BOOKING.item.barcode | html %]
-                    </td>
+                    <td class="item-type"> [% BOOKING.item.itemtype.description | html %] </td>
+                    <td class="barcode"> [% BOOKING.item.barcode | html %] </td>
                 [% ELSE %]
                     <td>&ndash;</td>
                     <td>&ndash;</td>
                 [% END %]
-                <td class="branch">
-                    [% Branches.GetName(BOOKING.item.homebranch) | html %]
-                </td>
-                <td class="additional-fields">
-                    [% INCLUDE 'additional-fields-display.inc' additional_field_values=BOOKING.additional_field_values %]
-                </td>
+                <td class="branch"> [% Branches.GetName(BOOKING.item.homebranch) | html %] </td>
+                <td class="additional-fields"> [% INCLUDE 'additional-fields-display.inc' additional_field_values=BOOKING.additional_field_values %] </td>
                 <td class="actions">
                     [% IF BOOKING.status == 'new' %]
-                        <button
-                            type="button"
-                            class="btn btn-sm btn-danger btn-delete-booking"
-                            data-bs-toggle="modal"
-                            data-bs-target="#cancelBookingModal"
-                            data-booking="[% BOOKING.booking_id | html %]"
-                        >
+                        <button type="button" class="btn btn-sm btn-danger btn-delete-booking" data-bs-toggle="modal" data-bs-target="#cancelBookingModal" data-booking="[% BOOKING.booking_id | html %]">
                             <i class="fa fa-times" aria-hidden="true"></i>&nbsp;[% tp('Cancel booking button', 'Cancel') | html %]
                         </button>
                     [% ELSE %]

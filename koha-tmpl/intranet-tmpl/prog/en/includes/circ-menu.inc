@@ -34,14 +34,14 @@
 
             [% FOREACH gr IN patron.guarantor_relationships %]
                 [% SET g = gr.guarantor %]
-                [% IF ( g.is_family_card ) %]<br />
-                    <span class="family-card-member"><i class="fa fa-users" aria-hidden="true"></i> Family card:<br />
-                [% ELSE %]
-                    <span class="family-card-member"><i class="fa fa-user" aria-hidden="true"></i> Guarantor:<br />
-                [% END %]
-                <a href="/cgi-bin/koha/circ/circulation.pl?borrowernumber=[% g.borrowernumber | uri %]">[% g.firstname | html %] [% g.surname | html %][% IF ( g.cardnumber ) %] ([% g.cardnumber | html %])[% END %]</a></span>
+                [% IF ( g.is_family_card ) %]<br />[% END %]
+                <span class="family-card-member"
+                    ><i class="fa [% IF ( g.is_family_card ) %]fa-users[% ELSE %]fa-user[% END %]" aria-hidden="true"></i> [% IF ( g.is_family_card ) %]Family card:[% ELSE %]Guarantor:[% END %]<br />
+                    <a href="/cgi-bin/koha/circ/circulation.pl?borrowernumber=[% g.borrowernumber | uri %]">[% g.firstname | html %] [% g.surname | html %][% IF ( g.cardnumber ) %]&nbsp;([% g.cardnumber | html %])[% END %]</a></span
+                >
             [% END %]
-            [% IF ( patron.is_family_card ) %]<br /><br />
+            [% IF ( patron.is_family_card ) %]
+                <br /><br />
                 <span class="family-card-member"><i class="fa fa-users" aria-hidden="true"></i> Family card<br /></span>
             [% END %]
         </h5>
