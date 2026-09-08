@@ -135,6 +135,7 @@ sub set_preferences {
     C4::Service->return_success($response);
 }
 
+C4::Context->interface('intranet');
 C4::Service->dispatch(
     [ 'POST /([A-Za-z0-9_-]+)', ['value'], \&set_preference ],
     [ 'POST /',                 [],        \&set_preferences ],

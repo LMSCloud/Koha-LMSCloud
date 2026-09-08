@@ -274,6 +274,7 @@ if ( $op =~ /cud-save/ ) {
 
         if ( $redirect eq 'purchase_suggestions' ) {
             print $input->redirect("/cgi-bin/koha/members/purchase-suggestions.pl?borrowernumber=$borrowernumber");
+            exit;
         }
     }
 } elsif ( $op eq 'add_form' ) {
@@ -297,7 +298,6 @@ if ( $op =~ /cud-save/ ) {
     $template->param(
         other_reason        => $other_reason,
         default_manageddate => dt_from_string,
-        default_branch      => C4::Context->userenv->{"branch"},
     );
     $op = 'save';
 } elsif ( $op eq "cud-update_status" ) {
@@ -519,6 +519,7 @@ $template->param(
     filter_archived => $filter_archived,
     "op"            => $op,
     reasonsloop     => $reasonsloop,
+    redirect        => $redirect,
 );
 
 if ( defined($returnsuggested) and $returnsuggested ne "no_one" ) {
@@ -551,11 +552,12 @@ foreach my $r ( @{$sugg_budgets} ) {
 @{$sugg_budget_loop} = sort { uc( $a->{b_txt} ) cmp uc( $b->{b_txt} ) } @{$sugg_budget_loop};
 $template->param( sugg_budgets => $sugg_budget_loop );
 
-if ( $suggestion_ref->{STATUS} ) {
+if ( $stored_suggestion && $stored_suggestion->STATUS ) {
     $template->param(
-        "statusselected_" . $suggestion_ref->{STATUS} => 1,
-        selected_status                               => $suggestion_ref->{STATUS}
-        , # We need template var selected_status in the second part of the template where template var suggestion.STATUS is out of scope
+        "statusselected_" . $stored_suggestion->STATUS => 1,
+        selected_status                                => $stored_suggestion->STATUS,
+
+        # We need template var selected_status in the second part of the template where template var suggestion.STATUS is out of scope
     );
 }
 
@@ -607,4 +609,5 @@ sub redirect_with_params {
             if defined( $input->param($key) );
     }
     print $input->redirect("/cgi-bin/koha/suggestion/suggestion.pl?$params");
+    exit;
 }

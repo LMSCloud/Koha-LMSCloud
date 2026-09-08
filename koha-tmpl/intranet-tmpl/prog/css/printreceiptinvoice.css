@@ -346,3 +346,9 @@ fieldset {
    font-size: small; 
    font-family: sans-serif;
 }
+
+@media print {
+    .no-print {
+        display: none;
+    }
+}
