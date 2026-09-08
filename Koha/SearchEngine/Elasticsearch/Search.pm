@@ -175,13 +175,15 @@ sub search_compat {
 
     # Convert each result into a MARC::Record
     my @records;
+    my @scores;
 
     # opac-search expects results to be put in the
     # right place in the array, according to $offset
     my $index = $offset;
     my $hits  = $results->{'hits'};
     foreach my $es_record ( @{ $hits->{'hits'} } ) {
-        $records[ $index++ ] = $self->decode_record_from_result( $es_record->{'_source'}, 0 );
+        $records[$index] = $self->decode_record_from_result( $es_record->{'_source'}, 0 );
+        $scores[ $index++ ] = $es_record->{'_score'};
     }
 
     # consumers of this expect a name-spaced result, we provide the default
@@ -189,6 +191,7 @@ sub search_compat {
     my %result;
     $result{biblioserver}{hits}    = $hits->{'total'};
     $result{biblioserver}{RECORDS} = \@records;
+    $result{biblioserver}{scores}  = \@scores;
 
     my $facets = $self->_convert_facets( $results->{aggregations} );
     if ( C4::Context->interface eq 'opac' ) {
@@ -567,7 +570,7 @@ sub _convert_facets {
             if ( exists( $special{$type} ) ) {
                 $label = $special{$type}->{$t} // $t;
             } elsif ( $type_to_label{$type}{av_cat} ) {
-                $label = $authorised_values{$t};
+                $label = $authorised_values{$t} // $t;
             } else {
                 $label = $t;
             }

@@ -49,7 +49,7 @@
             <a href="/cgi-bin/koha/members/members-home.pl">Patrons</a>
         [% END %]
         [% WRAPPER breadcrumb_item %]
-            <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% patron.borrowernumber | uri %]">[% INCLUDE 'patron-title.inc' %]</a>
+            [% INCLUDE 'patron-title.inc' %]
         [% END %]
         [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/members/pay.pl?borrowernumber=[% patron.borrowernumber | uri %]">Make a payment</a>
@@ -166,26 +166,26 @@
                             <fieldset class="rows">
                                 <legend>Pay an individual charge</legend>
                                 <table>
-                                    <thead
-                                        ><tr>
+                                    <thead>
+                                        <tr>
                                             <th>Description</th>
                                             <th>Account type</th>
                                             <th>Amount</th>
                                             <th>Amount outstanding</th>
-                                        </tr></thead
-                                    >
-                                    <tfoot>
-                                        <tr><td colspan="3">Total amount payable:</td><td>[% amountoutstanding | $Price %]</td></tr>
-                                    </tfoot>
-                                    <tbody
-                                        ><tr>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
                                             <td> [% individual_description | html %] </td>
                                             [% line.debit_type_code = debit_type_code %]
                                             <td>[% PROCESS account_type_description account=line %]</td>
                                             <td class="debit">[% amount | $Price %]</td>
                                             <td class="debit">[% amountoutstanding | $Price %]</td>
-                                        </tr></tbody
-                                    >
+                                        </tr>
+                                    </tbody>
+                                    <tfoot>
+                                        <tr><td colspan="3">Total amount payable:</td><td>[% amountoutstanding | $Price %]</td></tr>
+                                    </tfoot>
                                 </table>
 
                                 <ol>

@@ -10,6 +10,10 @@ definitions:
     $ref: ./definitions/acquisition_import_object.yaml
   acquisition_import_list:
     $ref: ./definitions/acquisition_import_list.yaml
+  action_log:
+    $ref: ./definitions/action_log.yaml
+  additional_content:
+    $ref: ./definitions/additional_content.yaml
   advancededitormacro:
     $ref: ./definitions/advancededitormacro.yaml
   allows_renewal:
@@ -28,8 +32,6 @@ definitions:
     $ref: ./definitions/identity_provider.yaml
   identity_provider_domain:
     $ref: ./definitions/identity_provider_domain.yaml
-  additional_content:
-    $ref: ./definitions/additional_content.yaml
   basket:
     $ref: ./definitions/basket.yaml
   booking:
@@ -239,6 +241,8 @@ definitions:
   zkshp_illrequest:
     $ref: ./definitions/zkshp_illrequest.yaml
 paths:
+  /action_logs:
+    $ref: ./paths/action_logs.yaml#/~1action_logs
   /acquisitions/baskets:
     $ref: ./paths/acquisitions_baskets.yaml#/~1acquisitions~1baskets
   /acquisitions/baskets/managers:
@@ -539,8 +543,8 @@ paths:
     $ref: "./paths/libraries.yaml#/~1libraries~1{library_id}~1cash_registers"
   "/libraries/{library_id}/desks":
     $ref: "./paths/libraries.yaml#/~1libraries~1{library_id}~1desks"
-  "/libraries/{library_id}/holidays":
-    $ref: "./paths/libraries.yaml#/~1libraries~1{library_id}~1holidays"
+  "/libraries/{library_id}/closed_dates":
+    $ref: "./paths/libraries.yaml#/~1libraries~1{library_id}~1closed_dates"
   "/oauth/login/{provider_code}/{interface}":
     $ref: ./paths/oauth.yaml#/~1oauth~1login~1{provider_code}~1{interface}
   /oauth/token:
@@ -565,6 +569,12 @@ paths:
     $ref: "./paths/patrons_extended_attributes.yaml#/~1patrons~1{patron_id}~1extended_attributes~1{extended_attribute_id}"
   "/patrons/{patron_id}/holds":
     $ref: "./paths/patrons_holds.yaml#/~1patrons~1{patron_id}~1holds"
+  "/patrons/{patron_id}/hold_groups":
+    $ref: "./paths/patrons_hold_groups.yaml#/~1patrons~1{patron_id}~1hold_groups"
+  "/patrons/{patron_id}/hold_groups/{hold_group_id}":
+    $ref: "./paths/patrons_hold_groups.yaml#/~1patrons~1{patron_id}~1hold_groups~1{hold_group_id}"
+  "/patrons/{patron_id}/hold_groups/{hold_group_id}/cancel":
+    $ref: "./paths/patrons_hold_groups.yaml#/~1patrons~1{patron_id}~1hold_groups~1{hold_group_id}~1cancel"
   "/patrons/{patron_id}/checkouts":
     $ref: "./paths/patrons_checkouts.yaml#/~1patrons~1{patron_id}~1checkouts"
   "/patrons/{patron_id}/password":
@@ -575,10 +585,6 @@ paths:
     $ref: "./paths/patrons_recalls.yaml#/~1patrons~1{patron_id}~1recalls"
   "/patrons/{patron_id}/ill/requests":
     $ref: "./paths/patrons.yaml#/~1patrons~1{patron_id}~1ill~1requests"
-  "/patrons/{patron_id}/hold_groups":
-    $ref: "./paths/patrons_hold_groups.yaml#/~1patrons~1{patron_id}~1hold_groups"
-  "/patrons/{patron_id}/hold_groups/{hold_group_id}":
-    $ref: "./paths/patrons_hold_groups.yaml#/~1patrons~1{patron_id}~1hold_groups~1{hold_group_id}"
   /patron_categories:
     $ref: ./paths/patron_categories.yaml#/~1patron_categories
   /preservation/config:
@@ -641,8 +647,8 @@ paths:
     $ref: ./paths/libraries.yaml#/~1public~1libraries
   "/public/libraries/{library_id}":
     $ref: "./paths/libraries.yaml#/~1public~1libraries~1{library_id}"
-  "/public/libraries/{library_id}/holidays":
-    $ref: "./paths/libraries.yaml#/~1public~1libraries~1{library_id}~1holidays"
+  "/public/libraries/{library_id}/closed_dates":
+    $ref: "./paths/libraries.yaml#/~1public~1libraries~1{library_id}~1closed_dates"
   "/public/lists":
     $ref: "./paths/lists.yaml#/~1public~1lists"
   "/public/oauth/login/{provider_code}/{interface}":
@@ -1310,6 +1316,9 @@ tags:
   - description: "Manage additional fields\n"
     name: additional_fields
     x-displayName: Additional fields
+  - description: "Manage action logs\n"
+    name: action_logs
+    x-displayName: Action logs
   - description: "Manage article requests\n"
     name: article_requests
     x-displayName: Article requests

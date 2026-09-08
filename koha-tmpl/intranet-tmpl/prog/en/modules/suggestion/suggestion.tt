@@ -548,17 +548,20 @@
                                                     [% INCLUDE 'date-format.inc' %]
                                                 </td>
                                                 <td id="tdsuggestedby">
-                                                    <input type="hidden" id="suggestedby" name="suggestedby" value="[% suggestion.suggestedby | html %]" />
                                                     [% IF ( suggestion.suggester.borrowernumber ) %]
+                                                        <input type="hidden" id="suggestedby" name="suggestedby" value="[% suggestion.suggester.borrowernumber | html %]" />
                                                         <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% suggestion.suggester.borrowernumber | uri %]"
                                                             >[% suggestion.suggester.surname | html %], [% suggestion.suggester.firstname | html %] ([% suggestion.suggester.cardnumber | html %])</a
                                                         >
                                                         [% Branches.GetName( suggestion.suggester.branchcode ) | html %] ([% suggestion.suggester.category.description | html %])
                                                     [% ELSIF ( default_suggester ) %]
+                                                        <input type="hidden" id="suggestedby" name="suggestedby" value="[% default_suggester.borrowernumber | html %]" />
                                                         <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% default_suggester.borrowernumber | uri %]"
                                                             >[% default_suggester.surname | html %], [% default_suggester.firstname | html %] ([% default_suggester.cardnumber | html %])</a
                                                         >
                                                         [% Branches.GetName( default_suggester.branchcode ) | html %] ([% default_suggester.category.description | html %])
+                                                    [% ELSE %]
+                                                        <input type="hidden" id="suggestedby" name="suggestedby" value="" />
                                                     [% END %]
                                                 </td>
                                                 <td>
@@ -1348,7 +1351,7 @@
                                 order: [[4, "asc"]],
                                 autoWidth: false,
                                 ajax: {
-                                    url: "/api/v1/suggestions?q=" + JSON.stringify(tabSuggestionData.search_params),
+                                    url: "/api/v1/suggestions?q=" + encodeURIComponent(JSON.stringify(tabSuggestionData.search_params)),
                                     delay: 300, // wait 300 milliseconds before triggering the request
                                     cache: true,
                                     dataType: "json",
@@ -1365,12 +1368,12 @@
                                         }
                                     },
                                     {
-                                        data: "me.title",
+                                        data: "me.title:me.author:me.copyrightdate:me.volumedesc:me.isbn:me.publishercode:me.publicationyear:me.place:me.collectiontitle:me.itemtype:me.note",
                                         searchable: true,
                                         orderable: true,
                                         render: function (data, type, row, meta) {
-                                            let node = '<a href="suggestion.pl?suggestionid=%s&amp;op=show" title="%s">%s'.format(row.suggestion_id, _("suggestion"), row.title);
-                                            if(row.author) node += ', by %s'.format(row.author);
+                                            let a = '<a href="suggestion.pl?suggestionid=%s&amp;op=show" title="%s">'.format(row.suggestion_id, _("suggestion"));
+                                            let node = a + ( row.author ? a + _("%s, by %s").format(row.title.escapeHtml(), row.author.escapeHtml()) : row.title.escapeHtml());
                                             node += '</a><br />';
                                             if(row.copyright_date) node += ' &copy; <span class="suggestion_copyrightdate">%s</span>'.format(row.copyright_date);
                                             if(row.volume_desc) node += '; <span class="suggestion_volume">%s:<em>%s</em></span>'.format(_("Volume"), row.volume_desc);

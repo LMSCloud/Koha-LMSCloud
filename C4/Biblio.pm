@@ -3024,7 +3024,6 @@ sub ModBiblioMarc {
 
     # Clone record as it gets modified
     $record = $record->clone();
-    my $dbh      = C4::Context->dbh;
     my @fields   = $record->fields();
     my $encoding = C4::Context->preference("marcflavour");
 

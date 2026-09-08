@@ -1992,7 +1992,7 @@ DROP TABLE IF EXISTS `categories`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `categories` (
-  `categorycode` varchar(10) NOT NULL DEFAULT '' COMMENT 'unique primary key used to idenfity the patron category',
+  `categorycode` varchar(10) NOT NULL DEFAULT '' COMMENT 'unique primary key used to identify the patron category',
   `description` longtext DEFAULT NULL COMMENT 'description of the patron category',
   `enrolmentperiod` smallint(6) DEFAULT NULL COMMENT 'number of months the patron is enrolled for (will be NULL if enrolmentperioddate is set)',
   `enrolmentperioddate` date DEFAULT NULL COMMENT 'date the patron is enrolled until (will be NULL if enrolmentperiod is set)',
@@ -4055,8 +4055,7 @@ CREATE TABLE `illrequests` (
   CONSTRAINT `illrequests_bcfk_2` FOREIGN KEY (`branchcode`) REFERENCES `branches` (`branchcode`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `illrequests_bibfk` FOREIGN KEY (`biblio_id`) REFERENCES `biblio` (`biblionumber`) ON DELETE SET NULL ON UPDATE CASCADE,
   CONSTRAINT `illrequests_bnfk` FOREIGN KEY (`borrowernumber`) REFERENCES `borrowers` (`borrowernumber`) ON DELETE SET NULL ON UPDATE CASCADE,
-  CONSTRAINT `illrequests_ibfk` FOREIGN KEY (`batch_id`) REFERENCES `illbatches` (`ill_batch_id`) ON DELETE SET NULL ON UPDATE CASCADE,
-  CONSTRAINT `illrequests_safk` FOREIGN KEY (`status_alias`) REFERENCES `authorised_values` (`authorised_value`) ON DELETE SET NULL ON UPDATE CASCADE
+  CONSTRAINT `illrequests_ibfk` FOREIGN KEY (`batch_id`) REFERENCES `illbatches` (`ill_batch_id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -6018,7 +6017,9 @@ CREATE TABLE `record_sources` (
   `record_source_id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'Primary key for the `record_sources` table',
   `name` text NOT NULL COMMENT 'User defined name for the record source',
   `can_be_edited` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'If records from this source can be edited',
-  PRIMARY KEY (`record_source_id`)
+  `is_system` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'If this record source is system-defined and cannot be deleted',
+  PRIMARY KEY (`record_source_id`),
+  UNIQUE KEY `name` (`name`(191))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -6415,7 +6416,7 @@ CREATE TABLE `sip_account_custom_item_fields` (
   `sip_account_custom_item_field_id` int(11) NOT NULL AUTO_INCREMENT,
   `sip_account_id` int(11) NOT NULL COMMENT 'Foreign key to sip_accounts.sip_account_id',
   `field` varchar(80) NOT NULL COMMENT 'SIP field name e.g. XY',
-  `template` varchar(255) NOT NULL COMMENT 'Template toolkit template name',
+  `template` text NOT NULL COMMENT 'Template toolkit template',
   PRIMARY KEY (`sip_account_custom_item_field_id`),
   UNIQUE KEY `sip_account` (`sip_account_custom_item_field_id`,`sip_account_id`),
   KEY `sip_account_custom_item_fields_ibfk_1` (`sip_account_id`),
@@ -6434,7 +6435,7 @@ CREATE TABLE `sip_account_custom_patron_fields` (
   `sip_account_custom_patron_field_id` int(11) NOT NULL AUTO_INCREMENT,
   `sip_account_id` int(11) NOT NULL COMMENT 'Foreign key to sip_accounts.sip_account_id',
   `field` varchar(80) NOT NULL COMMENT 'SIP field name e.g. XY',
-  `template` varchar(80) NOT NULL COMMENT 'Template toolkit template',
+  `template` text NOT NULL COMMENT 'Template toolkit template',
   PRIMARY KEY (`sip_account_custom_patron_field_id`),
   UNIQUE KEY `sip_account` (`sip_account_custom_patron_field_id`,`sip_account_id`),
   KEY `sip_account_custom_patron_fields_ibfk_1` (`sip_account_id`),
@@ -6546,11 +6547,11 @@ DROP TABLE IF EXISTS `sip_accounts`;
 CREATE TABLE `sip_accounts` (
   `sip_account_id` int(11) NOT NULL AUTO_INCREMENT,
   `sip_institution_id` int(11) NOT NULL COMMENT 'Foreign key to sip_institutions.sip_institution_id',
-  `ae_field_template` varchar(255) DEFAULT NULL,
+  `ae_field_template` text DEFAULT NULL,
   `allow_additional_materials_checkout` tinyint(1) DEFAULT NULL,
   `allow_empty_passwords` tinyint(1) DEFAULT NULL,
   `allow_fields` varchar(255) DEFAULT NULL,
-  `av_field_template` varchar(255) DEFAULT NULL,
+  `av_field_template` text DEFAULT NULL,
   `blocked_item_types` varchar(255) DEFAULT NULL,
   `checked_in_ok` tinyint(1) DEFAULT NULL,
   `convert_nonprinting_characters` varchar(10) DEFAULT NULL,
@@ -6558,7 +6559,7 @@ CREATE TABLE `sip_accounts` (
   `ct_always_send` tinyint(1) DEFAULT NULL,
   `cv_send_00_on_success` tinyint(1) DEFAULT NULL,
   `cv_triggers_alert` tinyint(1) DEFAULT NULL,
-  `da_field_template` varchar(255) DEFAULT NULL,
+  `da_field_template` text DEFAULT NULL,
   `delimiter` varchar(10) DEFAULT '|',
   `deliver_hold_shelf_patron_with_bg` tinyint(1) DEFAULT NULL COMMENT 'Send the barcode of the patron a hold is waiting for in field BG instead of the owning library',
   `disable_checkins_with_holds` tinyint(1) DEFAULT NULL COMMENT 'Block checkin if the biblio has other pending holds',
@@ -7040,7 +7041,7 @@ DROP TABLE IF EXISTS `systempreferences`;
 /*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `systempreferences` (
   `variable` varchar(50) NOT NULL DEFAULT '' COMMENT 'system preference name',
-  `value` mediumtext NOT NULL DEFAULT '' COMMENT 'system preference values',
+  `value` mediumtext NOT NULL COMMENT 'system preference values',
   `options` longtext DEFAULT NULL COMMENT 'options for multiple choice system preferences',
   `explanation` mediumtext DEFAULT NULL COMMENT 'descriptive text for the system preference',
   `type` varchar(20) DEFAULT NULL COMMENT 'type of question this preference asks (multiple choice, plain text, yes or no, etc)',

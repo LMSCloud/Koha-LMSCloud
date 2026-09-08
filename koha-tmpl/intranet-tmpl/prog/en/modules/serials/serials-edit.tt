@@ -14,6 +14,7 @@
     [% END %]</title
 >
 [% INCLUDE 'doc-head-close.inc' %]
+[% Asset.css("css/serials-edit.css") | $raw %]
 [% Asset.js("js/cataloging.js") | $raw %]
 [% INCLUDE 'calendar.inc' %]
 <script>
@@ -130,6 +131,9 @@
         <div class="col-md-10 order-md-2 order-sm-1">
             <main>
                 [% INCLUDE 'messages.inc' %]
+
+                <div class="btn-group"><input type="button" value="Generate next" href="#generate_next" class="btn btn-default btn-sm" data-bs-toggle="modal" /></div>
+                [% INCLUDE 'modals/generate_next.inc' referrer="serials-edit" %]
 
                 <h1
                     >Serial edition <em>[% bibliotitle | html %]</em> [% IF location %]([% AuthorisedValues.GetByCode('LOC', location) | html %])[% END %]

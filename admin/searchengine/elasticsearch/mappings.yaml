@@ -1,5 +1,22 @@
 ---
 authorities:
+  authid:
+    label: authid
+    mandatory: ~
+    mappings:
+    - facet: ''
+      marc_field: '001'
+      marc_type: marc21
+      sort: 1
+      suggestible: ''
+    - facet: ''
+      marc_field: '001'
+      marc_type: unimarc
+      sort: 1
+      suggestible: ''
+    opac: 1
+    staff_client: 1
+    type: stdno
   Biographical-note:
     label: Biographical-note
     mandatory: ~
@@ -938,6 +955,18 @@ authorities:
     - facet: ''
       marc_field: 152b
       marc_type: unimarc
+      sort: 1
+      suggestible: ''
+    opac: 1
+    staff_client: 1
+    type: ''
+  identifier-other:
+    label: identifier-other
+    mandatory: ~
+    mappings:
+    - facet: ''
+      marc_field: 024a
+      marc_type: marc21
       sort: 1
       suggestible: ''
     opac: 1
@@ -1984,6 +2013,23 @@ biblios:
       suggestible: ''
     - facet: ''
       marc_field: 105a_/8
+      marc_type: unimarc
+      sort: 1
+      suggestible: ''
+    opac: 1
+    staff_client: 1
+    type: ''
+  fingerprint-identifier:
+    label: Fingerprint identifier
+    mandatory: ~
+    mappings:
+    - facet: ''
+      marc_field: '026'
+      marc_type: marc21
+      sort: 1
+      suggestible: ''
+    - facet: ''
+      marc_field: '012'
       marc_type: unimarc
       sort: 1
       suggestible: ''

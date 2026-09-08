@@ -17,7 +17,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 69;
+use Test::More tests => 71;
 use Test::NoWarnings;
 use Test::MockModule;
 use Test::Warn;
@@ -35,7 +35,7 @@ use C4::Biblio qw( GetMarcFromKohaField ModBiblio );
 use C4::HoldsQueue;
 use C4::Members;
 use C4::Reserves
-    qw( AddReserve AlterPriority CheckReserves ModReserve ModReserveAffect ReserveSlip CalculatePriority CanBookBeReserved IsAvailableForItemLevelRequest MoveReserve ChargeReserveFee CanItemBeReserved MergeHolds );
+    qw( AddReserve AlterPriority CheckReserves FixPriority ModReserve ModReserveAffect ReserveSlip CalculatePriority CanBookBeReserved IsAvailableForItemLevelRequest MoveReserve ChargeReserveFee CanItemBeReserved MergeHolds ToggleLowestPriority );
 use Koha::ActionLogs;
 use Koha::Biblios;
 use Koha::Caches;
@@ -1061,7 +1061,7 @@ subtest 'ChargeReserveFee tests' => sub {
 
 subtest 'MoveReserve additional test' => sub {
 
-    plan tests => 8;
+    plan tests => 10;
 
     # Create the items and patrons we need
     my $biblio = $builder->build_sample_biblio();
@@ -1131,6 +1131,38 @@ subtest 'MoveReserve additional test' => sub {
     MoveReserve( $item_1, $patron_2 );
     is( $patron_2->holds->count,       0, "The 2nd patron no longer has a hold" );
     is( $patron_2->old_holds->count(), 2, "The 2nd patron's hold was filled and moved to old holds" );
+
+    my $reserve_4 = AddReserve(
+        {
+            branchcode     => $item_2->homebranch,
+            borrowernumber => $patron_2->borrowernumber,
+            biblionumber   => $biblio->biblionumber,
+            priority       => 1,
+            itemnumber     => undef,
+        }
+    );
+    Koha::CirculationRules->set_rule(
+        {
+            branchcode => $item_1->homebranch,
+            itemtype   => $item_1->itype,
+            rule_name  => 'fill_other_biblio_holds_policy',
+            rule_value => 0
+        }
+    );
+    Koha::CirculationRules->set_rule(
+        {
+            branchcode => $patron_2->branchcode,
+            itemtype   => $item_1->itype,
+            rule_name  => 'fill_other_biblio_holds_policy',
+            rule_value => 1
+        }
+    );
+    t::lib::Mocks::mock_preference( 'ReservesControlBranch', 'ItemHomeLibrary' );
+    MoveReserve( $item_1, $patron_2 );
+    is( $patron_2->holds->count, 1, "The hold is not filled because of circ rules" );
+    t::lib::Mocks::mock_preference( 'ReservesControlBranch', 'PatronLibrary' );
+    MoveReserve( $item_1, $patron_2 );
+    is( $patron_2->holds->count, 0, "The hold is filled because of circ rules and affected by ReservesControlBranch" );
 
 };
 
@@ -2048,7 +2080,7 @@ subtest 'CheckReserves() item type tests' => sub {
 };
 
 subtest 'Bug 40866: AddReserve override JSON logging' => sub {
-    plan tests => 8;
+    plan tests => 9;
 
     $schema->storage->txn_begin;
 
@@ -2094,7 +2126,10 @@ subtest 'Bug 40866: AddReserve override JSON logging' => sub {
     );
     is( $logs->count, 1, 'One log entry created for normal hold' );
     my $log = $logs->next;
-    is( $log->info, $hold_id, 'Normal hold logs hold ID only' );
+
+    my $log_data = eval { from_json( $log->info ) };
+    ok( !$@,                                    'Log info is valid JSON' );
+    ok( !defined( $log_data->{confirmations} ), 'Confirmations array is undefined' );
 
     # Cancel the hold for next test
     my $hold = Koha::Holds->find($hold_id);
@@ -2124,7 +2159,7 @@ subtest 'Bug 40866: AddReserve override JSON logging' => sub {
     is( $logs->count, 1, 'One log entry created for override hold' );
     $log = $logs->next;
 
-    my $log_data = eval { from_json( $log->info ) };
+    $log_data = eval { from_json( $log->info ) };
     ok( !$@,                               'Log info is valid JSON' );
     ok( exists $log_data->{confirmations}, 'JSON contains confirmations array' );
     is_deeply(
@@ -2132,6 +2167,222 @@ subtest 'Bug 40866: AddReserve override JSON logging' => sub {
         ['HOLD_POLICY_OVERRIDE'],
         'Confirmations logged correctly'
     );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'FixPriority() lowestPriority tests' => sub {
+
+    plan tests => 16;
+
+    $schema->storage->txn_begin;
+
+    my $library = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $biblio  = $builder->build_sample_biblio;
+
+    # Helper: place holds with explicit priorities to avoid tie-breaking ambiguity
+    my @patrons;
+    my @reserve_ids;
+    for my $i ( 1 .. 5 ) {
+        my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
+        push @patrons, $patron;
+        my $rid = AddReserve(
+            {
+                branchcode     => $library->branchcode,
+                borrowernumber => $patron->id,
+                biblionumber   => $biblio->id,
+                priority       => $i,
+            }
+        );
+        push @reserve_ids, $rid;
+    }
+
+    # Mark holds 4 and 5 as lowestPriority; initial priorities should be 1..5
+    ToggleLowestPriority( $reserve_ids[3], 0 );    # hold 4 → lowestPriority, pushed to bottom
+    ToggleLowestPriority( $reserve_ids[4], 0 );    # hold 5 → lowestPriority, pushed to bottom
+
+    my @holds = map { Koha::Holds->find($_) } @reserve_ids;
+
+    is( $holds[0]->priority, 1, 'Hold 1 priority is 1' );
+    is( $holds[1]->priority, 2, 'Hold 2 priority is 2' );
+    is( $holds[2]->priority, 3, 'Hold 3 priority is 3' );
+    $holds[3]->discard_changes;
+    $holds[4]->discard_changes;
+    ok( $holds[3]->priority > $holds[2]->priority, 'lowestPriority hold 4 is after non-lowest holds' );
+    ok( $holds[4]->priority > $holds[2]->priority, 'lowestPriority hold 5 is after non-lowest holds' );
+
+    # Attempting to move a lowestPriority hold to rank 1 should be clamped
+    FixPriority( { reserve_id => $reserve_ids[3], rank => 1 } );
+    $holds[3]->discard_changes;
+    $holds[0]->discard_changes;
+    $holds[1]->discard_changes;
+    $holds[2]->discard_changes;
+    ok(
+        $holds[3]->priority > $holds[2]->priority,
+        'lowestPriority hold cannot be moved above non-lowestPriority holds'
+    );
+    is( $holds[0]->priority, 1, 'Hold 1 priority unchanged after clamped move' );
+    is( $holds[1]->priority, 2, 'Hold 2 priority unchanged after clamped move' );
+    is( $holds[2]->priority, 3, 'Hold 3 priority unchanged after clamped move' );
+
+    # Moving a lowestPriority hold within the lowest-priority group should work
+    my $p4_before = $holds[3]->priority;
+    my $p5_before = $holds[4]->priority;
+    FixPriority( { reserve_id => $reserve_ids[3], rank => $p5_before } );
+    $holds[3]->discard_changes;
+    $holds[4]->discard_changes;
+    isnt( $holds[3]->priority, $p4_before, 'lowestPriority hold moved within lowest-priority group' );
+    ok( $holds[3]->priority > $holds[2]->priority, 'Moved lowestPriority hold still below non-lowest holds' );
+
+    ToggleLowestPriority( $reserve_ids[4], 1 );    # Untoggle lowest priority for hold 4
+    $holds[4]->discard_changes;
+    is( $holds[4]->priority, 4, 'Hold is moved to the lowest of non-priority holds when toggled off' );
+
+    ToggleLowestPriority( $reserve_ids[1], 0 );    # Untoggle lowest priority for hold 4
+    $holds[1]->discard_changes;
+    is( $holds[1]->priority, 5, 'Hold is moved to the lowest of low priority holds when toggled on' );
+
+    # When ALL holds are lowestPriority, movement is unconstrained
+    my $biblio2 = $builder->build_sample_biblio;
+    my @all_low_ids;
+    for my $i ( 1 .. 3 ) {
+        my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
+        my $rid    = AddReserve(
+            {
+                branchcode     => $library->branchcode,
+                borrowernumber => $patron->id,
+                biblionumber   => $biblio2->id,
+                priority       => $i,
+            }
+        );
+        ToggleLowestPriority($rid);
+        push @all_low_ids, $rid;
+    }
+    my $h1 = Koha::Holds->find( $all_low_ids[2] );
+    FixPriority( { reserve_id => $all_low_ids[2], rank => 1 } );
+    $h1->discard_changes;
+    is( $h1->priority, 1, 'lowestPriority hold moves freely when all holds are lowestPriority' );
+
+    # When NO holds are lowestPriority, FixPriority works as before
+    my $biblio3 = $builder->build_sample_biblio;
+    my @normal_ids;
+    for my $i ( 1 .. 3 ) {
+        my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
+        my $rid    = AddReserve(
+            {
+                branchcode     => $library->branchcode,
+                borrowernumber => $patron->id,
+                biblionumber   => $biblio3->id,
+                priority       => $i,
+            }
+        );
+        push @normal_ids, $rid;
+    }
+    FixPriority( { reserve_id => $normal_ids[2], rank => 1 } );
+    my $moved = Koha::Holds->find( $normal_ids[2] );
+    is( $moved->priority, 1, 'Non-lowestPriority hold moves to rank 1 normally' );
+    my $other = Koha::Holds->find( $normal_ids[0] );
+    is( $other->priority, 2, 'Other holds renumbered correctly after normal move' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'Hold limit rules count grouped holds as a single unit' => sub {
+
+    plan tests => 8;
+
+    $schema->storage->txn_begin;
+
+    t::lib::Mocks::mock_preference( 'ReservesControlBranch', 'PatronLibrary' );
+
+    my $library = $builder->build_object( { class => 'Koha::Libraries', value => { pickup_location => 1 } } );
+    my $patron  = $builder->build_object( { class => 'Koha::Patrons',   value => { branchcode => $library->id } } );
+
+    my @biblios = map { $builder->build_sample_biblio() } ( 1 .. 4 );
+    my @items   = map { $builder->build_sample_item( { biblionumber => $_->id } ) } @biblios;
+
+    Koha::CirculationRules->delete;
+    Koha::CirculationRules->set_rules(
+        {
+            branchcode   => undef,
+            categorycode => undef,
+            itemtype     => undef,
+            rules        => { reservesallowed => 2, holds_per_record => 99, holds_per_day => 99 },
+        }
+    );
+
+    # Place 2 holds and group them
+    my $rid1 =
+        AddReserve( { branchcode => $library->id, borrowernumber => $patron->id, biblionumber => $biblios[0]->id } );
+    my $rid2 =
+        AddReserve( { branchcode => $library->id, borrowernumber => $patron->id, biblionumber => $biblios[1]->id } );
+    my $hg = $builder->build_object( { class => 'Koha::HoldGroups' } );
+    Koha::Holds->find($rid1)->set( { hold_group_id => $hg->id } )->store;
+    Koha::Holds->find($rid2)->set( { hold_group_id => $hg->id } )->store;
+
+    # reservesallowed=2, but 2 grouped holds count as 1 — under the limit
+    my $res = CanItemBeReserved( $patron, $items[2], $library->id );
+    is( $res->{status}, 'OK', 'reservesallowed: 2 grouped holds count as 1, limit of 2 not reached' );
+
+    # Add an ungrouped hold — effective count = 1 group + 1 ungrouped = 2, at the limit
+    AddReserve( { branchcode => $library->id, borrowernumber => $patron->id, biblionumber => $biblios[2]->id } );
+    $res = CanItemBeReserved( $patron, $items[3], $library->id );
+    is( $res->{status}, 'tooManyReserves', 'reservesallowed: 1 group + 1 ungrouped = 2, limit of 2 reached' );
+
+    # Ungroup — now 3 ungrouped, count = 3, still blocked
+    Koha::Holds->find($rid1)->set( { hold_group_id => undef } )->store;
+    Koha::Holds->find($rid2)->set( { hold_group_id => undef } )->store;
+    $res = CanItemBeReserved( $patron, $items[3], $library->id );
+    is( $res->{status}, 'tooManyReserves', 'reservesallowed: 3 ungrouped holds count as 3, limit of 2 exceeded' );
+
+    # Re-group rid1+rid2 to reset to grouped count = 2 for remaining tests
+    Koha::Holds->find($rid1)->set( { hold_group_id => $hg->id } )->store;
+    Koha::Holds->find($rid2)->set( { hold_group_id => $hg->id } )->store;
+
+    # max_holds: same group-aware counting
+    Koha::CirculationRules->set_rules(
+        {
+            branchcode   => undef,
+            categorycode => undef,
+            itemtype     => undef,
+            rules        => { reservesallowed => 99 },
+        }
+    );
+    Koha::CirculationRules->set_rules(
+        {
+            branchcode   => undef,
+            categorycode => undef,
+            rules        => { max_holds => 2 },
+        }
+    );
+
+    # max_holds=2, effective count = 1 group + 1 ungrouped = 2, at the limit
+    $res = CanItemBeReserved( $patron, $items[3], $library->id );
+    is( $res->{status}, 'tooManyReserves', 'max_holds: 1 group + 1 ungrouped = 2, limit of 2 reached' );
+
+    # Delete the ungrouped hold — now only the group remains, count = 1, under limit
+    $patron->holds->search( { hold_group_id => undef } )->next->delete;
+    $res = CanItemBeReserved( $patron, $items[3], $library->id );
+    is( $res->{status}, 'OK', 'max_holds: 2 grouped holds count as 1, limit of 2 not reached' );
+
+    # Add 2 more ungrouped holds — count = 1 group + 2 ungrouped = 3, over limit
+    AddReserve( { branchcode => $library->id, borrowernumber => $patron->id, biblionumber => $biblios[2]->id } );
+    AddReserve( { branchcode => $library->id, borrowernumber => $patron->id, biblionumber => $biblios[3]->id } );
+    $res = CanItemBeReserved( $patron, $items[3], $library->id );
+    is( $res->{status}, 'tooManyReserves', 'max_holds: 1 group + 2 ungrouped = 3, limit of 2 exceeded' );
+
+    # Ungroup — 4 individual holds, count = 4, still over limit
+    Koha::Holds->find($rid1)->set( { hold_group_id => undef } )->store;
+    Koha::Holds->find($rid2)->set( { hold_group_id => undef } )->store;
+    $res = CanItemBeReserved( $patron, $items[3], $library->id );
+    is( $res->{status}, 'tooManyReserves', 'max_holds: 4 ungrouped holds count as 4, limit of 2 exceeded' );
+
+    # With only the group (re-group rid1+rid2, delete the other 2), count = 1, under limit of 2
+    Koha::Holds->find($rid1)->set( { hold_group_id => $hg->id } )->store;
+    Koha::Holds->find($rid2)->set( { hold_group_id => $hg->id } )->store;
+    $patron->holds->search( { hold_group_id => undef } )->delete;
+    $res = CanItemBeReserved( $patron, $items[3], $library->id );
+    is( $res->{status}, 'OK', 'max_holds: only 1 hold group present, count = 1, limit of 2 not reached' );
 
     $schema->storage->txn_rollback;
 };

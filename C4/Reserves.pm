@@ -269,20 +269,30 @@ sub AddReserve {
 
     # Log the hold creation
     if ( C4::Context->preference('HoldsLog') ) {
-        my $info = $hold->id;
-        if ( defined($confirmations) || defined($forced) ) {
-            $info = to_json(
-                {
-                    hold          => $hold->id,
-                    branchcode    => $hold->branchcode,
-                    biblionumber  => $hold->biblionumber,
-                    itemnumber    => $hold->itemnumber,
-                    confirmations => $confirmations,
-                    forced        => $forced
-                },
-                { pretty => 1, canonical => 1 }
-            );
-        }
+
+        my $info = to_json(
+            {
+                hold                   => $hold->id,
+                branchcode             => $hold->branchcode,
+                biblionumber           => $hold->biblionumber,
+                borrowernumber         => $hold->borrowernumber,
+                itemnumber             => $hold->itemnumber,
+                desk_id                => $hold->desk_id,
+                hold_group_id          => $hold->hold_group_id,
+                item_group_id          => $hold->item_group_id,
+                item_level_hold        => $hold->item_level_hold,
+                itemtype               => $hold->itemtype,
+                lowestPriority         => $hold->lowestPriority,
+                non_priority           => $hold->non_priority,
+                patron_expiration_date => $hold->patron_expiration_date,
+                priority               => $hold->priority,
+                reservenotes           => $hold->reservenotes,
+                confirmations          => $confirmations,
+                forced                 => $forced
+            },
+            { pretty => 1, canonical => 1 }
+        );
+
         logaction( 'HOLDS', 'CREATE', $hold->id, $info );
     }
 
@@ -492,6 +502,16 @@ sub CanBookBeReserved {
 
 our $CanItemBeReserved_cache_key;
 
+=head2 _cache
+
+    _cache($return);
+
+Internal helper that stores C<$return> in the memory cache under
+C<$CanItemBeReserved_cache_key> and returns it. Used by C<CanItemBeReserved>
+to avoid redundant lookups within the same request.
+
+=cut
+
 sub _cache {
     my ($return) = @_;
     my $memory_cache = Koha::Cache::Memory::Lite->get_instance();
@@ -630,9 +650,10 @@ sub CanItemBeReserved {
         }
         if ( !$params->{ignore_hold_counts} ) {
 
-            # we retrieve count
+            # we retrieve count, treating each hold group as a single unit
             my $querycount = q{
-                SELECT count(*) AS count
+                SELECT COUNT( CASE WHEN reserves . hold_group_id IS NULL THEN 1 END ) +
+                    COUNT( DISTINCT reserves.hold_group_id ) AS count
                   FROM reserves
              LEFT JOIN items USING (itemnumber)
              LEFT JOIN biblioitems ON (reserves.biblionumber=biblioitems.biblionumber)
@@ -684,7 +705,7 @@ sub CanItemBeReserved {
         }
     );
     if ( !$params->{ignore_hold_counts} && $rule && defined( $rule->rule_value ) && $rule->rule_value ne '' ) {
-        my $total_holds_count = Koha::Holds->search( { borrowernumber => $patron->borrowernumber } )->count();
+        my $total_holds_count = Koha::Holds->count_holds( { borrowernumber => $patron->borrowernumber } );
 
         return _cache { status => 'tooManyReserves', limit => $rule->rule_value }
             if $total_holds_count >= $rule->rule_value;
@@ -1309,6 +1330,9 @@ sub ModReserve {
         if ( exists $params->{expirationdate} ) {
             $properties->{expirationdate} = $params->{expirationdate} || undef;
         }
+        if ( exists $params->{item_level_hold} ) {
+            $properties->{item_level_hold} = $params->{item_level_hold};
+        }
 
         $hold->set($properties)->store();
 
@@ -1716,21 +1740,27 @@ sub AlterPriority {
 
 =head2 ToggleLowestPriority
 
-  ToggleLowestPriority( $borrowernumber, $biblionumber );
+  ToggleLowestPriority( $reserve_id, $is_lowestPriority );
 
-This function sets the lowestPriority field to true if is false, and false if it is true.
+This function sets the lowestPriority field to true if is false, and false if it is true
+and then reorders the holds on the record.
+
+A hold toggled to lowest priority will go the bottom.
+A hold toggled to NOT lowest priority will go to the bottom of other non-lowest priority holds.
 
 =cut
 
 sub ToggleLowestPriority {
-    my ($reserve_id) = @_;
+    my ( $reserve_id, $is_lowestPriority ) = @_;
 
     my $dbh = C4::Context->dbh;
+
+    my $rank = $is_lowestPriority ? undef : '999999';
 
     my $sth = $dbh->prepare("UPDATE reserves SET lowestPriority = NOT lowestPriority WHERE reserve_id = ?");
     $sth->execute($reserve_id);
 
-    FixPriority( { reserve_id => $reserve_id, rank => '999999' } );
+    FixPriority( { reserve_id => $reserve_id, rank => $rank } );
 }
 
 =head2 SuspendAll
@@ -1778,7 +1808,6 @@ sub SuspendAll {
   FixPriority({
     reserve_id => $reserve_id,
     [rank => $rank,]
-    [ignoreSetLowestRank => $ignoreSetLowestRank]
   });
 
   or
@@ -1800,116 +1829,114 @@ then have reserves.priority set so that the first non-captured hold
 has its priority set to 1, the second non-captured hold has its priority
 set to 2, and so forth.
 
-In both cases, holds that have the lowestPriority flag on are have their
+In both cases, holds that have the lowestPriority flag on have their
 priority adjusted to ensure that they remain at the end of the line.
-
-Note that the ignoreSetLowestRank parameter is meant to be used only
-when FixPriority calls itself.
 
 =cut
 
 sub FixPriority {
-    my ($params)            = @_;
-    my $reserve_id          = $params->{reserve_id};
-    my $rank                = $params->{rank} // '';
-    my $ignoreSetLowestRank = $params->{ignoreSetLowestRank};
-    my $biblionumber        = $params->{biblionumber};
+    my ($params) = @_;
 
-    my $dbh = C4::Context->dbh;
+    Koha::Database->new->schema->txn_do(
+        sub {
+            my $reserve_id   = $params->{reserve_id};
+            my $rank         = $params->{rank} // '';
+            my $biblionumber = $params->{biblionumber};
 
-    my $hold;
-    if ($reserve_id) {
-        $hold = Koha::Holds->find($reserve_id);
-        if ( !defined $hold ) {
+            my $dbh = C4::Context->dbh;
 
-            # may have already been checked out and hold fulfilled
-            require Koha::Old::Holds;
-            $hold = Koha::Old::Holds->find($reserve_id);
-        }
-        return unless $hold;
-    }
+            my $hold;
+            if ($reserve_id) {
+                $hold = Koha::Holds->find($reserve_id);
+                if ( !defined $hold ) {
 
-    unless ($biblionumber) {    # FIXME This is a very weird API
-        $biblionumber = $hold->biblionumber;
-    }
-
-    if ( $rank eq "del" ) {     # FIXME will crash if called without $hold
-        $hold->cancel;
-    } elsif ( $reserve_id && ( $rank eq "W" || $rank eq "0" ) ) {
-
-        # make sure priority for waiting or in-transit items is 0
-        my $query = "
-            UPDATE reserves
-            SET    priority = 0
-            WHERE reserve_id = ?
-            AND found IN ('W', 'T', 'P')
-        ";
-        my $sth = $dbh->prepare($query);
-        $sth->execute($reserve_id);
-    }
-    my @priority;
-
-    # get what's left
-    my $query = "
-        SELECT reserve_id, borrowernumber, reservedate
-        FROM   reserves
-        WHERE  biblionumber   = ?
-          AND  ((found <> 'W' AND found <> 'T' AND found <> 'P') OR found IS NULL)
-        ORDER BY priority ASC
-    ";
-    my $sth = $dbh->prepare($query);
-    $sth->execute($biblionumber);
-    while ( my $line = $sth->fetchrow_hashref ) {
-        push( @priority, $line );
-    }
-
-    # FIXME This whole sub must be rewritten, especially to highlight what is done when reserve_id is not given
-    # To find the matching index
-    my $i;
-    my $key = -1;    # to allow for 0 to be a valid result
-    for ( $i = 0 ; $i < @priority ; $i++ ) {
-        if ( $reserve_id && $reserve_id == $priority[$i]->{'reserve_id'} ) {
-            $key = $i;    # save the index
-            last;
-        }
-    }
-
-    # if index exists in array then move it to new position
-    if ( $key > -1 && $rank ne 'del' && $rank > 0 ) {
-        my $new_rank    = $rank - 1;                      # $new_rank is what you want the new index to be in the array
-        my $moving_item = splice( @priority, $key, 1 );
-        $new_rank = scalar @priority if $new_rank > scalar @priority;
-        splice( @priority, $new_rank, 0, $moving_item );
-    }
-
-    # now fix the priority on those that are left....
-    $query = "
-        UPDATE reserves
-        SET    priority = ?
-        WHERE  reserve_id = ?
-    ";
-    $sth = $dbh->prepare($query);
-    for ( my $j = 0 ; $j < @priority ; $j++ ) {
-        $sth->execute(
-            $j + 1,
-            $priority[$j]->{'reserve_id'}
-        );
-    }
-
-    unless ($ignoreSetLowestRank) {
-        $sth = $dbh->prepare(
-            "SELECT reserve_id FROM reserves WHERE lowestPriority = 1 AND biblionumber = ? ORDER BY priority");
-        $sth->execute($biblionumber);
-        while ( my $res = $sth->fetchrow_hashref() ) {
-            FixPriority(
-                {
-                    reserve_id          => $res->{'reserve_id'},
-                    rank                => '999999',
-                    ignoreSetLowestRank => 1
+                    # may have already been checked out and hold fulfilled
+                    require Koha::Old::Holds;
+                    $hold = Koha::Old::Holds->find($reserve_id);
                 }
-            );
+                return unless $hold;
+            }
+
+            unless ($biblionumber) {    # FIXME This is a very weird API
+                $biblionumber = $hold->biblionumber;
+            }
+
+            if ( $rank eq "del" ) {     # FIXME will crash if called without $hold
+                $hold->cancel;
+            } elsif ( $reserve_id && ( $rank eq "W" || $rank eq "0" ) ) {
+
+                # make sure priority for waiting or in-transit items is 0
+                my $query = "
+                    UPDATE reserves
+                    SET    priority = 0
+                    WHERE reserve_id = ?
+                    AND found IN ('W', 'T', 'P')
+                ";
+                my $sth = $dbh->prepare($query);
+                $sth->execute($reserve_id);
+            }
+            my @priority;
+
+            # Lock all active holds for this bib so concurrent FixPriority calls
+            # for the same hold set cannot interleave their read-modify-write cycle.
+            # FOR UPDATE is effective inside the enclosing txn_do transaction.
+            my $query = "
+                SELECT reserve_id, borrowernumber, reservedate, lowestPriority
+                FROM   reserves
+                WHERE  biblionumber   = ?
+                  AND  ((found <> 'W' AND found <> 'T' AND found <> 'P') OR found IS NULL)
+                ORDER BY lowestPriority ASC, priority ASC
+                FOR UPDATE
+            ";
+            my $sth = $dbh->prepare($query);
+            $sth->execute($biblionumber);
+            while ( my $line = $sth->fetchrow_hashref ) {
+                push( @priority, $line );
+            }
+
+            # FIXME This whole sub must be rewritten, especially to highlight what is done when reserve_id is not given
+            # To find the matching index
+            my $i;
+            my $key = -1;    # to allow for 0 to be a valid result
+            for ( $i = 0 ; $i < @priority ; $i++ ) {
+                if ( $reserve_id && $reserve_id == $priority[$i]->{'reserve_id'} ) {
+                    $key = $i;    # save the index
+                    last;
+                }
+            }
+
+            # if this hold is marked lowest priority, we can only move it so far;
+            # cap rank to just after the last non-lowestPriority hold using the
+            # already-fetched @priority array (avoids a second DB query and stale data)
+            if ( $hold && $hold->lowestPriority && $rank ne 'del' && $rank > 0 ) {
+                my $non_lowest_count = scalar grep { !$_->{lowestPriority} } @priority;
+                $rank = $non_lowest_count + 1 if $non_lowest_count && $rank <= $non_lowest_count;
+            }
+
+            # if index exists in array then move it to new position
+            if ( $key > -1 && $rank ne 'del' && $rank && $rank > 0 ) {
+                my $new_rank    = $rank - 1;    # $new_rank is what you want the new index to be in the array
+                my $moving_item = splice( @priority, $key, 1 );
+                $new_rank = scalar @priority if $new_rank > scalar @priority;
+                splice( @priority, $new_rank, 0, $moving_item );
+            }
+
+            # now fix the priority on those that are left....
+            # only updating if changed
+            $query = "
+                UPDATE reserves
+                SET    priority = ?
+                WHERE  reserve_id = ? AND priority != ?
+            ";
+            $sth = $dbh->prepare($query);
+            for ( my $j = 0 ; $j < @priority ; $j++ ) {
+                $sth->execute(
+                    $j + 1,
+                    $priority[$j]->{'reserve_id'}, $j + 1
+                );
+            }
         }
-    }
+    );
 }
 
 =head2 _Findgroupreserve
@@ -2311,13 +2338,13 @@ sub MoveReserve {
     my $lookahead = C4::Context->preference('ConfirmFutureHolds');    #number of days to look for future holds
     my ( $restype, $res, undef ) = CheckReserves( $item, $lookahead );
 
+    my $hold;
     if ( $res && $res->{borrowernumber} == $patron->borrowernumber ) {
-        my $hold = Koha::Holds->find( $res->{reserve_id} );
-        $hold->fill( { item_id => $item->id } );
+        $hold = Koha::Holds->find( $res->{reserve_id} );
     } else {
 
-        # The item is reserved by someone else.
-        # Find this item in the reserves
+        # The next reserve is for someone else,
+        # Check if this patron has a reserve on this biblio/item
 
         my $lookahead_date = output_pref(
             {
@@ -2325,7 +2352,7 @@ sub MoveReserve {
                 dateformat => 'iso', dateonly => 1
             }
         );
-        my $hold = $patron->holds->search(
+        $hold = $patron->holds->search(
             {
                 biblionumber => $item->biblionumber,
                 reservedate  => { '<=' => $lookahead_date },
@@ -2333,18 +2360,41 @@ sub MoveReserve {
             },
             { order_by => 'priority' }
         )->next();
+    }
 
-        if ($hold) {
+    if ($hold) {
+        if ( $hold->itemnumber && $hold->itemnumber == $item->id ) {
 
             # The item is reserved by the current patron
             $hold->fill( { item_id => $item->id } );
-        }
+        } else {
+            my $controlbranch = $patron->branchcode;
+            if ( C4::Context->preference('ReservesControlBranch') eq 'ItemHomeLibrary' ) {
+                $controlbranch = $item->homebranch;
+            }
 
+            # If no rule is set, the default behavior is to fill the hold
+            my $fill_other_biblio_holds_policy = Koha::CirculationRules->get_effective_rule_value(
+                {
+                    categorycode => undef,
+                    itemtype     => $item->itype,
+                    branchcode   => $controlbranch,
+                    rule_name    => 'fill_other_biblio_holds_policy',
+                }
+            ) // 1;
+
+            $hold->fill( { item_id => $item->id } ) if $fill_other_biblio_holds_policy;
+        }
+    }
+
+    if ( $cancelreserve && $res ) {
         $hold = Koha::Holds->find( $res->{reserve_id} );
-        if ( $cancelreserve eq 'revert' ) {
-            $hold->revert_found();
-        } elsif ( $cancelreserve eq 'cancel' || $cancelreserve ) {    # cancel reserves on this item
-            $hold->cancel;
+        if ($hold) {
+            if ( $cancelreserve eq 'revert' ) {
+                $hold->revert_found();
+            } else {    # cancel reserves on this item
+                $hold->cancel;
+            }
         }
     }
 }

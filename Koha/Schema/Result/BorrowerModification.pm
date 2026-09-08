@@ -103,6 +103,8 @@ patron/borrower's middle name
   data_type: 'tinytext'
   is_nullable: 1
 
+the house number for your patron/borrower's primary address
+
 =head2 streettype
 
   data_type: 'varchar'
@@ -176,6 +178,8 @@ patron/borrower's middle name
   accessor: 'b_streetnumber'
   data_type: 'tinytext'
   is_nullable: 1
+
+the house number for your patron/borrower's alternate address
 
 =head2 B_streettype
 
@@ -656,8 +660,19 @@ __PACKAGE__->add_columns(
 __PACKAGE__->set_primary_key("verification_token", "borrowernumber");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07051 @ 2026-04-16 15:52:45
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:PCVkSd4pEwKiImYbB0kvyw
+# Created by DBIx::Class::Schema::Loader v0.07051 @ 2026-08-26 11:13:08
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:ofTEvlsgmdBJFXL5edOyXQ
+
+__PACKAGE__->add_columns(
+    '+gonenoaddress' => { is_boolean => 1 },
+    '+lost'          => { is_boolean => 1 },
+);
+
+=head2 koha_object_class
+
+Missing POD for koha_object_class.
+
+=cut
 
 __PACKAGE__->add_columns(
     '+gonenoaddress' => { is_boolean => 1 },

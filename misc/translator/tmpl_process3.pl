@@ -64,6 +64,8 @@ sub text_replace_tag {
     my $translated_p = 0;
     for my $a ( 'alt', 'content', 'title', 'value', 'label', 'placeholder', 'aria-label' ) {
         if ( $attr->{$a} ) {
+
+            # xt/author/tt_valid.t must be adjusted if the following conditions are modified
             next if $a eq 'label'   && $tag ne 'optgroup';
             next if $a eq 'content' && $tag ne 'meta';
             next
@@ -158,6 +160,8 @@ sub text_replace {
             # Quick fix to bug 4472
             $t = "<!DOCTYPE stylesheet [" if $t =~ /DOCTYPE stylesheet/;
             print $output $t;
+        } elsif ( !$attr ) {
+            warn "Error: file contains incorrect TT structures";
         }
     }
 }

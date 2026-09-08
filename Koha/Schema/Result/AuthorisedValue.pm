@@ -157,21 +157,6 @@ __PACKAGE__->belongs_to(
   { is_deferrable => 1, on_delete => "CASCADE", on_update => "CASCADE" },
 );
 
-=head2 illrequests
-
-Type: has_many
-
-Related object: L<Koha::Schema::Result::Illrequest>
-
-=cut
-
-__PACKAGE__->has_many(
-  "illrequests",
-  "Koha::Schema::Result::Illrequest",
-  { "foreign.status_alias" => "self.authorised_value" },
-  { cascade_copy => 0, cascade_delete => 0 },
-);
-
 =head2 old_illrequests
 
 Type: has_many
@@ -188,8 +173,8 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2026-04-14 11:43:59
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:cqtJRn/fmpGtEVJY1dQ8Vw
+# Created by DBIx::Class::Schema::Loader v0.07051 @ 2026-08-26 09:24:06
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:eaVGE7xLDe5U3whPJ3jwdw
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

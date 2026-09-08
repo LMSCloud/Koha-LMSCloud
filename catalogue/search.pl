@@ -756,6 +756,7 @@ for ( my $i = 0 ; $i < @servers ; $i++ ) {
                 );
             $template->param( hits_to_paginate => $hits_to_paginate );
             $template->param( SEARCH_RESULTS   => \@newresults );
+            $template->param( SCORES           => $results_hashref->{$server}->{"scores"} );
 
             # FIXME: no previous_page_offset when pages < 2
             $template->param(

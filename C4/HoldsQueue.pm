@@ -443,6 +443,15 @@ sub _checkHoldPolicy {
 
 }
 
+=head2 _allocateWithTransportCostMatrix
+
+    _allocateWithTransportCostMatrix( $hold_requests, $available_items, $branches_to_use, $libraries,
+        $transport_cost_matrix, $allocated_items, $items_by_itemnumber )
+
+    given a list of  holds and items attempt to fill the holds in the 'least cost' order
+
+=cut
+
 sub _allocateWithTransportCostMatrix {
     my (
         $hold_requests, $available_items, $branches_to_use, $libraries, $transport_cost_matrix, $allocated_items,
@@ -488,7 +497,7 @@ sub _allocateWithTransportCostMatrix {
 
 RETRY:
     while (1) {
-        return [] if $num_agents == 0 || $num_tasks == 0;
+        return [] if $num_agents == 0 || $num_tasks + scalar(@remaining) == 0;
 
         if ( $num_tasks < $num_agents && @remaining ) {
 
@@ -1155,6 +1164,12 @@ sub AddToHoldTargetMap {
 }
 
 # Helper functions, not part of any interface
+
+=head2 _trim
+
+Remove leading and trailing spaces
+
+=cut
 
 sub _trim {
     return $_[0] unless $_[0];

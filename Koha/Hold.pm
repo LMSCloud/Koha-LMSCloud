@@ -189,10 +189,10 @@ $hold->move_hold();
 sub move_hold {
     my ( $self, $args ) = @_;
 
-    my $original              = $self;
+    my $original              = $self->unblessed;
     my $original_biblionumber = $self->biblionumber;
 
-    my $found = $original->found // '';
+    my $found = $self->found // '';
 
     if ( $found eq 'W' ) {
         return { success => 0, error => 'Cannot move a waiting hold' };
@@ -253,10 +253,11 @@ sub move_hold {
 
 =head3 cleanup_hold_group
 
-$self->cleanup_hold_group;
+    $self->cleanup_hold_group;
 
-Check if a hold group is left with a single or zero holds. Delete hold_group if so.
-Accepts an optional $hold_group_id that, if defined, uses that instead of self->hold_group_id
+Dissociates the last hold from a group if it is the only one remaining and no history exists.
+If no active holds remain, the group is deleted unless it has history.
+(Koha::Old::Holds), in which case it is archived by clearing its visual ID.
 
 =cut
 
@@ -267,8 +268,21 @@ sub cleanup_hold_group {
     my $hold_group             = Koha::HoldGroups->find($hold_group_id_to_check);
     return unless $hold_group;
 
-    if ( $hold_group->holds->count <= 1 ) {
-        $hold_group->delete();
+    my $active_count  = $hold_group->holds->count;
+    my $history_count = $hold_group->old_holds->count;
+
+    if ( $active_count == 1 && $history_count == 0 ) {
+        my $last_hold = $hold_group->holds->next;
+        $last_hold->hold_group_id(undef)->store;
+        $active_count = 0;
+    }
+
+    if ( $active_count == 0 ) {
+        if ( $history_count > 0 ) {
+            $hold_group->set( { visual_hold_group_id => undef } )->store;
+        } else {
+            $hold_group->delete;
+        }
     }
 }
 
@@ -784,6 +798,24 @@ sub is_suspended {
     return $self->suspend();
 }
 
+=head3 item_level_holds_count
+
+Returns the number (count) of item-level holds for this hold's biblionumber and patron
+
+=cut
+
+sub item_level_holds_count {
+    my ($self) = @_;
+
+    return Koha::Holds->search(
+        {
+            biblionumber   => $self->biblionumber,
+            borrowernumber => $self->borrowernumber,
+            itemnumber     => { '!=', undef },
+        }
+    )->count;
+}
+
 =head3 add_cancellation_request
 
     my $cancellation_request = $hold->add_cancellation_request({ [ creation_date => $creation_date ] });
@@ -953,7 +985,7 @@ sub cancel {
                         type       => 'RESERVE_EXPIRED',
                         item_id    => $self->itemnumber
                     }
-                ) if $charge;
+                ) if $charge && $charge > 0;
             }
 
             C4::Log::logaction( 'HOLDS', 'CANCEL', $self->reserve_id, $self, undef, $original )

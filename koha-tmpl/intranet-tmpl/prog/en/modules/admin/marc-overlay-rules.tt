@@ -107,62 +107,6 @@
                         <th>&nbsp;</th>
                     </tr></thead
                 >
-                [% UNLESS edit %]
-                    <tfoot>
-                        <tr class="rule-new">
-                            <th>&nbsp;</th>
-                            <th>
-                                <select name="module">
-                                    <option value="source">Source</option>
-                                    <option value="categorycode">Patron category</option>
-                                    <option value="userid">Username</option>
-                                </select>
-                            </th>
-                            <th id="filter-container"></th>
-                            <th><input type="text" size="5" name="tag" class="required" required="required" /></th>
-                            <th>
-                                <select name="preset">
-                                    <option value="" selected>Custom</option>
-                                    <option value="protect">Protect</option>
-                                    <option value="overwrite">Overwrite</option>
-                                    <option value="add">Add new</option>
-                                    <option value="addappend">Add and append</option>
-                                    <option value="protectfromdeletion">Protect from deletion</option>
-                                </select>
-                            </th>
-                            <th class="rule-operation-action-edit">
-                                <select name="add">
-                                    <option value="0">Skip</option>
-                                    <option value="1">Add</option>
-                                </select>
-                            </th>
-                            <th class="rule-operation-action-edit">
-                                <select name="append">
-                                    <option value="0">Skip</option>
-                                    <option value="1">Append</option>
-                                </select>
-                            </th>
-                            <th class="rule-operation-action-edit">
-                                <select name="remove">
-                                    <option value="0">Skip</option>
-                                    <option value="1">Remove</option>
-                                </select>
-                            </th>
-                            <th class="rule-operation-action-edit">
-                                <select name="delete">
-                                    <option value="0">Skip</option>
-                                    <option value="1">Delete</option>
-                                </select>
-                            </th>
-                            <th
-                                ><button type="submit" class="btn btn-default btn-xs" title="Add" id="add"><i class="fa fa-plus"></i> Add rule</button></th
-                            >
-                            <th
-                                ><button type="button" class="btn btn-default btn-xs" id="btn_batchremove" disabled="disabled" title="Batch remove"><i class="fa fa-trash-can"></i> Delete selected</button></th
-                            >
-                        </tr>
-                    </tfoot>
-                [% END %]
                 <tbody>
                     [% FOREACH rule IN rules %]
                         <tr id="[% rule.id | html %]" class="rule[% IF rule.edit %]-edit[% END %]">
@@ -273,8 +217,8 @@
                                             <span>Staged MARC import</span>
                                         [% CASE 'z3950' %]
                                             <span>Z39.50</span>
-                                        [% CASE 'bulkmarkimport' %]
-                                            <span>bulkmarkimport.pl</span>
+                                        [% CASE 'bulkmarcimport' %]
+                                            <span>bulkmarcimport.pl</span>
                                         [% CASE 'import_lexile' %]
                                             <span>import_lexile.pl</span>
                                         [% CASE %]
@@ -309,6 +253,62 @@
                         </tr>
                     [% END %]
                 </tbody>
+                [% UNLESS edit %]
+                    <tfoot>
+                        <tr class="rule-new">
+                            <th>&nbsp;</th>
+                            <th>
+                                <select name="module">
+                                    <option value="source">Source</option>
+                                    <option value="categorycode">Patron category</option>
+                                    <option value="userid">Username</option>
+                                </select>
+                            </th>
+                            <th id="filter-container"></th>
+                            <th><input type="text" size="5" name="tag" class="required" required="required" /></th>
+                            <th>
+                                <select name="preset">
+                                    <option value="" selected>Custom</option>
+                                    <option value="protect">Protect</option>
+                                    <option value="overwrite">Overwrite</option>
+                                    <option value="add">Add new</option>
+                                    <option value="addappend">Add and append</option>
+                                    <option value="protectfromdeletion">Protect from deletion</option>
+                                </select>
+                            </th>
+                            <th class="rule-operation-action-edit">
+                                <select name="add">
+                                    <option value="0">Skip</option>
+                                    <option value="1">Add</option>
+                                </select>
+                            </th>
+                            <th class="rule-operation-action-edit">
+                                <select name="append">
+                                    <option value="0">Skip</option>
+                                    <option value="1">Append</option>
+                                </select>
+                            </th>
+                            <th class="rule-operation-action-edit">
+                                <select name="remove">
+                                    <option value="0">Skip</option>
+                                    <option value="1">Remove</option>
+                                </select>
+                            </th>
+                            <th class="rule-operation-action-edit">
+                                <select name="delete">
+                                    <option value="0">Skip</option>
+                                    <option value="1">Delete</option>
+                                </select>
+                            </th>
+                            <th
+                                ><button type="submit" class="btn btn-default btn-xs" title="Add" id="add"><i class="fa fa-plus"></i> Add rule</button></th
+                            >
+                            <th
+                                ><button type="button" class="btn btn-default btn-xs" id="btn_batchremove" disabled="disabled" title="Batch remove"><i class="fa fa-trash-can"></i> Delete selected</button></th
+                            >
+                        </tr>
+                    </tfoot>
+                [% END %]
             </table>
         </form>
     </div>
@@ -496,20 +496,25 @@
             // Note: This allows displaying a sorted list of categories later, but we still depend on an object!
             categories.unshift({ categorycode: '*', description: '*'});
             categories = categories.reduce( ( a,c ) => ( { ...a, [c.categorycode]: c.description } ), {} );
-
-            var module_filter_options = {
-            source: {
-                '*': '*',
-                batchmod: _("Batch record modification"),
-                intranet: _("Staff interface MARC editor"),
-                batchimport: _("Staged MARC import"),
-                z3950: _("Z39.50"),
-                bulkmarcimport: _("bulkmarcimport.pl"),
-                import_lexile: _("import_lexile.pl")
-            },
-
                 categorycode: categories,
             };
+
+
+        var module_filter_options = {
+        source: {
+            '*': '*',
+            [% FOREACH record_source IN record_sources %]
+                [% SWITCH record_source %]
+                  [% CASE 'batchmod' %]'[% record_source | html %]': _("Batch record modification"),
+                  [% CASE 'intranet' %]'[% record_source | html %]':_("Staff interface MARC editor"),
+                  [% CASE 'batchimport' %]'[% record_source | html %]': _("Staged MARC import"),
+                  [% CASE 'z3950' %]'[% record_source | html %]': _("Z39.50"),
+                  [% CASE 'bulkmarcimport' %]'[% record_source | html %]': _("bulkmarcimport.pl"),
+                  [% CASE 'import_lexile' %]'[% record_source | html %]':  _("import_lexile.pl"),
+                  [% CASE %] '[% record_source | html %]' : '[% record_source | html %]',
+                [% END %]
+            [% END %]
+        },
 
             //Kind of hack: Replace filter value with label when one exist
             $('.rule-module').each(function() {

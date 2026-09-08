@@ -2191,6 +2191,7 @@ modules:
               columnname: action
 
       patron_holds_table:
+        default_sort_order: 1
         columns:
             -
               columnname: checkbox
@@ -2809,6 +2810,8 @@ modules:
               columnname: suspended_until
             -
               columnname: notes
+            -
+              columnname: result
     logviewer:
       logst:
         default_display_length: 20

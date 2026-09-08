@@ -39,9 +39,8 @@ Foreign key to sip_institutions.sip_institution_id
 
 =head2 ae_field_template
 
-  data_type: 'varchar'
+  data_type: 'text'
   is_nullable: 1
-  size: 255
 
 =head2 allow_additional_materials_checkout
 
@@ -61,9 +60,8 @@ Foreign key to sip_institutions.sip_institution_id
 
 =head2 av_field_template
 
-  data_type: 'varchar'
+  data_type: 'text'
   is_nullable: 1
-  size: 255
 
 =head2 blocked_item_types
 
@@ -105,9 +103,8 @@ Foreign key to sip_institutions.sip_institution_id
 
 =head2 da_field_template
 
-  data_type: 'varchar'
+  data_type: 'text'
   is_nullable: 1
-  size: 255
 
 =head2 delimiter
 
@@ -115,36 +112,6 @@ Foreign key to sip_institutions.sip_institution_id
   default_value: '|'
   is_nullable: 1
   size: 10
-
-=head2 deliver_hold_shelf_patron_with_bg
-
-  data_type: 'tinyint'
-  is_nullable: 1
-
-Send the barcode of the patron a hold is waiting for in field BG instead of the owning library
-
-=head2 disable_checkins_with_holds
-
-  data_type: 'tinyint'
-  is_nullable: 1
-
-Block checkin if the biblio has other pending holds
-
-=head2 disabled_ccodes_for_checkins
-
-  data_type: 'varchar'
-  is_nullable: 1
-  size: 1024
-
-Pipe-delimited list of collection codes for which checkin is forbidden
-
-=head2 disabled_itypes_for_checkins
-
-  data_type: 'varchar'
-  is_nullable: 1
-  size: 1024
-
-Pipe-delimited list of item types for which checkin is forbidden
 
 =head2 disallow_overpayment
 
@@ -224,13 +191,6 @@ actual tinyint, not boolean
 
 actual tinyint, not boolean
 
-=head2 only_local_checkins
-
-  data_type: 'tinyint'
-  is_nullable: 1
-
-Restrict checkin to the item's issuing library
-
 =head2 overdues_block_checkout
 
   data_type: 'tinyint'
@@ -261,13 +221,6 @@ Foreign key to cash_registers.id
   is_nullable: 1
   size: 255
 
-=head2 send_patron_class_as_fu
-
-  data_type: 'tinyint'
-  is_nullable: 1
-
-Additionally deliver the patron class in field FU
-
 =head2 send_patron_home_library_in_af
 
   data_type: 'tinyint'
@@ -290,13 +243,6 @@ Additionally deliver the patron class in field FU
   extra: {list => ["CR","CRLF"]}
   is_nullable: 0
 
-=head2 use_location_instead_ccode_for_cr
-
-  data_type: 'tinyint'
-  is_nullable: 1
-
-Deliver the item shelving location instead of the collection code in field CR
-
 =cut
 
 __PACKAGE__->add_columns(
@@ -305,7 +251,7 @@ __PACKAGE__->add_columns(
   "sip_institution_id",
   { data_type => "integer", is_foreign_key => 1, is_nullable => 0 },
   "ae_field_template",
-  { data_type => "varchar", is_nullable => 1, size => 255 },
+  { data_type => "text", is_nullable => 1 },
   "allow_additional_materials_checkout",
   { data_type => "tinyint", is_nullable => 1 },
   "allow_empty_passwords",
@@ -313,7 +259,7 @@ __PACKAGE__->add_columns(
   "allow_fields",
   { data_type => "varchar", is_nullable => 1, size => 255 },
   "av_field_template",
-  { data_type => "varchar", is_nullable => 1, size => 255 },
+  { data_type => "text", is_nullable => 1 },
   "blocked_item_types",
   { data_type => "varchar", is_nullable => 1, size => 255 },
   "checked_in_ok",
@@ -329,17 +275,9 @@ __PACKAGE__->add_columns(
   "cv_triggers_alert",
   { data_type => "tinyint", is_nullable => 1 },
   "da_field_template",
-  { data_type => "varchar", is_nullable => 1, size => 255 },
+  { data_type => "text", is_nullable => 1 },
   "delimiter",
   { data_type => "varchar", default_value => "|", is_nullable => 1, size => 10 },
-  "deliver_hold_shelf_patron_with_bg",
-  { data_type => "tinyint", is_nullable => 1 },
-  "disable_checkins_with_holds",
-  { data_type => "tinyint", is_nullable => 1 },
-  "disabled_ccodes_for_checkins",
-  { data_type => "varchar", is_nullable => 1, size => 1024 },
-  "disabled_itypes_for_checkins",
-  { data_type => "varchar", is_nullable => 1, size => 1024 },
   "disallow_overpayment",
   { data_type => "tinyint", is_nullable => 1 },
   "encoding",
@@ -366,8 +304,6 @@ __PACKAGE__->add_columns(
   { data_type => "tinyint", is_nullable => 1 },
   "lost_status_for_missing",
   { data_type => "tinyint", is_nullable => 1 },
-  "only_local_checkins",
-  { data_type => "tinyint", is_nullable => 1 },
   "overdues_block_checkout",
   { data_type => "tinyint", is_nullable => 1 },
   "payment_type_writeoff",
@@ -378,8 +314,6 @@ __PACKAGE__->add_columns(
   { data_type => "integer", is_foreign_key => 1, is_nullable => 1 },
   "seen_on_item_information",
   { data_type => "varchar", is_nullable => 1, size => 255 },
-  "send_patron_class_as_fu",
-  { data_type => "tinyint", is_nullable => 1 },
   "send_patron_home_library_in_af",
   { data_type => "tinyint", is_nullable => 1 },
   "show_checkin_message",
@@ -393,8 +327,6 @@ __PACKAGE__->add_columns(
     extra => { list => ["CR", "CRLF"] },
     is_nullable => 0,
   },
-  "use_location_instead_ccode_for_cr",
-  { data_type => "tinyint", is_nullable => 1 },
 );
 
 =head1 PRIMARY KEY
@@ -566,8 +498,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07051 @ 2026-09-01 13:57:22
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:hQY0bkbYowPSIZBUCBAxyQ
+# Created by DBIx::Class::Schema::Loader v0.07051 @ 2026-05-24 16:32:53
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:7xlHxjcI/Du780Cz05dbDw
 
 
 __PACKAGE__->add_columns(
@@ -592,14 +524,6 @@ __PACKAGE__->add_columns(
 
 __PACKAGE__->add_columns(
     "+cv_triggers_alert" => { is_boolean => 1 }
-);
-
-__PACKAGE__->add_columns(
-    "+deliver_hold_shelf_patron_with_bg" => { is_boolean => 1 }
-);
-
-__PACKAGE__->add_columns(
-    "+disable_checkins_with_holds" => { is_boolean => 1 }
 );
 
 __PACKAGE__->add_columns(
@@ -635,19 +559,11 @@ __PACKAGE__->add_columns(
 );
 
 __PACKAGE__->add_columns(
-    "+only_local_checkins" => { is_boolean => 1 }
-);
-
-__PACKAGE__->add_columns(
     "+overdues_block_checkout" => { is_boolean => 1 }
 );
 
 __PACKAGE__->add_columns(
     "+prevcheckout_block_checkout" => { is_boolean => 1 }
-);
-
-__PACKAGE__->add_columns(
-    "+send_patron_class_as_fu" => { is_boolean => 1 }
 );
 
 __PACKAGE__->add_columns(
@@ -660,10 +576,6 @@ __PACKAGE__->add_columns(
 
 __PACKAGE__->add_columns(
     "+show_outstanding_amount" => { is_boolean => 1 }
-);
-
-__PACKAGE__->add_columns(
-    "+use_location_instead_ccode_for_cr" => { is_boolean => 1 }
 );
 
 =head2 koha_objects_class

@@ -39,6 +39,7 @@ use C4::Koha   qw( xml_escape );
 use C4::Biblio qw( GetAuthorisedValueDesc GetFrameworkCode GetMarcStructure );
 use Koha::AuthorisedValues;
 use Koha::ItemTypes;
+use Koha::Plugins;
 use Koha::RecordProcessor;
 use Koha::Libraries;
 use Koha::Recalls;
@@ -62,6 +63,12 @@ Used in OPAC results and detail, intranet results and detail, list display.
 (Depending on the settings of your XSLT preferences.)
 
 The helper function _get_best_default_xslt_filename is used in a unit test.
+
+=cut
+
+=head2 _get_best_default_xslt_filename
+
+Find the default file, trying a few standard variations, until the file is located
 
 =cut
 
@@ -229,10 +236,23 @@ sub XSLTParse4Display {
 
     my $xslfilename = get_xsl_filename($xslsyspref);
 
-    my $frameworkcode    = GetFrameworkCode($biblionumber) || '';
+    my $frameworkcode = GetFrameworkCode($biblionumber) || '';
+    my $filters       = ['ExpandCodedFields'];
+
+    Koha::Plugins->call(
+        'xslt_record_processor_filters',
+        {
+            filters       => $filters,
+            interface     => $interface,
+            frameworkcode => $frameworkcode,
+            xsl_syspref   => $xslsyspref,
+            biblionumber  => $biblionumber,
+        }
+    );
+
     my $record_processor = Koha::RecordProcessor->new(
         {
-            filters => ['ExpandCodedFields'],
+            filters => $filters,
             options => {
                 interface     => $interface,
                 frameworkcode => $frameworkcode

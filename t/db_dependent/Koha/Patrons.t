@@ -20,7 +20,7 @@
 use Modern::Perl;
 
 use Test::NoWarnings;
-use Test::More tests => 48;
+use Test::More tests => 49;
 use Test::Warn;
 use Test::Exception;
 use Test::MockModule;
@@ -39,6 +39,8 @@ use Koha::Holds;
 use Koha::Old::Holds;
 use Koha::Patrons;
 use Koha::Old::Patrons;
+use Koha::Patron::Attribute;
+use Koha::Patron::Attribute::Type;
 use Koha::Patron::Attribute::Types;
 use Koha::Patron::Categories;
 use Koha::Patron::Relationship;
@@ -356,6 +358,31 @@ subtest 'is_expired' => sub {
     is( $patron->is_expired, 1, 'Patron should be considered expired if dateexpiry is yesterday' );
 
     $patron->delete;
+};
+
+subtest 'DST is_expired' => sub {
+    plan tests => 2;
+
+    my $context = Test::MockModule->new('C4::Context');
+    $context->mock(
+        'tz',
+        sub {
+            'Africa/Cairo';
+        }
+    );
+
+    Time::Fake->offset(1745580600);
+    my $patron = $builder->build( { source => 'Borrower' } );
+    $patron = Koha::Patrons->find( $patron->{borrowernumber} );
+    $patron->dateexpiry('2025-04-24 23:59:59');
+    is( $patron->is_expired, 1, 'Patron should be expired as they expire the day before today' );
+
+    $patron->dateexpiry('2025-04-25 00:00:01');
+    is( $patron->is_expired, 0, 'Patron should not be expired as they expire the same day as today' );
+
+    $context->unmock('tz');
+    Time::Fake->reset();
+
 };
 
 subtest 'is_going_to_expire' => sub {
@@ -3613,7 +3640,7 @@ subtest 'filter_by_expired_opac_registrations' => sub {
 
 subtest 'find_by_identifier() tests' => sub {
 
-    plan tests => 7;
+    plan tests => 9;
 
     $schema->storage->txn_begin;
 
@@ -3652,6 +3679,53 @@ subtest 'find_by_identifier() tests' => sub {
     # Test with undef identifier
     $found_patron = Koha::Patrons->find_by_identifier(undef);
     is( $found_patron, undef, 'Returns undef for undef identifier' );
+
+    # Test with unique attributes
+    my $unique_code = 'UA_' . int( rand(100000) );
+    Koha::Patron::Attribute::Type->new(
+        {
+            code        => $unique_code,
+            description => 'Unique Attribute',
+            unique_id   => 1,
+            repeatable  => 0,
+        }
+    )->store;
+
+    my $non_unique_code = 'NUA_' . int( rand(100000) );
+    Koha::Patron::Attribute::Type->new(
+        {
+            code        => $non_unique_code,
+            description => 'Non-Unique Attribute',
+            unique_id   => 0,
+            repeatable  => 0,
+        }
+    )->store;
+
+    my $patron_u = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $val_u    = 'VAL_U_' . int( rand(100000) );
+    Koha::Patron::Attribute->new(
+        {
+            borrowernumber => $patron_u->borrowernumber,
+            code           => $unique_code,
+            attribute      => $val_u,
+        }
+    )->store;
+
+    my $patron_nu = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $val_nu    = 'VAL_NU_' . int( rand(100000) );
+    Koha::Patron::Attribute->new(
+        {
+            borrowernumber => $patron_nu->borrowernumber,
+            code           => $non_unique_code,
+            attribute      => $val_nu,
+        }
+    )->store;
+
+    $found_patron = Koha::Patrons->find_by_identifier($val_u);
+    is( $found_patron ? $found_patron->id : undef, $patron_u->id, 'Found patron by unique attribute' );
+
+    $found_patron = Koha::Patrons->find_by_identifier($val_nu);
+    is( $found_patron, undef, 'Did not find patron by non-unique attribute' );
 
     $schema->storage->txn_rollback;
 };

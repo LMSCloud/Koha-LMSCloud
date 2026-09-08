@@ -29,82 +29,88 @@ export default {
         };
 
         const getSIPFields = () => [
-            { value: "AA", description: "AA" },
-            { value: "AB", description: "AB" },
-            { value: "AC", description: "AC" },
-            { value: "AD", description: "AD" },
-            { value: "AE", description: "AE" },
-            { value: "AF", description: "AF" },
-            { value: "AG", description: "AG" },
-            { value: "AH", description: "AH" },
-            { value: "AJ", description: "AJ" },
-            { value: "AL", description: "AL" },
-            { value: "AM", description: "AM" },
-            { value: "AN", description: "AN" },
-            { value: "AO", description: "AO" },
-            { value: "AP", description: "AP" },
-            { value: "AQ", description: "AQ" },
-            { value: "AR", description: "AR" },
-            { value: "AS", description: "AS" },
-            { value: "AT", description: "AT" },
-            { value: "AU", description: "AU" },
-            { value: "AV", description: "AV" },
-            { value: "AW", description: "AW" },
-            { value: "AX", description: "AX" },
-            { value: "AY", description: "AY" },
-            { value: "AZ", description: "AZ" },
-            { value: "BA", description: "BA" },
-            { value: "BB", description: "BB" },
-            { value: "BC", description: "BC" },
-            { value: "BD", description: "BD" },
-            { value: "BE", description: "BE" },
-            { value: "BF", description: "BF" },
-            { value: "BG", description: "BG" },
-            { value: "BH", description: "BH" },
-            { value: "BI", description: "BI" },
-            { value: "BJ", description: "BJ" },
-            { value: "BK", description: "BK" },
-            { value: "BL", description: "BL" },
-            { value: "BM", description: "BM" },
-            { value: "BN", description: "BN" },
-            { value: "BO", description: "BO" },
-            { value: "BP", description: "BP" },
-            { value: "BQ", description: "BQ" },
-            { value: "BR", description: "BR" },
-            { value: "BS", description: "BS" },
-            { value: "BT", description: "BT" },
-            { value: "BU", description: "BU" },
-            { value: "BV", description: "BV" },
-            { value: "BW", description: "BW" },
-            { value: "BX", description: "BX" },
-            { value: "BY", description: "BY" },
-            { value: "BZ", description: "BZ" },
-            { value: "CA", description: "CA" },
-            { value: "CB", description: "CB" },
-            { value: "CC", description: "CC" },
-            { value: "CD", description: "CD" },
-            { value: "CE", description: "CE" },
-            { value: "CF", description: "CF" },
-            { value: "CG", description: "CG" },
-            { value: "CH", description: "CH" },
-            { value: "CI", description: "CI" },
-            { value: "CJ", description: "CJ" },
-            { value: "CK", description: "CK" },
-            { value: "CL", description: "CL" },
-            { value: "CM", description: "CM" },
-            { value: "CN", description: "CN" },
-            { value: "CO", description: "CO" },
-            { value: "CP", description: "CP" },
-            { value: "CQ", description: "CQ" },
-            { value: "CR", description: "CR" },
-            { value: "CS", description: "CS" },
-            { value: "CT", description: "CT" },
-            { value: "CV", description: "CV" },
-            { value: "CY", description: "CY" },
-            { value: "DA", description: "DA" },
-            { value: "PB", description: "PB" },
-            { value: "PC", description: "PC" },
-            { value: "PI", description: "PI" },
+            { value: "AA", description: "AA - " + __("Patron identifier") },
+            { value: "AB", description: "AB - " + __("Item identifier") },
+            { value: "AC", description: "AC - " + __("Terminal password") },
+            { value: "AD", description: "AD - " + __("Patron password") },
+            { value: "AE", description: "AE - " + __("Personal name") },
+            { value: "AF", description: "AF - " + __("Screen message") },
+            { value: "AG", description: "AG - " + __("Print line") },
+            { value: "AH", description: "AH - " + __("Due date") },
+            { value: "AJ", description: "AJ - " + __("Title identifier") },
+            { value: "AL", description: "AL - " + __("Blocked card message") },
+            { value: "AM", description: "AM - " + __("Library name") },
+            { value: "AN", description: "AN - " + __("Terminal location") },
+            { value: "AO", description: "AO - " + __("Institution ID") },
+            { value: "AP", description: "AP - " + __("Current location") },
+            { value: "AQ", description: "AQ - " + __("Permanent location") },
+            { value: "AR", description: "AR - " + __("Unused") },
+            { value: "AS", description: "AS - " + __("Hold items") },
+            { value: "AT", description: "AT - " + __("Overdue items") },
+            { value: "AU", description: "AU - " + __("Charged items") },
+            { value: "AV", description: "AV - " + __("Fine items") },
+            { value: "AW", description: "AW - " + __("Unused") },
+            { value: "AX", description: "AX - " + __("Unused") },
+            { value: "AY", description: "AY - " + __("Sequence number") },
+            { value: "AZ", description: "AZ - " + __("Checksum") },
+            { value: "BA", description: "BA - " + __("Unused") },
+            { value: "BB", description: "BB - " + __("Unused") },
+            { value: "BC", description: "BC - " + __("Unused") },
+            { value: "BD", description: "BD - " + __("Home address") },
+            { value: "BE", description: "BE - " + __("Email address") },
+            { value: "BF", description: "BF - " + __("Home phone") },
+            { value: "BG", description: "BG - " + __("Owner") },
+            { value: "BH", description: "BH - " + __("Currency type") },
+            { value: "BI", description: "BI - " + __("Cancel") },
+            { value: "BJ", description: "BJ - " + __("Unused") },
+            { value: "BK", description: "BK - " + __("Transaction ID") },
+            { value: "BL", description: "BL - " + __("Valid patron") },
+            { value: "BM", description: "BM - " + __("Renewed items") },
+            { value: "BN", description: "BN - " + __("Unrenewed items") },
+            { value: "BO", description: "BO - " + __("Fee acknowledged") },
+            { value: "BP", description: "BP - " + __("Start item") },
+            { value: "BQ", description: "BQ - " + __("End item") },
+            { value: "BR", description: "BR - " + __("Queue position") },
+            { value: "BS", description: "BS - " + __("Pickup location") },
+            { value: "BT", description: "BT - " + __("Fee type") },
+            { value: "BU", description: "BU - " + __("Recall items") },
+            { value: "BV", description: "BV - " + __("Fee amount") },
+            { value: "BW", description: "BW - " + __("Expiration date") },
+            { value: "BX", description: "BX - " + __("Supported messages") },
+            { value: "BY", description: "BY - " + __("Hold type") },
+            { value: "BZ", description: "BZ - " + __("Hold items limit") },
+            { value: "CA", description: "CA - " + __("Overdue items limit") },
+            { value: "CB", description: "CB - " + __("Charged items limit") },
+            { value: "CC", description: "CC - " + __("Fee limit") },
+            {
+                value: "CD",
+                description: "CD - " + __("Unavailable hold items"),
+            },
+            { value: "CE", description: "CE - " + __("Unused") },
+            { value: "CF", description: "CF - " + __("Hold queue length") },
+            { value: "CG", description: "CG - " + __("Fee ID") },
+            { value: "CH", description: "CH - " + __("Item properties") },
+            { value: "CI", description: "CI - " + __("Security inhibit") },
+            { value: "CJ", description: "CJ - " + __("Recall date") },
+            { value: "CK", description: "CK - " + __("Media type") },
+            { value: "CL", description: "CL - " + __("Sort bin") },
+            { value: "CM", description: "CM - " + __("Hold pickup date") },
+            { value: "CN", description: "CN - " + __("Login user ID") },
+            { value: "CO", description: "CO - " + __("Login password") },
+            { value: "CP", description: "CP - " + __("Location code") },
+            { value: "CQ", description: "CQ - " + __("Valid patron password") },
+            { value: "CR", description: "CR - " + __("Collection code") },
+            { value: "CS", description: "CS - " + __("Call number") },
+            { value: "CT", description: "CT - " + __("Destination location") },
+            { value: "CV", description: "CV - " + __("Alert type") },
+            { value: "CY", description: "CY - " + __("Hold patron ID") },
+            { value: "DA", description: "DA - " + __("Hold patron name") },
+            { value: "PB", description: "PB - " + __("Patron birth date") },
+            { value: "PC", description: "PC - " + __("Patron class") },
+            {
+                value: "PI",
+                description: "PI - " + __("Patron internet profile"),
+            },
         ];
 
         const resourceAttrs = [
@@ -268,7 +274,7 @@ export default {
                 group: "Details",
                 defaultValue: "collection_code",
                 toolTip: __(
-                    "Arbitrary item field to be used as the value for the CR field. Defaults to 'collection_code'"
+                    "CR (Collection Code) is a 3M extension field that communicates an item's shelving category to SIP2 clients. Selects which Koha item field to use as the CR value. Defaults to 'collection_code'."
                 ),
             },
             {
@@ -287,7 +293,9 @@ export default {
                 label: __("CT always send"),
                 hideIn: ["List"],
                 group: "Details",
-                toolTip: __("Always send the CT field, even if it is empty"),
+                toolTip: __(
+                    "CT (Destination Location) tells the SIP2 client where to route an item, for example to a holds shelf or to another branch for transfer. When enabled, this field is always sent in checkin responses even when the item has no routing destination."
+                ),
             },
             {
                 name: "cv_send_00_on_success",
@@ -296,7 +304,7 @@ export default {
                 hideIn: ["List"],
                 group: "Details",
                 toolTip: __(
-                    'Checkin success message to return a CV field of value "00" rather than no CV field at all'
+                    'CV (Alert Type) classifies the reason for a checkin alert, for example: 01 = hold at same branch, 02 = hold for another branch, 04 = item needs transfer. Some SIP2 clients require CV to be present in every checkin response; when enabled, sends CV with value "00" (no alert) on successful checkins instead of omitting the field entirely.'
                 ),
             },
             {
@@ -306,7 +314,7 @@ export default {
                 hideIn: ["List"],
                 group: "Details",
                 toolTip: __(
-                    "Only set the alert flag if a value in the CV field is sent"
+                    "When enabled, the SIP2 alert flag is only raised if a CV (Alert Type) value is present. When disabled (the default), the alert flag is raised if the checkin failed or if any CV value is sent."
                 ),
             },
             {
@@ -933,7 +941,7 @@ export default {
                     ],
                 },
                 hideIn: ["List"],
-                group: __("Syspref overrides"),
+                group: __("System preference overrides"),
                 componentProps: {
                     resourceRelationships: {
                         resourceProperty: "system_preference_overrides",
@@ -978,29 +986,44 @@ export default {
             {
                 name: "ae_field_template",
                 type: "textarea",
-                label: __("AE field template"),
+                label: "AE " + __("field template"),
                 placeholder:
                     "[% patron.surname %][% IF patron.firstname %], [% patron.firstname %][% END %]",
                 hideIn: ["List"],
                 group: "Templates",
+                toolTip:
+                    "AE " +
+                    __(
+                        "(Personal name) is the patron's name as sent to the SIP2 client. Use Template Toolkit syntax - the patron fields (Koha::Patron) are available."
+                    ),
             },
             {
                 name: "av_field_template",
                 type: "textarea",
-                label: __("AV field template"),
+                label: "AV " + __("field template"),
                 placeholder:
                     "[% accountline.description %] [% accountline.amountoutstanding | format('%.2f') %]",
                 hideIn: ["List"],
                 group: "Templates",
+                toolTip:
+                    "AV " +
+                    __(
+                        "(Fine items) passes fee and fine details to the SIP2 client. Use Template Toolkit syntax - the accountline fields (Koha::Account::Line) and patron fields are available."
+                    ),
             },
             {
                 name: "da_field_template",
                 type: "textarea",
-                label: __("DA field template"),
+                label: "DA " + __("field template"),
                 placeholder:
                     "[% patron.surname %][% IF patron.firstname %], [% patron.firstname %][% END %]",
                 hideIn: ["List"],
                 group: "Templates",
+                toolTip:
+                    "DA " +
+                    __(
+                        "(Hold patron name) is the name of the patron who has placed a hold on the item being checked in. Use Template Toolkit syntax - the patron fields (Koha::Patron) for the hold patron and item fields are available."
+                    ),
             },
         ];
 

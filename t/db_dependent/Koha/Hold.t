@@ -27,7 +27,7 @@ use Test::MockModule;
 
 use t::lib::Mocks;
 use t::lib::TestBuilder;
-use t::lib::Mocks;
+use t::lib::Dates;
 
 use C4::Reserves qw(AddReserve);
 
@@ -38,6 +38,7 @@ use Koha::Libraries;
 use Koha::Old::Holds;
 use C4::Reserves    qw( AddReserve ModReserveAffect );
 use C4::Circulation qw( AddReturn );
+use JSON            qw( decode_json );
 
 my $schema  = Koha::Database->new->schema;
 my $builder = t::lib::TestBuilder->new;
@@ -1369,8 +1370,12 @@ subtest 'revert_found() tests' => sub {
 
         my $log =
             Koha::ActionLogs->search( { module => 'HOLDS', action => 'MODIFY', object => $hold->reserve_id } )->next;
-        my $expected = sprintf q{'timestamp' => '%s'}, $hold->timestamp;
-        like( $log->info, qr{$expected}, 'Timestamp logged is the current one' );
+        if ( $log && $log->info =~ m{'timestamp' => '([^']*)'} ) {
+            my $timestamp = $1;
+            is( t::lib::Dates::compare( $timestamp, $hold->timestamp ), 0, 'Timestamp logged is the current one' );
+        } else {
+            fail('Log entry for hold modification not found or malformed');
+        }
         my $log_count =
             Koha::ActionLogs->search( { module => 'HOLDS', action => 'MODIFY', object => $hold->reserve_id } )->count;
 
@@ -1711,7 +1716,7 @@ subtest 'revert_found() tests' => sub {
     };
 };
 subtest 'move_hold() tests' => sub {
-    plan tests => 13;
+    plan tests => 21;
     $schema->storage->txn_begin;
 
     my $patron = Koha::Patron->new(
@@ -1852,6 +1857,51 @@ subtest 'move_hold() tests' => sub {
     );
 
     is( $logs_2->count, 1, 'Hold modification was logged' );
+
+    my $diff_2 = decode_json( $logs_2->next->diff );
+    is(
+        $diff_2->{D}->{biblionumber}->{O}, $biblio3->biblionumber,
+        'diff column for Old (O) contains original biblionumber for record level move'
+    );
+    is(
+        $diff_2->{D}->{biblionumber}->{N}, $biblio4->biblionumber,
+        'diff column for New (N) contains new biblionumber for record level move'
+    );
+    is(
+        $diff_2->{D}->{itemnumber}, undef,
+        'diff column contains undef itemnumber because this is a record level move'
+    );
+
+    $hold->move_hold( { new_itemnumber => $item_3->itemnumber } );
+    $hold->discard_changes;
+
+    my $logs_3 = Koha::ActionLogs->search(
+        {
+            action => 'MODIFY',
+            module => 'HOLDS',
+            object => $hold->id
+        }
+    );
+
+    is( $logs_3->count, 1, 'Item level hold modification was logged' );
+
+    my $diff_3 = decode_json( $logs_3->next->diff );
+    is(
+        $diff_3->{D}->{itemnumber}->{O}, $item_2->itemnumber,
+        'diff column for Old (O) contains original itemnumber for item level move'
+    );
+    is(
+        $diff_3->{D}->{itemnumber}->{N}, $item_3->itemnumber,
+        'diff column for New (N) contains new itemnumber for item level move'
+    );
+    is(
+        $diff_3->{D}->{biblionumber}->{O}, $biblio2->biblionumber,
+        'diff column for Old (O) contains original biblionumber for item level move'
+    );
+    is(
+        $diff_3->{D}->{biblionumber}->{N}, $biblio3->biblionumber,
+        'diff column for New (N) contains new biblionumber for item level move'
+    );
 
     #disable HoldsLog
     t::lib::Mocks::mock_preference( 'HoldsLog', 0 );
@@ -2004,8 +2054,8 @@ subtest 'is_hold_group_target, cleanup_hold_group and set_as_hold_group_target t
 
     $hold_2->cancel();
     is(
-        $hold_3->hold_group, undef,
-        'Third hold was left as the only member of its group. Group was deleted and the hold is no longer part of a hold group'
+        $hold_3->hold_group->hold_group_id, $new_hold_group->hold_group_id,
+        'Third hold was left as the only member of its group. Group is kept and this hold is still part of it for historic reasons.'
     );
 
     $schema->storage->txn_rollback;

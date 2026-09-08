@@ -348,6 +348,12 @@
                                 <input type="checkbox" id="cancelreserve" name="cancelreserve" value="cancel" />
                                 <label for="cancelreserve">Cancel hold</label>
                             </p>
+                            [% IF ( RENEW_ISSUE ) %]
+                                <p>
+                                    <label for="renewonholdduedate">Renewal due date:</label>
+                                    <input type="text" size="20" id="renewonholdduedate" name="renewonholdduedate" value="" class="flatpickr" data-flatpickr-enable-time="true" />
+                                </p>
+                            [% END %]
                         [% END %]
 
                         [% IF ( RESERVE_WAITING ) %]
@@ -1053,7 +1059,7 @@
 </div>
 <!-- /#barcodeSubmittedModal -->
 
-[% IF waiting_holds.count > 0 %]
+[% IF waiting_holds.count && waiting_holds.count > 0 %]
     <div id="circ-warnwaitingholds-modal" class="modal audio-alert-action block">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -1168,7 +1174,7 @@
                     barcodeSubmitInFlight = false;
                 }
             });
-            [% IF waiting_holds.count > 0 %]
+            [% IF waiting_holds.count && waiting_holds.count > 0 %]
                 $('#circ-warnwaitingholds-modal .btn-primary').on('click',function() {
                     $('#mainform').submit();
                 });
@@ -1317,6 +1323,7 @@
         })();
     </script>
     [% Asset.js("js/recalls.js") | $raw %]
+    [% Asset.js("js/throttledButton.js") | $raw %]
 [% END %]
 
 [% INCLUDE 'intranet-bottom.inc' %]

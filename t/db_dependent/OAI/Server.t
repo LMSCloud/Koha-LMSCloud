@@ -107,14 +107,23 @@ foreach my $index ( 0 .. NUMBER_OF_MARC_RECORDS - 1 ) {
     $timestamp .= 'Z';
     $timestamp =~ s/ /T/;
     my $biblio = Koha::Biblios->find($biblionumber);
-    $record = $biblio->metadata_record;
+
+    # Use the same interface => 'opac' filter that get_biblio_marcxml applies, so
+    # the expected data reflects exactly what the OAI server will return regardless
+    # of MARC framework field-visibility settings.
+    $record = $biblio->metadata_record( { interface => 'opac' } );
     my $record_transformed = $record->clone;
     $record_transformed->delete_fields( $record_transformed->field('952') );
+
+    # Derive dc:title from the filtered MARC record before converting to an XMLin
+    # hash, so oai_dc expectations stay consistent with the filtered output.
+    my $title_tag   = C4::Context->preference('marcflavour') eq 'UNIMARC' ? '200' : '245';
+    my $title_field = $record->field($title_tag);
+
     $record_transformed = XMLin( $record_transformed->as_xml_record );
     $record             = XMLin( $record->as_xml_record );
     push @header, { datestamp => $timestamp, identifier => "TEST:$biblionumber" };
     my $dc = {
-        'dc:title'           => "Title $index",
         'dc:language'        => "lng",
         'dc:type'            => {},
         'xmlns:xsi'          => 'http://www.w3.org/2001/XMLSchema-instance',
@@ -123,6 +132,7 @@ foreach my $index ( 0 .. NUMBER_OF_MARC_RECORDS - 1 ) {
         'xsi:schemaLocation' =>
             'http://www.openarchives.org/OAI/2.0/oai_dc/ http://www.openarchives.org/OAI/2.0/oai_dc.xsd',
     };
+    $dc->{'dc:title'} = $title_field->subfield('a') if $title_field;
     if ( C4::Context->preference('marcflavour') eq 'UNIMARC' ) {
         $dc->{'dc:identifier'} = $biblionumber;
     }
@@ -589,10 +599,15 @@ subtest 'Tests for OpacHiddenItems' => sub {
     t::lib::Mocks::mock_preference(
         'OAI-PMH:ConfFile' => File::Spec->rel2abs( dirname(__FILE__) ) . '/oaiconf_items.yaml' );
     $schema->storage->txn_begin;
-    my $builder       = t::lib::TestBuilder->new;
-    my $item          = $builder->build_sample_item();
-    my $biblio        = $item->biblio;
-    my $utc_datetime  = dt_from_string( undef, undef, 'UTC' );
+    my $builder = t::lib::TestBuilder->new;
+    my $item    = $builder->build_sample_item();
+    my $biblio  = $item->biblio;
+
+    # Read the timestamp MySQL actually assigned rather than capturing Perl's
+    # wall clock after the fact — on slow systems the two can differ by 1 second,
+    # causing the 'from' filter to miss the just-created record.
+    $item->discard_changes;
+    my $utc_datetime  = dt_from_string( $item->timestamp );
     my $utc_timestamp = $utc_datetime->ymd . 'T' . $utc_datetime->hms . 'Z';
 
     my $get_items = {

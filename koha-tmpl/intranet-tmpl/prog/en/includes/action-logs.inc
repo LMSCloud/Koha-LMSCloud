@@ -60,7 +60,7 @@
     [% CASE 'ISSUE' %]
         <span>Checkout</span>
     [% CASE 'RETURN' %]
-        <span>Return</span>
+        <span>Check-in</span>
     [% CASE 'CREATE' %]
         <span>Create</span>
     [% CASE 'CANCEL' %]

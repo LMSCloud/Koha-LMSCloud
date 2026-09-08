@@ -35,6 +35,7 @@ my $exceptions = {
             qw(
                 Koha/Schema/Result
                 Koha/Schema.pm
+                lib/
             )
         ],
         valid => [
@@ -45,12 +46,26 @@ my $exceptions = {
                 misc/translator/TmplTokenizer.pm
             )
         ],
+        strict => [
+            qw(
+                Koha/Account/Credit.pm
+                Koha/Account/Debit.pm
+                Koha/Old/Hold.pm
+                t
+                xt
+            )
+        ],
         codespell => [
             qw(
                 installer/data/mysql/updatedatabase.pl
                 installer/data/mysql/update22to30.pl
                 installer/data/mysql/db_revs/241200035.pl
                 misc/cronjobs/build_browser_and_cloud.pl
+            )
+        ],
+        pod => [
+            qw(
+                lib/WebService/
             )
         ],
         core => [],

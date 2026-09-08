@@ -437,7 +437,6 @@ sub TooMany {
     my $onsite_checkout        = $params->{onsite_checkout}        || 0;
     my $switch_onsite_checkout = $params->{switch_onsite_checkout} || 0;
     my $cat_borrower           = $patron->categorycode;
-    my $dbh                    = C4::Context->dbh;
 
     # Get which branchcode we need
     my $branch = _GetCircControlBranch( $item, $patron );
@@ -1674,12 +1673,12 @@ sub AddIssue {
 
     my $issue;
 
-    if ( $datedue && ref $datedue ne 'DateTime' ) {
+    if ( defined $datedue && $datedue ne '' && ref $datedue ne 'DateTime' ) {
         $datedue = dt_from_string($datedue);
     }
 
     # $issuedate defaults to today.
-    if ( !defined $issuedate ) {
+    if ( !defined $issuedate || $issuedate eq '' ) {
         $issuedate = dt_from_string();
     } else {
         if ( ref $issuedate ne 'DateTime' ) {
@@ -3666,7 +3665,7 @@ sub AddRenewal {
 
     $borrowernumber ||= $issue->get_column('borrowernumber');
 
-    if ( defined $datedue && ref $datedue ne 'DateTime' ) {
+    if ( defined $datedue && $datedue ne '' && ref $datedue ne 'DateTime' ) {
         $datedue = dt_from_string( $datedue, 'sql' );
     }
 

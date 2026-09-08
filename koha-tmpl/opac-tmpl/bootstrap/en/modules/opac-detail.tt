@@ -1399,7 +1399,7 @@
                 <div id="libraryInfo"></div>
             </div>
             <div class="modal-footer">
-                <a id="libraryInfoLink" href="" class="btn btn-primary">Visit web site</a>
+                <a id="libraryInfoLink" href="" class="btn btn-primary">Visit website</a>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
@@ -1786,7 +1786,9 @@
         [% Asset.js("js/modals/catalog_concern.js") | $raw %]
     [% END %]
     [% INCLUDE 'datatables.inc' %]
-    [% INCLUDE greybox.inc %]
+    [% IF ( Koha.Preference('IdRef') ) %]
+        [% INCLUDE greybox.inc %]
+    [% END %]
     [% IF ( OpacStarRatings != 'disable' ) %]
         [% Asset.js("lib/jquery/plugins/jquery.barrating.min.js") | $raw %]
         [% Asset.js("js/ratings.js") | $raw %]

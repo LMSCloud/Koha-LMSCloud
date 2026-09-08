@@ -22,6 +22,7 @@ use Mojo::Base 'Mojolicious::Controller';
 use Koha::Biblios;
 use Koha::DateUtils;
 use Koha::Ratings;
+use Koha::RecordSources;
 use C4::Biblio qw( DelBiblio AddBiblio ModBiblio );
 use C4::Search qw( FindDuplicate );
 
@@ -331,27 +332,7 @@ sub add_item {
                 ($barcode) = C4::Barcodes::ValueBuilder::hbyymmincr::get_barcode( { year => $year, mon => $month } );
                 $barcode = $homebranch . $barcode;
             } elsif ( $autoBarcode eq 'EAN13' ) {
-
-                # not the best, two catalogers could add the same
-                # barcode easily this way :/
-                my $query = "select max(abs(barcode)) from items";
-                my $dbh   = C4::Context->dbh;
-                my $sth   = $dbh->prepare($query);
-                $sth->execute();
-                my $nextnum;
-                while ( my ($last) = $sth->fetchrow_array ) {
-                    $nextnum = $last;
-                }
-                my $ean = CheckDigits('ean');
-                if ( $ean->is_valid($nextnum) ) {
-                    my $next = $ean->basenumber($nextnum) + 1;
-                    $nextnum = $ean->complete($next);
-                    $nextnum = '0' x ( 13 - length($nextnum) ) . $nextnum;    # pad zeros
-                } else {
-                    warn "ERROR: invalid EAN-13 $nextnum, using increment";
-                    $nextnum++;
-                }
-                $barcode = $nextnum;
+                ($barcode) = C4::Barcodes::ValueBuilder::EAN13::get_barcode();
             } else {
                 warn "ERROR: unknown autoBarcode: $autoBarcode";
             }
@@ -758,8 +739,13 @@ sub update {
 
     my $biblio = Koha::Biblios->find( $c->param('biblio_id') );
 
-    $c->render_resource_not_found("Bibliographic record")
+    return $c->render_resource_not_found("Bibliographic record")
         unless $biblio;
+
+    return $c->render(
+        status  => 403,
+        openapi => { error => 'You do not have permission to edit a locked record' }
+    ) unless ( $biblio->can_be_edited( $c->stash('koha.user') ) );
 
     try {
         my $headers = $c->req->headers;
@@ -791,7 +777,52 @@ sub update {
             );
         }
 
-        ModBiblio( $record, $biblio->id, $frameworkcode );
+        my $record_source_id = $headers->header('x-record-source-id');
+
+        my $options = {
+            overlay_context => {
+                userid       => $c->stash('koha.user')->userid,
+                categorycode => $c->stash('koha.user')->categorycode,
+            }
+        };
+
+        if ($record_source_id) {
+
+            # We've been passed a record source. Verify they are allowed to
+            unless (
+                haspermission(
+                    $c->stash('koha.user')->userid,
+                    { editcatalogue => 'set_record_sources' }
+                )
+                )
+            {
+                return $c->render(
+                    status  => 403,
+                    openapi => { error => 'You do not have permission to set the record source' }
+                );
+            }
+
+            # find record source name to given id
+            my $record_source = Koha::RecordSources->search( { record_source_id => $record_source_id } )->single;
+
+            unless ($record_source) {
+                return $c->render(
+                    status  => 409,
+                    openapi => { error => 'Given record_source_id does not exist' }
+                );
+            }
+
+            $options->{'overlay_context'}->{'source'} = $record_source->name;
+
+            # this will update the record source id in biblio metadata
+            $options->{'record_source_id'} = $record_source_id;
+        }
+
+        unless ( $options->{'overlay_context'}->{'source'} ) {
+            $options->{'overlay_context'}->{source} = '*';
+        }
+
+        ModBiblio( $record, $biblio->id, $frameworkcode, $options );
 
         $c->render(
             status  => 200,

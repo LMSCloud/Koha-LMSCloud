@@ -107,18 +107,25 @@ sub GetAuthMARCFromKohaField {
 
 =head2 SearchAuthorities 
 
-  (\@finalresult, $nbresults)= &SearchAuthorities($tags, $and_or, 
-     $excluding, $operator, $value, $offset,$length,$authtypecode,
-     $sortby[, $skipmetadata])
+    ( \@finalresult, $nbresults ) = SearchAuthorities(
+        $tags,      $and_or,
+        $excluding, $operator, $value, $offset, $length, $authtypecode,
+        $sortby,    $skipmetadata
+    );
 
-returns ref to array result and count of results returned
+Note: The parameters and_or and excluding are not supported currently.
+The subexpressions in $tags are hardcoded with OR unless you pass the
+parameter authtypecode. In the latter case AND is used.
+
+Returns a results arrayref and a count of results
 
 =cut
 
 sub SearchAuthorities {
+
+    # NOTE: The parameters $and_or, $excluding below are UNUSED here.
     my ( $tags, $and_or, $excluding, $operator, $value, $offset, $length, $authtypecode, $sortby, $skipmetadata ) = @_;
 
-    # warn Dumper($tags, $and_or, $excluding, $operator, $value, $offset,$length,$authtypecode,$sortby);
     my $dbh = C4::Context->dbh;
     $sortby = "" unless $sortby;
     my $query;
@@ -134,7 +141,7 @@ sub SearchAuthorities {
         my @authtypecode;
         my @auths = split / /, $authtypecode;
         foreach my $auth (@auths) {
-            $query .= " \@attr 1=authtype \@attr 5=100 " . $auth;    ##No truncation on authtype
+            $query .= " \@attr 1=authtype \@attr 5=100 \@attr 6=3 " . $auth;    #5=100 No truncation, 6=3 Complete field
             push @authtypecode, $auth;
             $n++;
         }
@@ -1688,6 +1695,7 @@ sub merge {
            C4::Context->preference('IncludeSeeFromInSearches')
         || C4::Context->preference('IncludeSeeAlsoFromInSearches')
         || 0;
+    my @biblios_to_index;
     while ( my $biblio = $biblios->next ) {
         my $marcrecord        = $biblio->metadata->record;
         my $update            = 0;
@@ -1787,12 +1795,19 @@ sub merge {
             && $reindex_if_needed
             && $syspref_include_see_from )
         {
-            my $indexer = Koha::SearchEngine::Indexer->new( { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
-            $indexer->index_records( $biblio->biblionumber, "specialUpdate", "biblioserver" );
+            push( @biblios_to_index, $biblio->biblionumber );
         }
         next if !$update;
-        ModBiblio( $marcrecord, $biblio->biblionumber, $biblio->frameworkcode, { disable_autolink => 1 } );
+        ModBiblio(
+            $marcrecord, $biblio->biblionumber, $biblio->frameworkcode,
+            { disable_autolink => 1, skip_record_index => 1 }
+        );
+        push( @biblios_to_index, $biblio->biblionumber );
         $counteditedbiblio++;
+    }
+    if (@biblios_to_index) {
+        my $indexer = Koha::SearchEngine::Indexer->new( { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
+        $indexer->index_records( \@biblios_to_index, "specialUpdate", "biblioserver" );
     }
     return $counteditedbiblio;
 }

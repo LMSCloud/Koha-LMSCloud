@@ -480,6 +480,13 @@ Missing POD for language_get_description.
 
 sub language_get_description {
     my ( $script, $lang, $type ) = @_;
+
+    my $script_key   = $script || "undef";
+    my $memory_cache = Koha::Cache::Memory::Lite->get_instance;
+    my $cache_key    = "Language_descriptions:$script_key:$lang:$type";
+    my $cached       = $memory_cache->get_from_cache($cache_key);
+    return $cached if $cached;
+
     my $dbh = C4::Context->dbh;
     my $desc;
     my $sth = $dbh->prepare("SELECT description FROM language_descriptions WHERE subtag=? AND lang=? AND type=?");
@@ -496,6 +503,7 @@ sub language_get_description {
             $desc = $descriptions->{'description'};
         }
     }
+    $memory_cache->set_in_cache( $cache_key, $desc );
     return $desc;
 }
 
@@ -797,11 +805,17 @@ sub getlanguage {
 
 sub get_rfc4646_from_iso639 {
 
-    my $iso_code = shift;
+    my $iso_code     = shift;
+    my $memory_cache = Koha::Cache::Memory::Lite->get_instance;
+    my $cache_key    = "RFC4646ByISO639:$iso_code";
+    my $cached       = $memory_cache->get_from_cache($cache_key);
+    return $cached if $cached;
     my $rfc_subtag =
         Koha::Database->new()->schema->resultset('LanguageRfc4646ToIso639')->find( { iso639_2_code => $iso_code } );
     if ($rfc_subtag) {
-        return $rfc_subtag->rfc4646_subtag;
+        my $subtag = $rfc_subtag->rfc4646_subtag;
+        $memory_cache->set_in_cache( $cache_key, $subtag );
+        return $subtag;
     } else {
         return;
     }

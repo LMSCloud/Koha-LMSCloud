@@ -2091,6 +2091,7 @@ sub effective_bookable {
     # itemtypes (out-of-band data); upstream guards the same deref this way
     return $self->itemtype->effective_bookable if $self->itemtype;
     return 0;
+    return 0;
 }
 
 =head3 orders

@@ -98,34 +98,26 @@ my $include_aqorders_qty_join =
 
 my $nfl_comparison = $include_ordered   ? '<=' : '=';
 my $sus_comparison = $include_suspended ? '<=' : '<';
-my $strsth         = "SELECT MIN(reservedate) as reservedate,
-        MIN(reserves.borrowernumber) as borrowernumber,
-        reserves.biblionumber,
-        MIN(reserves.branchcode) as branch,
-        MIN(items.holdingbranch) as holdingbranch,
-        MIN(items.itemcallnumber) as itemcallnumber,
-        MIN(items.itemnumber) as itemnumber,
-        GROUP_CONCAT(DISTINCT items.itemcallnumber
+my $strsth         = "SELECT reserves.biblionumber,
+        GROUP_CONCAT(DISTINCT items.itemcallnumber 
             ORDER BY items.itemnumber SEPARATOR '|') as listcall,
         GROUP_CONCAT(DISTINCT homebranch
             ORDER BY items.itemnumber SEPARATOR '|') as homebranch_list,
-        GROUP_CONCAT(DISTINCT holdingbranch
+        GROUP_CONCAT(DISTINCT holdingbranch 
             ORDER BY items.itemnumber SEPARATOR '|') as holdingbranch_list,
-        GROUP_CONCAT(DISTINCT items.location
+        GROUP_CONCAT(DISTINCT items.location 
             ORDER BY items.itemnumber SEPARATOR '|') as l_location,
-        GROUP_CONCAT(DISTINCT items.itype
+        GROUP_CONCAT(DISTINCT items.itype 
             ORDER BY items.itemnumber SEPARATOR '|') as l_itype,
         GROUP_CONCAT(DISTINCT items.ccode
             ORDER BY items.ccode SEPARATOR '|') as l_ccode,
-
-        MIN(reserves.found) as found,
         biblio.title,
         biblio.subtitle,
         biblio.medium,
         biblio.part_number,
         biblio.part_name,
         biblio.author,
-        count(DISTINCT reserves.borrowernumber) as reservecount,
+        count(DISTINCT reserves.borrowernumber) as reservecount, 
         count(DISTINCT items.itemnumber) $include_aqorders_qty as itemcount
  FROM  reserves
  LEFT JOIN items ON items.biblionumber=reserves.biblionumber 
@@ -142,8 +134,10 @@ if ( C4::Context->preference('IndependentBranches') ) {
     push @query_params, C4::Context->userenv->{'branch'};
 }
 
-$strsth .=
-    " GROUP BY reserves.biblionumber, biblio.title, biblio.subtitle, biblio.medium, biblio.part_number, biblio.part_name, biblio.author ORDER BY reservecount DESC";
+$strsth .= " GROUP BY reserves.biblionumber, biblio.title, biblio.subtitle,
+    biblio.medium, biblio.part_number, biblio.part_name, biblio.author
+    ORDER BY reservecount DESC
+";
 
 $template->param( sql => $strsth );
 my $sth = $dbh->prepare($strsth);
@@ -157,22 +151,15 @@ while ( my $data = $sth->fetchrow_hashref ) {
     push(
         @reservedata,
         {
-            reservedate        => $data->{reservedate},
-            priority           => $data->{priority},
-            name               => $data->{borrower},
             title              => $data->{title},
             subtitle           => $data->{subtitle},
             medium             => $data->{medium},
             part_number        => $data->{part_number},
             part_name          => $data->{part_name},
             author             => $data->{author},
-            itemnum            => $data->{itemnumber},
             biblionumber       => $data->{biblionumber},
-            holdingbranch      => $data->{holdingbranch},
             homebranch_list    => [ split( '\|', $data->{homebranch_list} ) ],
             holdingbranch_list => [ split( '\|', $data->{holdingbranch_list} ) ],
-            branch             => $data->{branch},
-            itemcallnumber     => $data->{itemcallnumber},
             location           => [ split( '\|', $data->{l_location} ) ],
             itype              => [ split( '\|', $data->{l_itype} ) ],
             ccode              => [ split( '\|', $data->{l_ccode} ) ],

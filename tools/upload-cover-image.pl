@@ -67,6 +67,7 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 my $filetype     = $input->param('filetype');
 my $biblionumber = $input->param('biblionumber');
 my $itemnumber   = $input->param('itemnumber');
+my $mimetype     = $input->param('mimetype');
 my $replace      = !C4::Context->preference("AllowMultipleCovers")
     || $input->param('replace');
 my $op = $input->param('op') // q{};
@@ -101,7 +102,8 @@ my @results;
 if ( $op eq 'cud-process' && $fileID ) {
     my $upload = Koha::UploadedFiles->find($fileID);
     if ( $filetype eq 'image' ) {
-        my $fh       = $upload->file_handle;
+        my $fh = $upload->file_handle;
+        GD::Image->trueColor(1);
         my $srcimage = GD::Image->new($fh);
         $fh->close if $fh;
         if ( defined $srcimage ) {
@@ -118,7 +120,8 @@ if ( $op eq 'cud-process' && $fileID ) {
                     {
                         biblionumber => $biblionumber,
                         itemnumber   => $itemnumber,
-                        src_image    => $srcimage
+                        src_image    => $srcimage,
+                        mimetype     => $mimetype
                     }
                 )->store;
             };
@@ -185,6 +188,7 @@ if ( $op eq 'cud-process' && $fileID ) {
                                 Cwd::abs_path("$dir/$filename");    #Resolve any relative filepath references
                             my $srcimage;
                             if ( $full_filename =~ /^\Q$dir\E/ ) {
+                                GD::Image->trueColor(1);
                                 $srcimage = GD::Image->new($full_filename);
                             }
                             my $biblio;

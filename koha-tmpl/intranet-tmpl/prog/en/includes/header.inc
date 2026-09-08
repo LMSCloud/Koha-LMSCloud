@@ -7,7 +7,7 @@
 [% IF Koha.Preference( 'CookieConsent' ) %]
     [% USE JSConsents %]
 [% END %]
-<nav class="navbar navbar-expand navbar-dark bg-dark">
+<nav class="navbar navbar-expand navbar-dark bg-dark" aria-label="Main">
     <div class="container-fluid">
         <a id="logo" class="navbar-brand" href="/cgi-bin/koha/mainpage.pl"><img src="[% interface | html %]/[% theme | html %]/img/picto-koha.svg" alt="Koha" /></a>
 
@@ -200,7 +200,9 @@
                                         </div>
                                         [% IF ( CAN_user_superlibrarian || CAN_user_loggedinlibrary || Koha.Preference('UseCirculationDesks') || Koha.Preference('UseCashRegisters') ) %]
                                             <div>
-                                                <a id="branch_select_cog" class="dropdown-item" href="#"><i class="fa fa-cog" aria-label="Toggle panel for login settings"></i></a>
+                                                <a id="branch_select_cog" class="dropdown-item" href="#" role="button" aria-label="Toggle panel for login settings" aria-expanded="false">
+                                                    <i class="fa fa-cog" aria-hidden="true"></i>
+                                                </a>
                                             </div>
                                         [% END %]
                                     </div>

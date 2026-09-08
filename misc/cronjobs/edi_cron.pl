@@ -36,9 +36,13 @@ use Koha::EDI qw( process_quote process_invoice process_ordrsp );
 use Koha::Edifact::Transport;
 use Koha::Logger;
 use Koha::Plugins::Handler;
-use Fcntl qw( LOCK_EX O_CREAT O_RDWR SEEK_SET );
+use Fcntl   qw( LOCK_EX O_CREAT O_RDWR SEEK_SET );
+use C4::Log qw( cronlogaction );
 
 die "Syspref 'EDIFACT' is disabled" unless C4::Context->preference('EDIFACT');
+
+my $command_line_options = join( " ", @ARGV );
+cronlogaction( { info => $command_line_options } );
 
 # we dont have a lock dir in context so use the logdir
 my $logdir  = C4::Context->config('logdir');
@@ -141,6 +145,8 @@ foreach my $response (@downloaded_responses) {
     $logger->trace("Processing order response $filename");
     process_ordrsp($response);
 }
+
+cronlogaction( { action => 'End', info => "COMPLETED" } );
 
 if ( close $pid_handle ) {
     unlink $pidfile;

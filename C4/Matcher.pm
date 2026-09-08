@@ -204,6 +204,12 @@ sub fetch {
     return $self;
 }
 
+=head3 _fetch_matchpoint
+
+helper function that retrieves a matchpoint and its components from the DB
+
+=cut
+
 sub _fetch_matchpoint {
     my $self          = shift;
     my $matchpoint_id = shift;
@@ -271,6 +277,13 @@ sub store {
     return $self->{'id'};
 }
 
+=head3 _del_matcher_components
+
+helper function that deletes matchpoints and matchchecks for a matcher;
+used to clear existing values before saving new ones
+
+=cut
+
 sub _del_matcher_components {
     my $self = shift;
 
@@ -284,6 +297,12 @@ sub _del_matcher_components {
     # from matcher_matchpoints, matchpoint_components, and
     # matchpoint_component_norms
 }
+
+=head3 _update_marc_matchers
+
+helper function that updates a MARC matcher DB entry
+
+=cut
 
 sub _update_marc_matchers {
     my $self = shift;
@@ -303,6 +322,12 @@ sub _update_marc_matchers {
     );
 }
 
+=head3 _new_marc_matchers
+
+helper function that inserts a new MARC matcher entry
+
+=cut
+
 sub _new_marc_matchers {
     my $self = shift;
 
@@ -315,6 +340,12 @@ sub _new_marc_matchers {
     $sth->execute( $self->{'code'}, $self->{'description'}, $self->{'record_type'}, $self->{'threshold'} );
     $self->{'id'} = $dbh->{'mysql_insertid'};
 }
+
+=head3 _store_matcher_components
+
+helper function that stores the values for matchpoints and matchchecks for a matcher
+
+=cut
 
 sub _store_matcher_components {
     my $self = shift;
@@ -342,6 +373,12 @@ sub _store_matcher_components {
     }
 
 }
+
+=head3 _store_matchpoint
+
+helper function that stores a matchpoint and its components
+
+=cut
 
 sub _store_matchpoint {
     my $self       = shift;
@@ -752,8 +789,17 @@ sub get_matches {
             my ( $authresults, $total ) = $searcher->search_auth_compat( $search_query, 0, 20 );
 
             foreach my $result (@$authresults) {
-                my $id            = $result->{authid};
-                my $target_record = Koha::Authorities->find($id)->record;
+                my $id          = $result->{authid};
+                my $target_auth = Koha::Authorities->find($id);
+                next unless $target_auth;
+                my $target_record  = eval { $target_auth->record };
+                my $invalid_record = $@ || !$target_record;
+                if ($invalid_record) {
+                    warn
+                        "Error parsing matched authority record $id, attempting to clean record, record will be skipped if it fails";
+                    $target_record = eval { $target_auth->record_strip_nonxml };
+                }
+                next unless $target_record;
                 $matches->{$id}->{score} += $matchpoint->{'score'};
                 $matches->{$id}->{record} = $target_record;
             }
@@ -841,6 +887,12 @@ sub dump {
     return $result;
 }
 
+=head3 _passes_required_checks
+
+helper function that checks the match keys for all matched records
+
+=cut
+
 sub _passes_required_checks {
     my ( $source_record, $target_record, $matchchecks ) = @_;
 
@@ -854,6 +906,12 @@ sub _passes_required_checks {
     }
     return 1;
 }
+
+=head3 _get_match_keys
+
+helper function that retrieves the values of the match fields from a source record
+
+=cut
 
 sub _get_match_keys {
 
@@ -944,6 +1002,12 @@ sub _get_match_keys {
     }
     return @keys;
 }
+
+=head3 _parse_match_component
+
+helper function to transform a match component into the expected form
+
+=cut
 
 sub _parse_match_component {
     my $input_component = shift;

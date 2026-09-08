@@ -251,7 +251,7 @@ sub build_query {
     }
 
     # Add a tie breaker in case of equally relevant records
-    push @{ $res->{sort} }, { 'local-number' => { order => 'desc' } };
+    push @{ $res->{sort} }, { 'local-number__sort' => { order => 'desc' } };
 
     unless ( $options{skip_facets} ) {
 
@@ -794,6 +794,19 @@ sub _convert_sort_fields {
     } @sort_by;
 }
 
+=head2 _convert_index_fields
+
+    my ($conv) = $self->_convert_index_fields($field);
+
+Converts the zebra-style sort index information into elasticsearch-style.
+
+ Convert according to our table, drop anything that doesn't convert.
+ If a field starts with mc- we save it as it's used (and removed) later
+ when joining things, to indicate we make it an 'OR' join.
+ (Sorry, this got a bit ugly after special cases were found.)
+
+=cut
+
 sub _convert_index_fields {
     my ( $self, @indexes ) = @_;
 
@@ -801,10 +814,6 @@ sub _convert_index_fields {
 
     @indexes = grep { $_ ne q{} } @indexes;    # Remove any blank indexes, i.e. keyword
 
-    # Convert according to our table, drop anything that doesn't convert.
-    # If a field starts with mc- we save it as it's used (and removed) later
-    # when joining things, to indicate we make it an 'OR' join.
-    # (Sorry, this got a bit ugly after special cases were found.)
     map {
         # Lower case all field names
         my ( $f, $t ) = map( lc, split /,/ );
@@ -1046,6 +1055,9 @@ sub clean_search_term {
 
     $term = $self->_convert_index_strings_freeform($term);
 
+    # escape special characters
+    $term = $self->_escape_special_characters($term);
+
     # Remove unbalanced quotes
     my $unquoted = $term;
     my $count    = ( $unquoted =~ tr/"/ / );
@@ -1130,6 +1142,30 @@ sub clean_search_term {
         # restore temporary weird substitutions back to normal brackets
         $term =~
             s/~~L(C|S)~~([^\s\[\]\{\}]+ TO [^\s\[\]\{\}]+)~~R(C|S)~~/($1 eq 'S' ? '[':'{').$2.($3 eq 'S' ? ']':'}')/ge;
+    }
+    return $term;
+}
+
+=head2 _escape_special_characters
+
+    $term = $self->_escape_special_characters($term);
+
+Escapes characters in $term according to "ElasticsearchEscapeCharacters" /
+"OpacElasticsearchEscapeCharacters" system preference setting.
+
+=cut
+
+sub _escape_special_characters {
+    my ( $self, $term ) = @_;
+    my $characters_to_escape;
+    if ( C4::Context->interface eq 'opac' ) {
+        $characters_to_escape = C4::Context->preference('OpacElasticsearchEscapeCharacters');
+    } else {
+        $characters_to_escape = C4::Context->preference('ElasticsearchEscapeCharacters');
+    }
+    if ($characters_to_escape) {
+        $characters_to_escape =~ s/\s+//g;
+        $term                 =~ s/[\Q$characters_to_escape\E]/\\$&/g if $characters_to_escape;
     }
     return $term;
 }
@@ -1521,6 +1557,14 @@ sub _is_safe_to_auto_truncate {
     # It is safe to auto truncate:
     return 1;
 }
+
+=head2 _rebuild_to_es_advanced_query
+
+    $res = _rebuild_to_es_advanced_query( $res );
+
+Passed in a query, this function converts a geolocation query into the necessary format for Elasticsearch
+
+=cut
 
 sub _rebuild_to_es_advanced_query {
     my ($res) = @_;

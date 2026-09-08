@@ -10,6 +10,9 @@
     <thead>
         <tr>
             <th class="all anti-the">Title</th>
+            [% IF Koha.Preference('DisplayAddHoldGroups') %]
+                <th class="nosort">Hold group</th>
+            [% END %]
             [% IF ( showpriority ) %]
                 <th>Placed on</th>
             [% ELSE %]
@@ -65,9 +68,12 @@
                     [% IF HOLD.item_level_hold %]
                         <p class="hint">Item on hold: [% HOLD.item.barcode | html %]</p>
                     [% END %]
-                    [% IF HOLD.hold_group_id %]
+                    [% IF Koha.Preference('DisplayAddHoldGroups') && HOLD.hold_group_id %]
                         <div class="group_hold">
-                            <span class="hint">(part of a hold group)</span>
+                            <a href="#" class="group_hold_trigger btn btn-link p-0" role="button" aria-expanded="false" style="text-decoration: none;">
+                                <i class="fa fa-caret-right" aria-hidden="true"></i>
+                                [% t('Part of a hold group') | html %]
+                            </a>
                             <div class="group_hold_list" style="display:none">
                                 [% group_holds = HOLD.hold_group.holds %]
                                 [% IF ( group_holds.count ) %]
@@ -82,6 +88,13 @@
                         </div>
                     [% END %]
                 </td>
+                [% IF Koha.Preference('DisplayAddHoldGroups') %]
+                    [% IF HOLD.hold_group %]
+                        <td class="visual_hold_group_id"> [% HOLD.hold_group.visual_hold_group_id | html %] </td>
+                    [% ELSE %]
+                        <td class="visual_hold_group_id"></td>
+                    [% END %]
+                [% END %]
                 <td class="reservedate" data-order="[% HOLD.reservedate | html %]"> [% HOLD.reservedate | $KohaDates %] </td>
                 <td class="expirationdate" data-order="[% !HOLD.found ? HOLD.expirationdate : '0000-00-00' | html %]">
                     [% IF ! HOLD.found %]

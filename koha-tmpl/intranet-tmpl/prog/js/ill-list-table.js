@@ -746,6 +746,10 @@ $(document).ready(function () {
     }
 
     function addStatusOptions(statuses) {
+        // Bug 42244: no multiselect on patron's ILL table
+        if (!$.fn.multipleSelect || !$("#illfilter_status").length) {
+            return;
+        }
         $("#illfilter_status").children().remove();
         // LMSCloud: translate status display names where available
         if (typeof translateStatusName === "function") {
