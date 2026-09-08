@@ -39,6 +39,7 @@ use C4::Auth qw( get_template_and_user );
 use C4::Context;
 use C4::Output qw( output_html_with_http_headers );
 use C4::Koha;
+use C4::Items qw( GetAutomaticItemModificationAgeFields );
 
 use Koha::Items;
 use Koha::Biblioitems;
@@ -56,7 +57,13 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     }
 );
 
-my $op = $cgi->param('op') // 'show';
+my $op                          = $cgi->param('op') // 'show';
+my @item_fields                 = map { "items.$_" } Koha::Items->columns;
+my @biblioitem_fields           = map { "biblioitems.$_" } Koha::Biblioitems->columns;
+my @biblio_fields               = map { "biblio.$_" } Koha::Biblios->columns;
+my @allowed_condition_fields    = ( @item_fields, @biblioitem_fields, @biblio_fields );
+my @allowed_substitution_fields = @item_fields;
+my @allowed_age_fields          = GetAutomaticItemModificationAgeFields();
 
 my $syspref_name = q|automatic_item_modification_by_age_configuration|;
 if ( $op eq 'cud-update' ) {
@@ -75,6 +82,7 @@ if ( $op eq 'cud-update' ) {
         for my $value (@substitution_values) {
             my $field = shift @substitution_fields;
             last unless $field;
+            next unless grep { $_ eq $field } @allowed_substitution_fields;
             push @{ $rule->{substitutions} }, { field => $field, value => $value };
         }
         push @{ $rule->{substitutions} }, {}
@@ -82,6 +90,7 @@ if ( $op eq 'cud-update' ) {
         for my $value (@condition_values) {
             my $field = shift @condition_fields;
             last unless $field;
+            next unless grep { $_ eq $field } @allowed_condition_fields;
             push @{ $rule->{conditions} }, { field => $field, value => $value };
         }
         push @{ $rule->{conditions} }, {}
@@ -89,6 +98,7 @@ if ( $op eq 'cud-update' ) {
         $rule->{age} = $cgi->param("age_$unique_id");
 
         for my $age_field (@age_fields) {
+            next unless grep { $_ eq $age_field } @allowed_age_fields;
             $rule->{agefield} = $age_field ? $age_field : "items.dateaccessioned";
         }
         push @rules, $rule;
@@ -114,19 +124,12 @@ if ($@) {
     exit;
 }
 
-my @item_fields       = map { "items.$_" } Koha::Items->columns;
-my @biblioitem_fields = map { "biblioitems.$_" } Koha::Biblioitems->columns;
-my @biblio_fields     = map { "biblio.$_" } Koha::Biblios->columns;
-my @age_fields        = (
-    'items.dateaccessioned', 'items.replacementpricedate', 'items.datelastborrowed', 'items.datelastseen',
-    'items.damaged_on',      'items.itemlost_on',          'items.withdrawn_on'
-);
 $template->param(
     op                  => $op,
     messages            => \@messages,
-    agefields           => [@age_fields],
-    condition_fields    => [ @item_fields, @biblioitem_fields, @biblio_fields ],
-    substitution_fields => \@item_fields,
+    agefields           => \@allowed_age_fields,
+    condition_fields    => \@allowed_condition_fields,
+    substitution_fields => \@allowed_substitution_fields,
     rules               => $rules,
 );
 
