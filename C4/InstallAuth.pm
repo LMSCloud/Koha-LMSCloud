@@ -111,7 +111,7 @@ sub get_template_and_user {
     my $template  = C4::Templates->new( $interface, $filename, $tmplbase, $query );
 
     my $request_method = $in->{query}->request_method // q{};
-    unless ( $request_method eq 'POST' && $in->{query}->param('op') eq 'cud-login' ) {
+    unless ( $request_method eq 'POST' && $in->{query}->param('login_op') eq 'cud-login' ) {
         $in->{query}->param( 'login_userid',   '' );
         $in->{query}->param( 'login_password', '' );
     }

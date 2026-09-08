@@ -308,13 +308,11 @@ sub AddBiblio {
                 if ( C4::Context->preference("OAI-PMH:AutoUpdateSets") ) {
                     C4::OAI::Sets::UpdateOAISetsBiblio( $biblionumber, $record );
                 }
-
-                _after_biblio_action_hooks( { action => 'create', biblio_id => $biblionumber } );
-
-                logaction( "CATALOGUING", "ADD", $biblionumber, "biblio" ) if C4::Context->preference("CataloguingLog");
-
             }
         );
+
+        _after_biblio_action_hooks( { action => 'create', biblio_id => $biblionumber } );
+        logaction( "CATALOGUING", "ADD", $biblionumber, "biblio" ) if C4::Context->preference("CataloguingLog");
 
         # We index now, after the transaction is committed
         unless ($skip_record_index) {

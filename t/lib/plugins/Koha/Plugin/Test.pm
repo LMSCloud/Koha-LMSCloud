@@ -6,6 +6,8 @@ use Modern::Perl;
 use Koha::Exception;
 use Koha::Plugins::Tab;
 
+use Koha::Biblios;
+
 use MARC::Field;
 use Mojo::JSON qw( decode_json );
 
@@ -192,7 +194,15 @@ sub after_biblio_action {
     my $biblio_id = $payload->{biblio_id};
 
     if ( $action ne 'delete' ) {
-        Koha::Exception->throw( "after_biblio_action called with action: $action, ref: " . ref($biblio) );
+        $biblio = Koha::Biblios->find($biblio_id);
+        if ($biblio) {
+            $biblio_id = $biblio->id;
+            Koha::Exception->throw(
+                "after_biblio_action called with action: $action, ref: " . ref($biblio) . ", biblio found" );
+        } else {
+            Koha::Exception->throw(
+                "after_biblio_action called with action: $action, ref: " . ref($biblio) . ", biblio not found" );
+        }
     } else {
         Koha::Exception->throw("after_biblio_action called with action: $action, id: $biblio_id") if $biblio_id;
     }

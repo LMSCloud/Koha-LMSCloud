@@ -96,7 +96,9 @@
                                             ></td
                                         >
                                         <td>
-                                            [% IF ( to_branch_loo.isChecked ) %]
+                                            [% IF ( to_branch_loo.toBranch == branchcode ) %]
+                                                <input type="checkbox" checked="checked" disabled="disabled" />
+                                            [% ELSIF ( to_branch_loo.isChecked ) %]
                                                 <input
                                                     type="checkbox"
                                                     class="cb cb[% codes_loo.code | html %]"

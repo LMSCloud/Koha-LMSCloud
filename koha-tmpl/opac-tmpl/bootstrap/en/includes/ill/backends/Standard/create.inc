@@ -103,7 +103,11 @@
         [% IF type %]
             [% INCLUDE "ill/backends/Standard/shared/forms/${type}.inc" %]
         [% END %]
-        [% INCLUDE "ill/backends/Standard/shared/custom_fields.inc" %]
+        <legend>Additional information</legend>
+        <fieldset class="rows">
+            [% INCLUDE "ill/backends/Standard/shared/notes.inc" %]
+            [% INCLUDE "ill/backends/Standard/shared/custom_fields.inc" %]
+        </fieldset>
         [% IF whole.value.other.type && unauthenticated_ill && !logged_in_user %]
             <fieldset class="rows" id="illrequest_captcha">
                 <legend>Verification</legend>

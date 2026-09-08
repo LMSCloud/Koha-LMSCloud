@@ -49,6 +49,9 @@ subtest 'after_authority_action hook' => sub {
 
     $schema->storage->txn_begin;
 
+    my $test_mock = Test::MockModule->new('Koha::Plugin::Test');
+    $test_mock->mock( 'elasticsearch_to_document' => undef );
+
     my $plugins = Koha::Plugins->new;
     $plugins->InstallPlugins;
     my $plugin = Koha::Plugin::Test->new->enable;

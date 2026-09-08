@@ -106,13 +106,16 @@
                             display_cardnumber: true,
                             url: false
                         });
+                        // Convert to library timezone for timeline display
+                        const startServerTz = dayjs(booking.start_date).tz($timezone());
+                        const endServerTz = dayjs(booking.end_date).tz($timezone());
                         bookingsSet.add({
                             id: booking.booking_id,
                             booking: booking.booking_id,
                             patron: booking.patron_id,
                             pickup_library: booking.pickup_library_id,
-                            start: dayjs(booking.start_date).toDate(),
-                            end: dayjs(booking.end_date).toDate(),
+                            start: $toDisplayDate(startServerTz),
+                            end: $toDisplayDate(endServerTz),
                             content: !isActive ? `<s>${patronContent}</s>` : patronContent,
                             className: booking.status === "cancelled" ? "cancelled" : "",
                             [% IF CAN_user_circulate_manage_bookings %]

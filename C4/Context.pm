@@ -45,11 +45,12 @@ use YAML::XS;
 use ZOOM;
 use List::MoreUtils qw(any);
 
+use Koha;
 use Koha::Caches;
 use Koha::Config::SysPref;
 use Koha::Config::SysPrefs;
 use Koha::Config;
-use Koha;
+use Koha::Database;
 
 =head1 NAME
 

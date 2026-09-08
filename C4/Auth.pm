@@ -196,7 +196,7 @@ sub get_template_and_user {
         $in->{query}->param( -name => 'koha_login_context', -values => ['sco'] );
     } else {
         my $request_method = $in->{query}->request_method // q{};
-        unless ( $request_method eq 'POST' && $in->{query}->param('op') eq 'cud-login' ) {
+        unless ( $request_method eq 'POST' && $in->{query}->param('login_op') eq 'cud-login' ) {
             for my $v (qw( login_userid login_password )) {
                 $in->{query}->param( $v, '' )
                     if $in->{query}->param($v);
@@ -1453,6 +1453,7 @@ sub checkauth {
             $uri->query_param_delete('login_userid');
             $uri->query_param_delete('login_password');
             $uri->query_param_delete('koha_login_context');
+            $uri->query_param_delete('login_op');
             $uri->query_param_delete('op');
             $uri->query_param_delete('csrf_token');
             unless ( $params->{do_not_print} ) {

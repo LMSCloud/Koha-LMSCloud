@@ -160,21 +160,20 @@
 
             <form action="[% script_name | html %]" method="post" name="loginform" id="loginform" class="validated">
                 [% INCLUDE 'csrf-token.inc' %]
-                <input type="hidden" name="op" value="cud-login" />
+                <input type="hidden" name="login_op" value="cud-login" />
                 <input type="hidden" name="koha_login_context" value="intranet" />
                 [% FOREACH INPUT IN INPUTS %]
-                    [% NEXT IF INPUT.name == "op" %]
                     [% NEXT IF INPUT.name == "csrf_token" %]
                     [% NEXT IF INPUT.name == "koha_login_context" %]
                     [% NEXT IF INPUT.name == "branch" %]
                     <input type="hidden" name="[% INPUT.name | html %]" value="[% INPUT.value | html %]" />
                 [% END %]
-                <p
-                    ><label for="userid">Username:</label>
+                <p>
+                    <label for="userid">Username:</label>
                     <input type="text" name="login_userid" id="userid" class="input focus" value="[% userid | html %]" size="20" tabindex="1" autocomplete="off" />
                 </p>
-                <p
-                    ><label for="password">Password:</label>
+                <p>
+                    <label for="password">Password:</label>
                     <input type="password" name="login_password" id="password" class="input" value="" size="20" tabindex="2" autocomplete="off" />
                 </p>
 
@@ -254,10 +253,9 @@
         [% ELSIF TwoFA_prompt %]
             <form action="[% script_name | html %]" method="post" name="loginform" id="loginform" autocomplete="off">
                 [% INCLUDE 'csrf-token.inc' %]
-                <input type="hidden" name="op" value="cud-login" />
+                <input type="hidden" name="login_op" value="cud-login" />
                 <input type="hidden" name="koha_login_context" value="intranet" />
                 [% FOREACH INPUT IN INPUTS %]
-                    [% NEXT IF INPUT.name == "op" %]
                     [% NEXT IF INPUT.name == "csrf_token" %]
                     [% NEXT IF INPUT.name == "koha_login_context" %]
                     [% NEXT IF INPUT.name == "branch" %]
@@ -291,6 +289,7 @@
 <!-- /.main.container-fluid -->
 
 [% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/show-password-toggle.js") | $raw %]
     <script>
         $(document).ready( function() {
             if ( document.location.hash ) {

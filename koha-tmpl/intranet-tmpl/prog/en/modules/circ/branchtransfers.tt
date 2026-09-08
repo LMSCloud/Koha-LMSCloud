@@ -3,6 +3,7 @@
 [% USE Branches %]
 [% USE ItemTypes %]
 [% USE AuthorisedValues %]
+[% USE TablesSettings %]
 [% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% PROCESS 'member-display-address-style.inc' %]
@@ -236,7 +237,7 @@
                     <div class="form-control-group">
                         <label class="hint" for="barcode">Enter item barcode: </label>
                         <input name="barcode" id="barcode" size="15" class="barcode focus" placeholder="Enter item barcode" type="text" />
-                        <input class="btn btn-default" type="submit" value="Transfer" />
+                        <input class="btn btn-primary" type="submit" value="Transfer" />
                     </div>
                 </fieldset>
                 [% FOREACH trsfitemloo IN trsfitemloop %]
@@ -251,42 +252,46 @@
 
         [% IF ( trsfitemloop ) %]
             <div class="page-section">
-                <table>
+                <table id="transferstable">
                     <caption>Transferred items</caption>
-                    <tr>
-                        <th class="tf-title">Title</th>
-                        <th class="tf-author">Author</th>
-                        <th class="tf-barcode">Barcode</th>
-                        <th class="tf-location">Shelving location</th>
-                        <th class="tf-itemcallnumber">Call number</th>
-                        <th class="tf-itemtype">Item type</th>
-                        <th class="tf-ccode">Collection</th>
-                        <th class="tf-origin">Origin</th>
-                        <th class="tf-destination">Destination</th>
-                        <th class="tf-printslip">Actions</th>
-                    </tr>
-                    [% FOREACH trsfitemloo IN trsfitemloop %]
+                    <thead>
                         <tr>
-                            <td class="tf-title"> [% INCLUDE 'biblio-title.inc' biblio=trsfitemloo.item.biblio link=1 %] </td>
-                            <td class="tf-author">[% trsfitemloo.item.biblio.author | html %]</td>
-                            <td class="tf-barcode"
-                                ><a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=[% trsfitemloo.item.biblionumber | uri %]&amp;itemnumber=[% trsfitemloo.item.itemnumber | uri %]#item[% trsfitemloo.item.itemnumber | uri %]"
-                                    >[% trsfitemloo.item.barcode | html %]</a
-                                ></td
-                            >
-                            <td class="tf-location"><span class="shelvingloc">[% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.location', authorised_value => trsfitemloo.item.location ) | html %]</span></td>
-                            <td class="tf-itemcallnumber">[% trsfitemloo.item.itemcallnumber | html %]</td>
-                            <td class="tf-itemtype">[% ItemTypes.GetDescription( trsfitemloo.item.effective_itemtype ) | html %]</td>
-                            <td class="tf-ccode">[% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.ccode', authorised_value => trsfitemloo.item.ccode ) | html %]</td>
-                            <td class="tf-origin">[% Branches.GetName( trsfitemloo.frombrcd ) | html %]</td>
-                            <td class="tf-destination">[% Branches.GetName( trsfitemloo.tobrcd ) | html %]</td>
-                            <td class="tf-printslip">
-                                <button type="button" class="btn btn-default btn-sm printtransferslip" data-itemnumber="[% trsfitemloo.item.itemnumber | html %]" data-tobranch="[% trsfitemloo.tobrcd | html %]"
-                                    ><i class="fa fa-print"></i> Print slip</button
-                                >
-                            </td>
+                            <th class="tf-title">Title</th>
+                            <th class="tf-author">Author</th>
+                            <th class="tf-barcode">Barcode</th>
+                            <th class="tf-location">Shelving location</th>
+                            <th class="tf-itemcallnumber">Call number</th>
+                            <th class="tf-itemtype">Item type</th>
+                            <th class="tf-ccode">Collection</th>
+                            <th class="tf-origin">Origin</th>
+                            <th class="tf-destination">Destination</th>
+                            <th class="tf-printslip">Actions</th>
                         </tr>
-                    [% END # /FOREACH trsfitemloo %]
+                    </thead>
+                    <tbody>
+                        [% FOREACH trsfitemloo IN trsfitemloop %]
+                            <tr>
+                                <td class="tf-title"> [% INCLUDE 'biblio-title.inc' biblio=trsfitemloo.item.biblio link=1 %] </td>
+                                <td class="tf-author">[% trsfitemloo.item.biblio.author | html %]</td>
+                                <td class="tf-barcode"
+                                    ><a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=[% trsfitemloo.item.biblionumber | uri %]&amp;itemnumber=[% trsfitemloo.item.itemnumber | uri %]#item[% trsfitemloo.item.itemnumber | uri %]"
+                                        >[% trsfitemloo.item.barcode | html %]</a
+                                    ></td
+                                >
+                                <td class="tf-location"><span class="shelvingloc">[% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.location', authorised_value => trsfitemloo.item.location ) | html %]</span></td>
+                                <td class="tf-itemcallnumber">[% trsfitemloo.item.itemcallnumber | html %]</td>
+                                <td class="tf-itemtype">[% ItemTypes.GetDescription( trsfitemloo.item.effective_itemtype ) | html %]</td>
+                                <td class="tf-ccode">[% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.ccode', authorised_value => trsfitemloo.item.ccode ) | html %]</td>
+                                <td class="tf-origin">[% Branches.GetName( trsfitemloo.frombrcd ) | html %]</td>
+                                <td class="tf-destination">[% Branches.GetName( trsfitemloo.tobrcd ) | html %]</td>
+                                <td class="tf-printslip">
+                                    <button type="button" class="btn btn-default btn-sm printtransferslip" data-itemnumber="[% trsfitemloo.item.itemnumber | html %]" data-tobranch="[% trsfitemloo.tobrcd | html %]"
+                                        ><i class="fa fa-print"></i> Print slip</button
+                                    >
+                                </td>
+                            </tr>
+                        [% END # /FOREACH trsfitemloo %]
+                    </tbody>
                 </table>
             </div>
             <!-- /.page-section -->
@@ -294,18 +299,30 @@
     [% END # /IF found %]
 [% END %]
 [% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'datatables.inc' %]
     [% INCLUDE 'select2.inc' %]
     <script>
-        $(".printtransferslip").on("click", function(e){
-            e.preventDefault();
-            var itemnumber = $(this).attr('data-itemnumber');
-            var to_branch = $(this).attr('data-tobranch');
-            window.open("/cgi-bin/koha/circ/transfer-slip.pl?transferitem=" + itemnumber + "&branchcode=" + to_branch);
-        });
+        var table_settings = [% TablesSettings.GetTableSettings( 'circ', 'transfers', 'transferstable', 'json' ) | $raw %]
         $(document).ready( function() {
+            $(".printtransferslip").on("click", function(e){
+                e.preventDefault();
+                var itemnumber = $(this).attr('data-itemnumber');
+                var to_branch = $(this).attr('data-tobranch');
+                window.open("/cgi-bin/koha/circ/transfer-slip.pl?transferitem=" + itemnumber + "&branchcode=" + to_branch);
+            });
             [% IF ( found ) %]
                 $("#transfer_confirm").modal('show');
             [% END %]
+            var transfers_table = $("#transferstable").kohaTable(
+                {
+                    searching: false,
+                    paging: false,
+                    info: false,
+                    ordering: false,
+                    dom: '<"table_controls"B>rt',
+                },
+                table_settings
+            );
         });
     </script>
 [% END %]

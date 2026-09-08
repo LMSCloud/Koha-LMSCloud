@@ -37,7 +37,7 @@ subtest '/cgi-bin/koha/acquisitions/vendors' => sub {
         '/cgi-bin/koha/mainpage.pl',
         form => {
             csrf_token         => $csrf_token,
-            op                 => 'cud-login',
+            login_op           => 'cud-login',
             login_userid       => $patron->userid,
             login_password     => 'P4ssword!',
             koha_login_context => 'intranet',

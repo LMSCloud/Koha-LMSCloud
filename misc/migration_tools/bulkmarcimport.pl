@@ -1,5 +1,6 @@
 #!/usr/bin/perl
-# Import an iso2709 file into Koha 3
+
+# Import an iso2709 file into Koha
 
 use Modern::Perl;
 
@@ -234,6 +235,8 @@ if ($delete) {
         $dbh->do("ALTER TABLE biblioitems AUTO_INCREMENT = 1");
         $dbh->do("DELETE FROM items");
         $dbh->do("ALTER TABLE items AUTO_INCREMENT = 1");
+        $dbh->do("DELETE FROM biblio_metadata");
+        $dbh->do("ALTER TABLE biblio_metadata AUTO_INCREMENT = 1");
     } else {
         print "Deleting authorities\n";
         $dbh->do("DELETE FROM auth_header");
@@ -949,7 +952,7 @@ I<UNIMARC> are supported. MARC21 by default.
 =item B<-d, --delete>
 
 Delete EVERYTHING related to biblio in koha-DB before import. Tables: biblio,
-biblioitems, items
+biblioitems, items, biblio_metadata
 
 =item B<-m>=I<FORMAT>
 

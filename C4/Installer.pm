@@ -755,14 +755,8 @@ Missing POD for TableExists.
 
 sub TableExists {    # Could be renamed table_exists for consistency
     my $table = shift;
-    eval {
-        my $dbh = C4::Context->dbh;
-        local $dbh->{PrintError} = 0;
-        local $dbh->{RaiseError} = 1;
-        $dbh->do(qq{SELECT * FROM $table WHERE 1 = 0 });
-    };
-    return 1 unless $@;
-    return 0;
+    require Koha::Database;
+    return Koha::Database->table_exists( C4::Context->dbh, $table );
 }
 
 =head2 version_from_file

@@ -69,7 +69,7 @@ if (
         || $column !~ /^(aqbasket|aqorders|aqbooksellers|items|biblioitems|aqbudgets)\.\w+$/ )
     )
 {
-    C4::Output::output_error( $input, 'Possible SQL injection' );
+    C4::Output::output_error( $input, '403' );
     exit;
 }
 

@@ -102,6 +102,13 @@ sub new_from_file {
             );
         }
 
+        if ($errors) {
+            Koha::Logger->get->warn( 'The following error(s) occurred during '
+                    . ( defined $format ? ( $format . " " ) : "" )
+                    . "record import:\nERROR: "
+                    . join( "\nERROR: ", @$errors ) );
+        }
+
         $job->size( scalar @$marcrecords )->store if $job;
 
         ( $batch_id, $num_valid, $num_items, @import_errors ) = BatchStageMarcRecords(

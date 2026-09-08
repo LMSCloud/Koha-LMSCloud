@@ -62,11 +62,11 @@ subtest 'after_biblio_action() and after_item_action() hooks tests' => sub {
     my $biblio_id;
 
     warning_like { ( $biblio_id, undef ) = C4::Biblio::AddBiblio( MARC::Record->new(), '' ); }
-    qr/after_biblio_action called with action: create, ref: Koha::Biblio/,
+    qr/after_biblio_action called with action: create, ref: Koha::Biblio, biblio found/,
         'AddBiblio calls the hook with action=create';
 
     warning_like { C4::Biblio::ModBiblio( MARC::Record->new(), $biblio_id, '' ); }
-    qr/after_biblio_action called with action: modify, ref: Koha::Biblio/,
+    qr/after_biblio_action called with action: modify, ref: Koha::Biblio, biblio found/,
         'ModBiblio calls the hook with action=modify';
 
     my $item;

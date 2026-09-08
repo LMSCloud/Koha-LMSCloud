@@ -957,6 +957,18 @@
                     <h4><strong>[% t('Hold at') | html %]</strong> [% Branches.GetName( destbranch ) | html %]</h4>
                 [% END %]
 
+                <p class="hint">
+                    [% SET show_home = item.homebranch && item.homebranch != destbranch %]
+
+                    [% IF show_home %]
+                        <strong>[% t('Item home library') | html %]:</strong>
+                        [% Branches.GetName( item.homebranch ) | html %] &nbsp;|&nbsp;
+                    [% END %]
+
+                    <strong>[% t('Checked in at') | html %]:</strong>
+                    [% Branches.GetName( Branches.GetLoggedInBranchcode ) | html %]
+                </p>
+
                 [% PROCESS passthrough_data %]
 
                 <input type="hidden" name="op" value="cud-affect_reserve" />

@@ -268,7 +268,7 @@ $template->param( advancedsearchesloop => $advancedsearchesloop );
 $template->param( searchid => scalar $cgi->param('searchid'), );
 
 my $default_sort_by     = C4::Context->default_catalog_sort_by;
-my @sanitized_operators = grep { $_ ne 'cud-login' } $cgi->multi_param('op');
+my @sanitized_operators = $cgi->multi_param('op');                #NOTE: No longer sanitized...
 
 # The following should only be loaded if we're bringing up the advanced search template
 if ( $template_type eq 'advsearch' ) {

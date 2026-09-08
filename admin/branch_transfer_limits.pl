@@ -66,6 +66,7 @@ if ( $input->param('updateLimits') && $op eq 'cud-update' ) {
 
     foreach my $code (@codes) {
         foreach my $toBranch (@branchcodes) {
+            next if $toBranch eq $branchcode;
             my $isSet = not $input->param( $code . "_" . $toBranch );
             if ($isSet) {
                 CreateBranchTransferLimit( $toBranch, $branchcode, $code );

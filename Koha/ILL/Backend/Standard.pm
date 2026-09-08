@@ -948,6 +948,7 @@ sub add_request {
     $request->branchcode( $params->{other}->{branchcode} );
     $request->status( $unauthenticated_request ? 'UNAUTH' : 'NEW' );
     $request->backend( $params->{other}->{backend} );
+    $request->notesopac( $params->{other}->{notesopac} ) if exists $params->{other}->{notesopac};
     $request->placed( dt_from_string() );
     $request->updated( dt_from_string() );
     $request->batch_id(

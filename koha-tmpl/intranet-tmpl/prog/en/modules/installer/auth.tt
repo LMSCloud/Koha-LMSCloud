@@ -57,9 +57,8 @@
 
                 <form action="[% url | html %]" method="post" id="mainform">
                     [% INCLUDE 'csrf-token.inc' %]
-                    <input type="hidden" name="op" value="cud-login" />
+                    <input type="hidden" name="login_op" value="cud-login" />
                     [% FOREACH INPUT IN INPUTS %]
-                        [% NEXT IF INPUT.name == "op" %]
                         [% NEXT IF INPUT.name == "csrf_token" %]
                         [% NEXT IF INPUT.name == "login_userid" %]
                         [% NEXT IF INPUT.name == "login_password" %]

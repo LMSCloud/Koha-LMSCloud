@@ -5,16 +5,6 @@ dayjs.extend(isSameOrBefore);
 describe("Booking Modal Date Picker Tests", () => {
     let testData = {};
 
-    // Handle application errors gracefully
-    Cypress.on("uncaught:exception", (err, runnable) => {
-        // Return false to prevent the error from failing this test
-        // This can happen when the JS booking modal has issues
-        if (err.message.includes("Cannot read properties of undefined")) {
-            return false;
-        }
-        return true;
-    });
-
     // Ensure RESTBasicAuth is enabled before running tests
     before(() => {
         cy.task("query", {
@@ -462,6 +452,7 @@ describe("Booking Modal Date Picker Tests", () => {
          *                                             └─ Renewal 1 Period (Days 60-64)
          *
          * Expected Visual Styling:
+         * - Day 50: Bold (start date)
          * - Day 59: Bold (issue period)
          * - Day 64: Bold (renewal 1 period)
          * - Day 69: Bold (renewal 2 period)
@@ -571,8 +562,11 @@ describe("Booking Modal Date Picker Tests", () => {
          */
 
         // Calculate expected bold dates based on circulation rules (like original test)
-        // Bold dates occur at period endpoints: start + issuelength, start + issuelength + renewalperiod, etc.
+        // Bold dates occur at: the start date itself, plus period endpoints
         const expectedBoldDates = [];
+
+        // Start date is always bold (see place_booking.js boldDates = [new Date(startDate)])
+        expectedBoldDates.push(clearZoneStart);
 
         // Issue period end (after issuelength days)
         expectedBoldDates.push(
@@ -676,15 +670,31 @@ describe("Booking Modal Date Picker Tests", () => {
 
     it("should handle lead and trail periods", () => {
         /**
-         * Lead and Trail Period Behaviour Tests
-         * =====================================
+         * Lead and Trail Period Behaviour Tests (with Bidirectional Enhancement)
+         * ======================================================================
          *
          * Test Coverage:
          * 1. Lead period visual hints (CSS classes) in clear zone
          * 2. Trail period visual hints (CSS classes) in clear zone
-         * 3. Lead period conflicts with past dates or existing booking (leadDisable)
-         * 4. Trail period conflicts with existing booking (trailDisable)
+         * 3a. Lead period conflicts with past dates (leadDisable)
+         * 3b. Lead period conflicts with existing booking ACTUAL dates (leadDisable)
+         * 3c. NEW BIDIRECTIONAL: Lead period conflicts with existing booking TRAIL period (leadDisable)
+         * 4a. Trail period conflicts with existing booking ACTUAL dates (trailDisable)
+         * 4b. NEW BIDIRECTIONAL: Trail period conflicts with existing booking LEAD period (trailDisable)
          * 5. Max date selectable when trail period is clear of existing booking
+         *
+         * CRITICAL ENHANCEMENT: Bidirectional Lead/Trail Period Checking
+         * ==============================================================
+         * This test validates that lead/trail periods work in BOTH directions:
+         * - New booking's LEAD period must not conflict with existing booking's TRAIL period
+         * - New booking's TRAIL period must not conflict with existing booking's LEAD period
+         * - This ensures full "protected periods" around existing bookings are respected
+         *
+         * PROTECTED PERIOD CONCEPT:
+         * ========================
+         * Each existing booking has a "protected period" = Lead + Actual + Trail
+         * New bookings must ensure their Lead + Actual + Trail does not overlap
+         * with ANY part of existing bookings' protected periods.
          *
          * Fixed Date Setup:
          * ================
@@ -698,23 +708,30 @@ describe("Booking Modal Date Picker Tests", () => {
          * - Max Booking Period: 3 + (2 × 2) = 7 days
          *
          * Blocker Booking: June 25-27, 2026
+         * - Blocker's LEAD period: June 23-24 (2 days before start)
+         * - Blocker's ACTUAL dates: June 25-27
+         * - Blocker's TRAIL period: June 28-30 (3 days after end)
+         * - Total PROTECTED period: June 23-30
          *
          * Timeline:
          * =========
-         * June 2026
+         * June/July 2026
          * Sun Mon Tue Wed Thu Fri Sat
          *      8   9  10  11  12  13   ← 10 = TODAY
          *  14  15  16  17  18  19  20
-         *  21  22  23  24  25  26  27   ← 25-27 = BLOCKER
-         *  28  29  30
+         *  21  22  23  24  25  26  27   ← 23-24 = BLOCKER LEAD, 25-27 = BLOCKER ACTUAL
+         *  28  29  30   1   2   3   4   ← 28-30 = BLOCKER TRAIL, July 3 = first clear after
          *
          * Test Scenarios:
          * ==============
          * Phase 1: Hover June 13 → Lead June 11-12 (clear) → no leadDisable
          * Phase 2: Select June 13, hover June 16 → Trail June 17-19 (clear) → no trailDisable
          * Phase 3a: Hover June 11 → Lead June 9-10, June 9 is past → leadDisable
-         * Phase 3b: Hover June 29 → Lead June 27-28, June 27 is in blocker → leadDisable
-         * Phase 4: Select June 20, hover June 23 → Trail June 24-26 overlaps blocker → trailDisable
+         * Phase 3b: Hover June 29 → Lead June 27-28, June 27 is in blocker ACTUAL → leadDisable
+         * Phase 3c: NEW - Hover July 1 → Lead June 29-30, overlaps blocker TRAIL → leadDisable
+         * Phase 3d: NEW - Hover July 2 → Lead June 30-July 1, June 30 in blocker TRAIL → leadDisable
+         * Phase 4a: Select June 20, hover June 23 → Trail June 24-26 overlaps blocker ACTUAL → trailDisable
+         * Phase 4b: NEW - Select June 13, hover June 21 → Trail June 22-24, overlaps blocker LEAD → trailDisable
          * Phase 5: Select June 13, hover June 20 (max) → Trail June 21-23 (clear) → selectable
          */
 
@@ -794,18 +811,13 @@ describe("Booking Modal Date Picker Tests", () => {
         getDateByISO("2026-06-11")
             .should("have.class", "leadRangeStart")
             .and("have.class", "leadRange");
-        cy.log("✓ June 11: Has leadRange and leadRangeStart classes");
 
-        getDateByISO("2026-06-12").should("have.class", "leadRange");
-        cy.log("✓ June 12: Has leadRange class");
+        getDateByISO("2026-06-12")
+            .should("have.class", "leadRange")
+            .and("have.class", "leadRangeEnd");
 
         // Hovered date should NOT have leadDisable (lead period is clear)
-        getDateByISO("2026-06-13")
-            .should("have.class", "leadRangeEnd")
-            .and("not.have.class", "leadDisable");
-        cy.log(
-            "✓ June 13: Has leadRangeEnd and not leadDisable (lead period is clear)"
-        );
+        getDateByISO("2026-06-13").should("not.have.class", "leadDisable");
 
         // ========================================================================
         // PHASE 2: Trail Period Clear - Visual Classes
@@ -815,44 +827,34 @@ describe("Booking Modal Date Picker Tests", () => {
         /**
          * Select June 13 as start date (lead June 11-12 is clear)
          * Then hover June 16 as potential end date
-         * Trail period calculation: trailStart = hoverDate, trailEnd = hoverDate + 3
-         * So: trailStart = June 16, trailEnd = June 19
-         * Classes: June 16 = trailRangeStart, June 17-18 = trailRange, June 19 = trailRange + trailRangeEnd
+         * Trail period calculation: trailStart = hoverDate + 1, trailEnd = hoverDate + 3
+         * So: trailStart = June 17, trailEnd = June 19
+         * Classes: June 17 = trailRangeStart + trailRange, June 18 = trailRange, June 19 = trailRange + trailRangeEnd
          */
 
         // Select June 13 as start date (same date we just hovered - lead is clear)
         getDateByISO("2026-06-13").click();
-        cy.log("Selected June 13 as start date");
 
         // Hover June 16 as potential end date
         getDateByISO("2026-06-16").trigger("mouseover");
 
         // Check trail period classes
-        // trailRangeStart is on the hovered date itself (June 16)
-        getDateByISO("2026-06-16").should("have.class", "trailRangeStart");
-        cy.log("✓ June 16: Has trailRangeStart class (hovered date)");
-
-        // trailRange is on days after trailStart up to and including trailEnd
-        getDateByISO("2026-06-17").should("have.class", "trailRange");
-        cy.log("✓ June 17: Has trailRange class");
+        getDateByISO("2026-06-17")
+            .should("have.class", "trailRangeStart")
+            .and("have.class", "trailRange");
 
         getDateByISO("2026-06-18").should("have.class", "trailRange");
-        cy.log("✓ June 18: Has trailRange class");
 
-        // trailRangeEnd is on the last day of trail period
         getDateByISO("2026-06-19")
             .should("have.class", "trailRangeEnd")
             .and("have.class", "trailRange");
-        cy.log("✓ June 19: Has trailRangeEnd and trailRange classes");
 
-        // Hovered date should NOT have trailDisable (trail period is clear)
+        // Hovered date (June 16) should NOT have trailDisable (trail period is clear)
         getDateByISO("2026-06-16").should("not.have.class", "trailDisable");
-        cy.log("✓ June 16: No trailDisable (trail period is clear)");
 
         // Clear selection for next phase
         cy.get("#period").clearFlatpickr();
         cy.get("@fp").openFlatpickr();
-        cy.log("Cleared selection for next phase");
 
         // ========================================================================
         // PHASE 3: Lead Period Conflict - Past Dates and Existing bookings
@@ -870,9 +872,6 @@ describe("Booking Modal Date Picker Tests", () => {
 
         // June 11 should have leadDisable because lead period (June 9-10) includes past date
         getDateByISO("2026-06-11").should("have.class", "leadDisable");
-        cy.log(
-            "✓ June 11: Has leadDisable (lead period June 9-10 includes past date)"
-        );
 
         /**
          * Hover June 29 as potential start date
@@ -885,96 +884,146 @@ describe("Booking Modal Date Picker Tests", () => {
 
         // June 29 should have leadDisable because lead period (June 27-28) includes existing booking date
         getDateByISO("2026-06-29").should("have.class", "leadDisable");
-        cy.log(
-            "✓ June 29: Has leadDisable (lead period June 27-28 includes existing booking date)"
-        );
 
         // ========================================================================
-        // PHASE 4: Trail Period Conflict - Existing Booking
+        // PHASE 3c: BIDIRECTIONAL - Lead Period Conflicts with Existing Booking TRAIL
         // ========================================================================
-        cy.log("=== PHASE 4: Trail period conflict with existing booking ===");
+
+        /**
+         * NEW BIDIRECTIONAL Conflict Scenario:
+         * Blocker booking end: June 27
+         * Blocker's TRAIL period: June 28-30 (3 days after end)
+         *
+         * Test start dates where NEW booking's lead overlaps with blocker's TRAIL:
+         * - July 1: Lead June 29-30 → June 29-30 are in blocker trail (June 28-30) → DISABLED
+         * - July 2: Lead June 30-July 1 → June 30 is in blocker trail → DISABLED
+         *
+         * This is the KEY enhancement: respecting existing booking's trail period!
+         */
+
+        // Hover July 1 - lead period (June 29-30) overlaps blocker's trail (June 28-30)
+        getDateByISO("2026-07-01").trigger("mouseover");
+        getDateByISO("2026-07-01").should("have.class", "leadDisable");
+
+        // Hover July 2 - lead period (June 30-July 1) still overlaps blocker's trail at June 30
+        getDateByISO("2026-07-02").trigger("mouseover");
+        getDateByISO("2026-07-02").should("have.class", "leadDisable");
+
+        // ========================================================================
+        // PHASE 3d: First Clear Start Date After Blocker's Protected Period
+        // ========================================================================
+
+        /**
+         * Verify that July 3 is the first selectable start date after blocker:
+         * - July 3: Lead July 1-2 → completely clear of blocker trail (ends June 30) → no leadDisable
+         */
+
+        getDateByISO("2026-07-03").trigger("mouseover");
+        getDateByISO("2026-07-03").should("not.have.class", "leadDisable");
+
+        // ========================================================================
+        // PHASE 4a: Trail Period Conflict - Existing Booking ACTUAL Dates
+        // ========================================================================
 
         /**
          * Select June 20 as start date (lead June 18-19, both clear)
          * Then hover June 23 as potential end date
          * Trail period: June 24-26
-         * Blocker booking: June 25-27 (partial overlap)
+         * Blocker booking ACTUAL: June 25-27 (partial overlap)
          * Expected: trailDisable on June 23
          */
 
         // Select June 20 as start date
         getDateByISO("2026-06-20").click();
-        cy.log("Selected June 20 as start date");
 
         // Hover June 23 as potential end date
         getDateByISO("2026-06-23").trigger("mouseover");
 
-        // June 23 should have trailDisable because trail period (June 24-26) overlaps blocker (June 25-27)
+        // June 23 should have trailDisable because trail period (June 24-26) overlaps blocker ACTUAL (June 25-27)
         getDateByISO("2026-06-23").should("have.class", "trailDisable");
-        cy.log(
-            "✓ June 23: Has trailDisable (trail June 24-26 overlaps blocker June 25-27)"
-        );
 
         // Clear selection for next phase
         cy.get("#period").clearFlatpickr();
         cy.get("@fp").openFlatpickr();
-        cy.log("Cleared selection for next phase");
+
+        // ========================================================================
+        // PHASE 4b: BIDIRECTIONAL - Trail Period Conflicts with Existing Booking LEAD
+        // ========================================================================
+
+        /**
+         * NEW BIDIRECTIONAL Conflict Scenario:
+         * Blocker booking start: June 25
+         * Blocker's LEAD period: June 23-24 (2 days before start)
+         *
+         * Test end dates where NEW booking's trail overlaps with blocker's LEAD:
+         * - Select June 13 as start, hover June 21 as end
+         * - Trail period: June 22-24 (3 days after June 21)
+         * - June 23-24 overlap with blocker LEAD (June 23-24) → DISABLED
+         *
+         * This is the KEY enhancement: respecting existing booking's lead period!
+         */
+
+        // Select June 13 as start date (lead June 11-12, both clear)
+        getDateByISO("2026-06-13").click();
+
+        // Hover June 21 as potential end date
+        // Trail period: June 22-24, Blocker LEAD: June 23-24
+        // Overlap at June 23-24 → should have trailDisable
+        getDateByISO("2026-06-21").trigger("mouseover");
+        getDateByISO("2026-06-21").should("have.class", "trailDisable");
+
+        // Also test June 20 - trail June 21-23, June 23 overlaps blocker lead
+        getDateByISO("2026-06-20").trigger("mouseover");
+        getDateByISO("2026-06-20").should("have.class", "trailDisable");
+
+        // Verify June 19 is clear - trail June 20-22, doesn't reach blocker lead (starts June 23)
+        getDateByISO("2026-06-19").trigger("mouseover");
+        getDateByISO("2026-06-19").should("not.have.class", "trailDisable");
+
+        // Clear selection for next phase
+        cy.get("#period").clearFlatpickr();
+        cy.get("@fp").openFlatpickr();
 
         // ========================================================================
         // PHASE 5: Max Date Selectable When Trail is Clear
         // ========================================================================
-        cy.log("=== PHASE 5: Max date selectable when trail is clear ===");
 
         /**
          * Select June 13 as start date (lead June 11-12, both clear)
-         * Max end date: June 20 (13 + 7 days)
-         * Hover June 20: Trail period June 21-23
-         * Trail period is clear (blocker is June 25-27)
-         * Expected: June 20 is selectable (no trailDisable), can book full 7-day period
+         * Max end date by circulation rules: June 20 (13 + 7 days)
+         * But June 20's trail period (June 21-23) overlaps blocker's lead (June 23-24) at June 23
+         * So June 20 WILL have trailDisable
+         *
+         * June 19's trail period (June 20-22) is clear of blocker's lead (June 23-24)
+         * So June 19 should be selectable (no trailDisable)
          */
 
         // Select June 13 as start date
         getDateByISO("2026-06-13").click();
-        cy.log("Selected June 13 as start date");
 
-        // Hover June 20 (max date = start + 7 days)
+        // First, verify June 20 HAS trailDisable (trail June 21-23 overlaps blocker lead June 23-24)
         getDateByISO("2026-06-20").trigger("mouseover");
+        getDateByISO("2026-06-20").should("have.class", "trailDisable");
 
-        // Max date should NOT have trailDisable (trail June 21-23 is clear)
-        getDateByISO("2026-06-20").should("not.have.class", "trailDisable");
-        cy.log("✓ June 20: No trailDisable (trail June 21-23 is clear)");
+        // June 19 should NOT have trailDisable (trail June 20-22 is clear of blocker lead)
+        getDateByISO("2026-06-19").trigger("mouseover");
+        getDateByISO("2026-06-19").should("not.have.class", "trailDisable");
 
-        // Max date should not be disabled by flatpickr
-        getDateByISO("2026-06-20").should(
+        // June 19 should not be disabled by flatpickr
+        getDateByISO("2026-06-19").should(
             "not.have.class",
             "flatpickr-disabled"
         );
-        cy.log("✓ June 20: Not flatpickr-disabled (max date is selectable)");
 
-        // Actually select the max date to confirm booking can be made
-        getDateByISO("2026-06-20").click();
+        // Actually select June 19 to confirm booking can be made
+        getDateByISO("2026-06-19").click();
 
         // Verify dates were accepted in the form
         cy.get("#booking_start_date").should("not.have.value", "");
         cy.get("#booking_end_date").should("not.have.value", "");
-        cy.log("✓ Full 7-day period selected: June 13 to June 20");
 
-        // ========================================================================
-        // SUMMARY
-        // ========================================================================
         cy.log(
-            "✓ CONFIRMED: Lead and trail period behaviour working correctly"
-        );
-        cy.log("✓ Phase 1: Lead period visual hints appear in clear zones");
-        cy.log("✓ Phase 2: Trail period visual hints appear in clear zones");
-        cy.log(
-            "✓ Phase 3: Lead period into past dates or existing bookings triggers leadDisable"
-        );
-        cy.log(
-            "✓ Phase 4: Trail period overlapping booking triggers trailDisable"
-        );
-        cy.log(
-            "✓ Phase 5: Max date is selectable when trail period has no conflicts"
+            "✓ CONFIRMED: Lead/trail period behavior with bidirectional conflict detection working correctly"
         );
     });
 
@@ -1096,14 +1145,8 @@ describe("Booking Modal Date Picker Tests", () => {
         // ========================================================================
         // TEST 1: Single Booking Event Dots (Days 10, 11, 12)
         // ========================================================================
-        cy.log("=== TEST 1: Testing single booking event dots ===");
 
-        /*
-         * Testing the core dot creation mechanism:
-         * - Days 10-12 have single booking from same item
-         * - onDayCreate should create .event-dots container
-         * - Should create single .event dot for each day with item class
-         */
+        // Days 10-12 have single booking from same item - should create one event dot each
         const singleDotDates = [
             today.add(10, "day"),
             today.add(11, "day"),
@@ -1115,23 +1158,15 @@ describe("Booking Modal Date Picker Tests", () => {
                 date.month() === today.month() ||
                 date.month() === today.add(1, "month").month()
             ) {
-                cy.log(
-                    `Testing single event dot on ${date.format("YYYY-MM-DD")}`
-                );
                 cy.get("@eventDotsFlatpickr")
                     .getFlatpickrDate(date.toDate())
                     .within(() => {
-                        // Verify .event-dots container exists
                         cy.get(".event-dots")
                             .should("exist")
                             .and("have.length", 1);
-                        // Verify single .event dot exists
                         cy.get(".event-dots .event")
                             .should("exist")
                             .and("have.length", 1);
-                        cy.log(
-                            `✓ Day ${date.format("YYYY-MM-DD")}: Has single event dot`
-                        );
                     });
             }
         });
@@ -1139,14 +1174,8 @@ describe("Booking Modal Date Picker Tests", () => {
         // ========================================================================
         // TEST 2: Multiple Bookings on Same Date (Days 5-6)
         // ========================================================================
-        cy.log("=== TEST 2: Testing multiple bookings event dots ===");
 
-        /*
-         * Testing multiple bookings on same date:
-         * - Days 5-6 have TWO different bookings (different items)
-         * - Should create .event-dots with TWO .event children
-         * - Each dot should represent different booking/item
-         */
+        // Days 5-6 have TWO different bookings (different items) - should create two dots
         const multipleDotDates = [today.add(5, "day"), today.add(6, "day")];
 
         multipleDotDates.forEach(date => {
@@ -1154,19 +1183,11 @@ describe("Booking Modal Date Picker Tests", () => {
                 date.month() === today.month() ||
                 date.month() === today.add(1, "month").month()
             ) {
-                cy.log(
-                    `Testing multiple event dots on ${date.format("YYYY-MM-DD")}`
-                );
                 cy.get("@eventDotsFlatpickr")
                     .getFlatpickrDate(date.toDate())
                     .within(() => {
-                        // Verify .event-dots container
                         cy.get(".event-dots").should("exist");
-                        // Verify TWO dots exist (multiple bookings on same date)
                         cy.get(".event-dots .event").should("have.length", 2);
-                        cy.log(
-                            `✓ Day ${date.format("YYYY-MM-DD")}: Has multiple event dots`
-                        );
                     });
             }
         });
@@ -1174,15 +1195,8 @@ describe("Booking Modal Date Picker Tests", () => {
         // ========================================================================
         // TEST 3: Dates Without Bookings (No Event Dots)
         // ========================================================================
-        cy.log(
-            "=== TEST 3: Testing dates without bookings have no event dots ==="
-        );
 
-        /*
-         * Testing dates without bookings:
-         * - No .event-dots container should be created
-         * - Calendar should display normally without visual indicators
-         */
+        // Dates without bookings should have no .event-dots container
         const emptyDates = [
             today.add(3, "day"), // Before any bookings
             today.add(8, "day"), // Between booking periods
@@ -1195,30 +1209,19 @@ describe("Booking Modal Date Picker Tests", () => {
                 date.month() === today.month() ||
                 date.month() === today.add(1, "month").month()
             ) {
-                cy.log(`Testing no event dots on ${date.format("YYYY-MM-DD")}`);
                 cy.get("@eventDotsFlatpickr")
                     .getFlatpickrDate(date.toDate())
                     .within(() => {
-                        // No event dots should exist
                         cy.get(".event-dots").should("not.exist");
-                        cy.log(
-                            `✓ Day ${date.format("YYYY-MM-DD")}: Correctly has no event dots`
-                        );
                     });
             }
         });
 
         // ========================================================================
-        // TEST 4: Isolated Single Booking (Day 15)
+        // TEST 4: Isolated Single Booking (Day 15) - Boundary Detection
         // ========================================================================
-        cy.log("=== TEST 4: Testing isolated single booking event dot ===");
 
-        /*
-         * Testing precise boundary detection:
-         * - Day 15 has booking, should have dot
-         * - Adjacent days (14, 16) have no bookings, should have no dots
-         * - Validates precise date matching in bookingsByDate hash
-         */
+        // Day 15 has booking (should have dot), adjacent days 14 and 16 don't (no dots)
         const isolatedBookingDate = today.add(15, "day");
 
         if (
@@ -1226,9 +1229,6 @@ describe("Booking Modal Date Picker Tests", () => {
             isolatedBookingDate.month() === today.add(1, "month").month()
         ) {
             // Verify isolated booking day HAS dot
-            cy.log(
-                `Testing isolated booking on ${isolatedBookingDate.format("YYYY-MM-DD")}`
-            );
             cy.get("@eventDotsFlatpickr")
                 .getFlatpickrDate(isolatedBookingDate.toDate())
                 .within(() => {
@@ -1236,9 +1236,6 @@ describe("Booking Modal Date Picker Tests", () => {
                     cy.get(".event-dots .event")
                         .should("exist")
                         .and("have.length", 1);
-                    cy.log(
-                        `✓ Day ${isolatedBookingDate.format("YYYY-MM-DD")}: Has isolated event dot`
-                    );
                 });
 
             // Verify adjacent dates DON'T have dots
@@ -1248,25 +1245,634 @@ describe("Booking Modal Date Picker Tests", () => {
                         adjacentDate.month() === today.month() ||
                         adjacentDate.month() === today.add(1, "month").month()
                     ) {
-                        cy.log(
-                            `Testing adjacent date ${adjacentDate.format("YYYY-MM-DD")} has no dots`
-                        );
                         cy.get("@eventDotsFlatpickr")
                             .getFlatpickrDate(adjacentDate.toDate())
                             .within(() => {
                                 cy.get(".event-dots").should("not.exist");
-                                cy.log(
-                                    `✓ Day ${adjacentDate.format("YYYY-MM-DD")}: Correctly has no dots (adjacent to booking)`
-                                );
                             });
                     }
                 }
             );
         }
 
-        cy.log("✓ CONFIRMED: Event dots visual indicators working correctly");
         cy.log(
-            "✓ Validated: Single dots, multiple dots, empty dates, and precise boundary detection"
+            "✓ CONFIRMED: Event dots display correctly (single, multiple, empty dates, boundaries)"
         );
+    });
+
+    it("should maximize booking window by dynamically reducing available items during overlaps", () => {
+        /**
+         * Tests the "smart window maximization" algorithm for "any item" bookings.
+         *
+         * Key principle: Once an item is removed from the pool (becomes unavailable),
+         * it is NEVER re-added even if it becomes available again later.
+         *
+         * Booking pattern:
+         * - ITEM 0: Booked days 10-15
+         * - ITEM 1: Booked days 13-20
+         * - ITEM 2: Booked days 18-25
+         * - ITEM 3: Booked days 1-7, then 23-30
+         */
+
+        // Fix the browser Date object to June 10, 2026 at 09:00 Europe/London
+        // Using ["Date"] to avoid freezing timers which breaks Select2 async operations
+        const fixedToday = new Date("2026-06-10T08:00:00Z"); // 09:00 BST (UTC+1)
+        cy.clock(fixedToday, ["Date"]);
+        const today = dayjs(fixedToday);
+
+        let testItems = [];
+        let testBiblio = null;
+        let testPatron = null;
+
+        // Circulation rules with zero lead/trail periods for simpler date testing
+        const circulationRules = {
+            bookings_lead_period: 0,
+            bookings_trail_period: 0,
+            issuelength: 14,
+            renewalsallowed: 2,
+            renewalperiod: 7,
+        };
+
+        // Setup: Create biblio with 4 items
+        cy.task("insertSampleBiblio", { item_count: 4 })
+            .then(objects => {
+                testBiblio = objects.biblio;
+                testItems = objects.items;
+
+                const itemUpdates = testItems.map((item, index) => {
+                    const enumchron = String.fromCharCode(65 + index);
+                    return cy.task("query", {
+                        sql: "UPDATE items SET bookable = 1, itype = 'BK', homebranch = 'CPL', enumchron = ?, dateaccessioned = ? WHERE itemnumber = ?",
+                        values: [
+                            enumchron,
+                            `2024-12-0${4 - index}`,
+                            item.item_id,
+                        ],
+                    });
+                });
+                return Promise.all(itemUpdates);
+            })
+            .then(() => {
+                return cy.task("buildSampleObject", {
+                    object: "patron",
+                    values: {
+                        firstname: "John",
+                        surname: "Doe",
+                        cardnumber: `TEST${Date.now()}`,
+                        category_id: "PT",
+                        library_id: "CPL",
+                    },
+                });
+            })
+            .then(mockPatron => {
+                testPatron = mockPatron;
+                return cy.task("query", {
+                    sql: `INSERT INTO borrowers (borrowernumber, firstname, surname, cardnumber, categorycode, branchcode, dateofbirth)
+                          VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                    values: [
+                        mockPatron.patron_id,
+                        mockPatron.firstname,
+                        mockPatron.surname,
+                        mockPatron.cardnumber,
+                        mockPatron.category_id,
+                        mockPatron.library_id,
+                        "1990-01-01",
+                    ],
+                });
+            })
+            .then(() => {
+                // Create strategic bookings
+                const bookingInserts = [
+                    // ITEM 0: Booked 10-15
+                    cy.task("query", {
+                        sql: `INSERT INTO bookings (biblio_id, patron_id, item_id, pickup_library_id, start_date, end_date, status)
+                              VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                        values: [
+                            testBiblio.biblio_id,
+                            testPatron.patron_id,
+                            testItems[0].item_id,
+                            "CPL",
+                            today.add(10, "day").format("YYYY-MM-DD"),
+                            today.add(15, "day").format("YYYY-MM-DD"),
+                            "new",
+                        ],
+                    }),
+                    // ITEM 1: Booked 13-20
+                    cy.task("query", {
+                        sql: `INSERT INTO bookings (biblio_id, patron_id, item_id, pickup_library_id, start_date, end_date, status)
+                              VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                        values: [
+                            testBiblio.biblio_id,
+                            testPatron.patron_id,
+                            testItems[1].item_id,
+                            "CPL",
+                            today.add(13, "day").format("YYYY-MM-DD"),
+                            today.add(20, "day").format("YYYY-MM-DD"),
+                            "new",
+                        ],
+                    }),
+                    // ITEM 2: Booked 18-25
+                    cy.task("query", {
+                        sql: `INSERT INTO bookings (biblio_id, patron_id, item_id, pickup_library_id, start_date, end_date, status)
+                              VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                        values: [
+                            testBiblio.biblio_id,
+                            testPatron.patron_id,
+                            testItems[2].item_id,
+                            "CPL",
+                            today.add(18, "day").format("YYYY-MM-DD"),
+                            today.add(25, "day").format("YYYY-MM-DD"),
+                            "new",
+                        ],
+                    }),
+                    // ITEM 3: Booked 1-7
+                    cy.task("query", {
+                        sql: `INSERT INTO bookings (biblio_id, patron_id, item_id, pickup_library_id, start_date, end_date, status)
+                              VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                        values: [
+                            testBiblio.biblio_id,
+                            testPatron.patron_id,
+                            testItems[3].item_id,
+                            "CPL",
+                            today.add(1, "day").format("YYYY-MM-DD"),
+                            today.add(7, "day").format("YYYY-MM-DD"),
+                            "new",
+                        ],
+                    }),
+                    // ITEM 3: Booked 23-30
+                    cy.task("query", {
+                        sql: `INSERT INTO bookings (biblio_id, patron_id, item_id, pickup_library_id, start_date, end_date, status)
+                              VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                        values: [
+                            testBiblio.biblio_id,
+                            testPatron.patron_id,
+                            testItems[3].item_id,
+                            "CPL",
+                            today.add(23, "day").format("YYYY-MM-DD"),
+                            today.add(30, "day").format("YYYY-MM-DD"),
+                            "new",
+                        ],
+                    }),
+                ];
+                return Promise.all(bookingInserts);
+            })
+            .then(() => {
+                cy.intercept(
+                    "GET",
+                    `/api/v1/biblios/${testBiblio.biblio_id}/pickup_locations*`
+                ).as("getPickupLocations");
+                cy.intercept("GET", "/api/v1/circulation_rules*", {
+                    body: [circulationRules],
+                }).as("getCirculationRules");
+
+                cy.visit(
+                    `/cgi-bin/koha/catalogue/detail.pl?biblionumber=${testBiblio.biblio_id}`
+                );
+
+                cy.get('[data-bs-target="#placeBookingModal"]').first().click();
+                cy.get("#placeBookingModal").should("be.visible");
+
+                cy.selectFromSelect2(
+                    "#booking_patron_id",
+                    `${testPatron.surname}, ${testPatron.firstname}`,
+                    testPatron.cardnumber
+                );
+                cy.wait("@getPickupLocations");
+
+                cy.get("#pickup_library_id").should("not.be.disabled");
+                cy.selectFromSelect2ByIndex("#pickup_library_id", 0);
+
+                cy.get("#booking_itemtype").should("not.be.disabled");
+                cy.selectFromSelect2ByIndex("#booking_itemtype", 0);
+                cy.wait("@getCirculationRules");
+
+                cy.selectFromSelect2ByIndex("#booking_item_id", 0); // "Any item"
+                cy.get("#period").should("not.be.disabled");
+                cy.get("#period").as("flatpickrInput");
+
+                // Helper to check date availability - checks boundaries + random middle date
+                const checkDatesAvailable = (fromDay, toDay) => {
+                    const daysToCheck = [fromDay, toDay];
+                    if (toDay - fromDay > 1) {
+                        const randomMiddle =
+                            fromDay +
+                            1 +
+                            Math.floor(Math.random() * (toDay - fromDay - 1));
+                        daysToCheck.push(randomMiddle);
+                    }
+                    daysToCheck.forEach(day => {
+                        cy.get("@flatpickrInput")
+                            .getFlatpickrDate(today.add(day, "day").toDate())
+                            .should("not.have.class", "flatpickr-disabled");
+                    });
+                };
+
+                const checkDatesDisabled = (fromDay, toDay) => {
+                    const daysToCheck = [fromDay, toDay];
+                    if (toDay - fromDay > 1) {
+                        const randomMiddle =
+                            fromDay +
+                            1 +
+                            Math.floor(Math.random() * (toDay - fromDay - 1));
+                        daysToCheck.push(randomMiddle);
+                    }
+                    daysToCheck.forEach(day => {
+                        cy.get("@flatpickrInput")
+                            .getFlatpickrDate(today.add(day, "day").toDate())
+                            .should("have.class", "flatpickr-disabled");
+                    });
+                };
+
+                // SCENARIO 1: Start day 5
+                // Pool starts: ITEM0, ITEM1, ITEM2 (ITEM3 booked 1-7)
+                // Day 10: lose ITEM0, Day 13: lose ITEM1, Day 18: lose ITEM2 → disabled
+                cy.log("=== Scenario 1: Start day 5 ===");
+                cy.get("@flatpickrInput").openFlatpickr();
+                cy.get("@flatpickrInput")
+                    .getFlatpickrDate(today.add(5, "day").toDate())
+                    .click();
+
+                checkDatesAvailable(6, 17); // Available through day 17
+                checkDatesDisabled(18, 20); // Disabled from day 18
+
+                // SCENARIO 2: Start day 8
+                // Pool starts: ALL 4 items (ITEM3 booking 1-7 ended)
+                // Progressive reduction until day 23 when ITEM3's second booking starts
+                cy.log("=== Scenario 2: Start day 8 (all items available) ===");
+                cy.get("@flatpickrInput").clearFlatpickr();
+                cy.get("@flatpickrInput").openFlatpickr();
+                cy.get("@flatpickrInput")
+                    .getFlatpickrDate(today.add(8, "day").toDate())
+                    .click();
+
+                checkDatesAvailable(9, 22); // Can book through day 22
+                checkDatesDisabled(23, 25); // Disabled from day 23
+
+                // SCENARIO 3: Start day 19
+                // Pool starts: ITEM0 (booking ended day 15), ITEM3
+                // ITEM0 stays available indefinitely, ITEM3 loses at day 23
+                cy.log("=== Scenario 3: Start day 19 ===");
+                cy.get("@flatpickrInput").clearFlatpickr();
+                cy.get("@flatpickrInput").openFlatpickr();
+                cy.get("@flatpickrInput")
+                    .getFlatpickrDate(today.add(19, "day").toDate())
+                    .click();
+
+                // ITEM0 remains in pool, so dates stay available past day 23
+                checkDatesAvailable(20, 25);
+            });
+
+        // Cleanup
+        cy.then(() => {
+            if (testBiblio) {
+                cy.task("query", {
+                    sql: "DELETE FROM bookings WHERE biblio_id = ?",
+                    values: [testBiblio.biblio_id],
+                });
+                cy.task("deleteSampleObjects", {
+                    biblio: testBiblio,
+                    items: testItems,
+                });
+            }
+            if (testPatron) {
+                cy.task("query", {
+                    sql: "DELETE FROM borrowers WHERE borrowernumber = ?",
+                    values: [testPatron.patron_id],
+                });
+            }
+        });
+    });
+
+    it("should correctly handle lead/trail period conflicts for 'any item' bookings", () => {
+        /**
+         * Bug 37707: Lead/Trail Period Conflict Detection for "Any Item" Bookings
+         * ========================================================================
+         *
+         * This test validates that lead/trail period conflict detection works correctly
+         * when "any item of itemtype X" is selected. The key principle is:
+         *
+         * - Only block date selection when ALL items of the itemtype have conflicts
+         * - Allow selection when at least one item is free from lead/trail conflicts
+         *
+         * The bug occurred because the mouseover handler was checking conflicts against
+         * ALL bookings regardless of itemtype, rather than tracking per-item conflicts.
+         *
+         * Test Setup:
+         * ===========
+         * - Fixed date: June 1, 2026 (keeps all test dates in same month)
+         * - 3 items of itemtype BK
+         * - Lead period: 2 days, Trail period: 2 days
+         * - ITEM 0: Booking on days 10-12 (June 11-13, trail period: June 14-15)
+         * - ITEM 1: Booking on days 10-12 (same as item 0)
+         * - ITEM 2: No bookings (always available)
+         *
+         * Test Scenarios:
+         * ==============
+         * 1. Hover day 15 (June 16): ITEM 0 and ITEM 1 have trail period conflict
+         *    (lead period June 14-15 overlaps their trail June 14-15), but ITEM 2 is free
+         *    → Should NOT be blocked (at least one item available)
+         *
+         * 2. Create booking on ITEM 2 for days 10-12, then hover day 15 again:
+         *    → ALL items now have trail period conflicts
+         *    → Should BE blocked
+         *
+         * 3. Visual feedback: Check existingBookingTrail on days 13-14 (June 14-15)
+         *
+         * 4. Visual feedback: Check existingBookingLead on days 8-9 (June 9-10)
+         */
+
+        // Fix the browser Date object to June 1, 2026 at 09:00 Europe/London
+        // This ensures all test dates (days 5-17) fall within June
+        const fixedToday = new Date("2026-06-01T08:00:00Z"); // 09:00 BST (UTC+1)
+        cy.clock(fixedToday, ["Date"]);
+
+        const today = dayjs(fixedToday);
+        let testItems = [];
+        let testBiblio = null;
+        let testPatron = null;
+        let testLibraries = null;
+
+        // Circulation rules with non-zero lead/trail periods
+        const circulationRules = {
+            bookings_lead_period: 2,
+            bookings_trail_period: 2,
+            issuelength: 14,
+            renewalsallowed: 2,
+            renewalperiod: 7,
+        };
+
+        // Setup: Create biblio with 3 items of the same itemtype
+        cy.task("insertSampleBiblio", { item_count: 3 })
+            .then(objects => {
+                testBiblio = objects.biblio;
+                testItems = objects.items;
+                testLibraries = objects.libraries;
+
+                // Make all items the same itemtype (BK)
+                const itemUpdates = testItems.map((item, index) => {
+                    const enumchron = String.fromCharCode(65 + index);
+                    return cy.task("query", {
+                        sql: "UPDATE items SET bookable = 1, itype = 'BK', homebranch = 'CPL', enumchron = ?, dateaccessioned = ? WHERE itemnumber = ?",
+                        values: [
+                            enumchron,
+                            `2024-12-0${4 - index}`,
+                            item.item_id,
+                        ],
+                    });
+                });
+                return Promise.all(itemUpdates);
+            })
+            .then(() => {
+                return cy.task("buildSampleObject", {
+                    object: "patron",
+                    values: {
+                        firstname: "LeadTrail",
+                        surname: "Tester",
+                        cardnumber: `LT${Date.now()}`,
+                        category_id: "PT",
+                        library_id: "CPL",
+                    },
+                });
+            })
+            .then(mockPatron => {
+                testPatron = mockPatron;
+                return cy.task("query", {
+                    sql: `INSERT INTO borrowers (borrowernumber, firstname, surname, cardnumber, categorycode, branchcode, dateofbirth)
+                          VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                    values: [
+                        mockPatron.patron_id,
+                        mockPatron.firstname,
+                        mockPatron.surname,
+                        mockPatron.cardnumber,
+                        mockPatron.category_id,
+                        mockPatron.library_id,
+                        "1990-01-01",
+                    ],
+                });
+            })
+            .then(() => {
+                // Create bookings on ITEM 0 and ITEM 1 for days 10-12
+                // ITEM 2 remains free
+                const bookingInserts = [
+                    // ITEM 0: Booked days 10-12
+                    cy.task("query", {
+                        sql: `INSERT INTO bookings (biblio_id, patron_id, item_id, pickup_library_id, start_date, end_date, status)
+                              VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                        values: [
+                            testBiblio.biblio_id,
+                            testPatron.patron_id,
+                            testItems[0].item_id,
+                            "CPL",
+                            today.add(10, "day").format("YYYY-MM-DD"),
+                            today.add(12, "day").format("YYYY-MM-DD"),
+                            "new",
+                        ],
+                    }),
+                    // ITEM 1: Booked days 10-12 (same period)
+                    cy.task("query", {
+                        sql: `INSERT INTO bookings (biblio_id, patron_id, item_id, pickup_library_id, start_date, end_date, status)
+                              VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                        values: [
+                            testBiblio.biblio_id,
+                            testPatron.patron_id,
+                            testItems[1].item_id,
+                            "CPL",
+                            today.add(10, "day").format("YYYY-MM-DD"),
+                            today.add(12, "day").format("YYYY-MM-DD"),
+                            "new",
+                        ],
+                    }),
+                    // ITEM 2: No booking - remains free
+                ];
+                return Promise.all(bookingInserts);
+            })
+            .then(() => {
+                cy.intercept(
+                    "GET",
+                    `/api/v1/biblios/${testBiblio.biblio_id}/pickup_locations*`
+                ).as("getPickupLocations");
+                cy.intercept("GET", "/api/v1/circulation_rules*", {
+                    body: [circulationRules],
+                }).as("getCirculationRules");
+
+                cy.visit(
+                    `/cgi-bin/koha/catalogue/detail.pl?biblionumber=${testBiblio.biblio_id}`
+                );
+
+                cy.get('[data-bs-target="#placeBookingModal"]').first().click();
+                cy.get("#placeBookingModal").should("be.visible");
+
+                cy.selectFromSelect2(
+                    "#booking_patron_id",
+                    `${testPatron.surname}, ${testPatron.firstname}`,
+                    testPatron.cardnumber
+                );
+                cy.wait("@getPickupLocations");
+
+                cy.get("#pickup_library_id").should("not.be.disabled");
+                cy.selectFromSelect2ByIndex("#pickup_library_id", 0);
+
+                // Select itemtype BK
+                cy.get("#booking_itemtype").should("not.be.disabled");
+                cy.selectFromSelect2("#booking_itemtype", "Books");
+                cy.wait("@getCirculationRules");
+
+                // Select "Any item" (index 0)
+                cy.selectFromSelect2ByIndex("#booking_item_id", 0);
+                cy.get("#booking_item_id").should("have.value", "0");
+
+                cy.get("#period").should("not.be.disabled");
+                cy.get("#period").as("flatpickrInput");
+
+                // ================================================================
+                // SCENARIO 1: Hover day 15 - ITEM 2 is free, should NOT be blocked
+                // ================================================================
+                cy.log(
+                    "=== Scenario 1: Day 15 should be selectable (ITEM 2 is free) ==="
+                );
+
+                cy.get("@flatpickrInput").openFlatpickr();
+                cy.get("@flatpickrInput")
+                    .getFlatpickrDate(today.add(15, "day").toDate())
+                    .trigger("mouseover");
+
+                // Day 15 should NOT have leadDisable class (at least one item is free)
+                cy.get("@flatpickrInput")
+                    .getFlatpickrDate(today.add(15, "day").toDate())
+                    .should("not.have.class", "leadDisable");
+
+                // Actually click day 15 to verify it's selectable
+                cy.get("@flatpickrInput")
+                    .getFlatpickrDate(today.add(15, "day").toDate())
+                    .should("not.have.class", "flatpickr-disabled")
+                    .click();
+
+                // Verify day 15 was selected as start date
+                cy.get("@flatpickrInput")
+                    .getFlatpickrDate(today.add(15, "day").toDate())
+                    .should("have.class", "selected");
+
+                // Reset for next scenario
+                cy.get("@flatpickrInput").clearFlatpickr();
+
+                // ================================================================
+                // SCENARIO 2: Add booking on ITEM 2 - ALL items now have conflicts
+                // ================================================================
+                cy.log(
+                    "=== Scenario 2: Day 15 should be BLOCKED when all items have conflicts ==="
+                );
+
+                // Add booking on ITEM 2 for same period (days 10-12)
+                cy.task("query", {
+                    sql: `INSERT INTO bookings (biblio_id, patron_id, item_id, pickup_library_id, start_date, end_date, status)
+                          VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                    values: [
+                        testBiblio.biblio_id,
+                        testPatron.patron_id,
+                        testItems[2].item_id,
+                        "CPL",
+                        today.add(10, "day").format("YYYY-MM-DD"),
+                        today.add(12, "day").format("YYYY-MM-DD"),
+                        "new",
+                    ],
+                }).then(() => {
+                    // Reload page to get updated booking data
+                    cy.visit(
+                        `/cgi-bin/koha/catalogue/detail.pl?biblionumber=${testBiblio.biblio_id}`
+                    );
+
+                    cy.get('[data-bs-target="#placeBookingModal"]')
+                        .first()
+                        .click();
+                    cy.get("#placeBookingModal").should("be.visible");
+
+                    cy.selectFromSelect2(
+                        "#booking_patron_id",
+                        `${testPatron.surname}, ${testPatron.firstname}`,
+                        testPatron.cardnumber
+                    );
+                    cy.wait("@getPickupLocations");
+
+                    cy.get("#pickup_library_id").should("not.be.disabled");
+                    cy.selectFromSelect2ByIndex("#pickup_library_id", 0);
+
+                    // Select itemtype BK
+                    cy.get("#booking_itemtype").should("not.be.disabled");
+                    cy.selectFromSelect2("#booking_itemtype", "Books");
+                    cy.wait("@getCirculationRules");
+
+                    // Select "Any item" (index 0)
+                    cy.selectFromSelect2ByIndex("#booking_item_id", 0);
+                    cy.get("#booking_item_id").should("have.value", "0");
+
+                    cy.get("#period").should("not.be.disabled");
+                    cy.get("#period").as("flatpickrInput2");
+
+                    cy.get("@flatpickrInput2").openFlatpickr();
+                    cy.get("@flatpickrInput2")
+                        .getFlatpickrDate(today.add(15, "day").toDate())
+                        .trigger("mouseover");
+
+                    // Day 15 should NOW have leadDisable class (all items have conflicts)
+                    cy.get("@flatpickrInput2")
+                        .getFlatpickrDate(today.add(15, "day").toDate())
+                        .should("have.class", "leadDisable");
+
+                    // ================================================================
+                    // SCENARIO 3: Visual feedback - existingBookingTrail for days 13-14
+                    // ================================================================
+                    cy.log(
+                        "=== Scenario 3: Visual feedback - Trail period display ==="
+                    );
+
+                    cy.get("@flatpickrInput2")
+                        .getFlatpickrDate(today.add(13, "day").toDate())
+                        .should("have.class", "existingBookingTrail");
+
+                    cy.get("@flatpickrInput2")
+                        .getFlatpickrDate(today.add(14, "day").toDate())
+                        .should("have.class", "existingBookingTrail");
+
+                    // ================================================================
+                    // SCENARIO 4: Visual feedback - existingBookingLead for days 8-9
+                    // ================================================================
+                    cy.log(
+                        "=== Scenario 4: Visual feedback - Lead period display ==="
+                    );
+
+                    cy.get("@flatpickrInput2")
+                        .getFlatpickrDate(today.add(5, "day").toDate())
+                        .trigger("mouseover");
+
+                    cy.get("@flatpickrInput2")
+                        .getFlatpickrDate(today.add(8, "day").toDate())
+                        .should("have.class", "existingBookingLead");
+
+                    cy.get("@flatpickrInput2")
+                        .getFlatpickrDate(today.add(9, "day").toDate())
+                        .should("have.class", "existingBookingLead");
+                });
+            });
+
+        // Cleanup
+        cy.then(() => {
+            if (testBiblio) {
+                cy.task("query", {
+                    sql: "DELETE FROM bookings WHERE biblio_id = ?",
+                    values: [testBiblio.biblio_id],
+                });
+                cy.task("deleteSampleObjects", {
+                    biblio: testBiblio,
+                    items: testItems,
+                    libraries: testLibraries,
+                });
+            }
+            if (testPatron) {
+                cy.task("query", {
+                    sql: "DELETE FROM borrowers WHERE borrowernumber = ?",
+                    values: [testPatron.patron_id],
+                });
+            }
+        });
     });
 });

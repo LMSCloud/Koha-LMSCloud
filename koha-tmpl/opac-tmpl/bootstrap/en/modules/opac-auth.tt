@@ -236,7 +236,7 @@
                                 [% END %]
                                 <form action="[% form_action | html %]" name="auth" id="auth" method="post" autocomplete="off">
                                     [% INCLUDE 'csrf-token.inc' %]
-                                    <input type="hidden" name="op" value="cud-login" />
+                                    <input type="hidden" name="login_op" value="cud-login" />
                                     <input type="hidden" name="koha_login_context" value="opac" />
 
                                     <div class="local-login">

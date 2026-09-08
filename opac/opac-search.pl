@@ -554,7 +554,7 @@ if ( C4::Context->preference('OpacSuppression') ) {
         suppress                => $suppress,
         is_opac                 => 1,
         weighted_fields         => $weight_search,
-        weight_search_submitted => $cgi->param('weight_search_submitted')
+        weight_search_submitted => $cgi->param('weight_search_submitted') // undef
     }
     );
 

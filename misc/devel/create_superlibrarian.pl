@@ -39,6 +39,7 @@ GetOptions(
     'branchcode=s'   => \$branchcode,
     'categorycode=s' => \$categorycode,
     'cardnumber=s'   => \$cardnumber,
+    'surname=s'      => \$surname,
 );
 
 pod2usage(1) if $help;
@@ -61,6 +62,10 @@ try {
 
             Koha::Exceptions::Object::DuplicateID->throw( duplicate_id => 'cardnumber' )
                 if Koha::Patrons->find( { cardnumber => $cardnumber } );
+
+            unless ($surname) {
+                $surname = $userid;
+            }
 
             my $patron = Koha::Patron->new(
                 {
@@ -115,7 +120,7 @@ create_superlibrarian.pl - create a user in Koha with superlibrarian permissions
 =head1 SYNOPSIS
 
 create_superlibrarian.pl
-  --userid <userid> --password <password> --branchcode <branchcode> --categorycode <categorycode> --cardnumber <cardnumber>
+  --userid <userid> --password <password> --branchcode <branchcode> --categorycode <categorycode> --cardnumber <cardnumber> --surname <surname>
 
  Options:
    -?|--help        brief help message
@@ -124,6 +129,7 @@ create_superlibrarian.pl
    --branchcode     specify the library code
    --categorycode   specify the patron category code
    --cardnumber     specify the cardnumber to be set
+   --surname        specify the surname to be set
 
 =head1 OPTIONS
 
@@ -152,6 +158,10 @@ Patron category's code
 =item B<--cardnumber>
 
 Patron's cardnumber
+
+=item B<--surname>
+
+Patron's surname. If not provided, the given userid will be used.
 
 =back
 

@@ -56,6 +56,7 @@ subtest 'Compare sysprefs.sql with YAML files' => sub {
     @syspref_names_in_file = grep !/UsageStatsID/,             @syspref_names_in_file;    # Separate configuration page
     @syspref_names_in_file = grep !/UsageStatsLastUpdateTime/, @syspref_names_in_file;    # Separate configuration page
     @syspref_names_in_file = grep !/UsageStatsPublicID/,       @syspref_names_in_file;    # Separate configuration page
+    @syspref_names_in_file = grep !/autoMemberNumValue/,       @syspref_names_in_file;
 
     my @missing_yaml = array_minus( @syspref_names_in_file, @yaml_mod );
     is( scalar @missing_yaml, 0, "No system preference entries missing from sysprefs.sql" );

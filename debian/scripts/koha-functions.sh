@@ -441,7 +441,7 @@ is_debug_mode()
     if [ "$instancename" != "" ] && is_instance $instancename; then
         debug_mode=$(run_safe_xmlstarlet $instancename debug_mode)
     fi
-    if [ -n "$debug_mode" ] && [ "debug_mode" != "0" ]; then
+    if [ -n "$debug_mode" ] && [ "$debug_mode" != "0" ]; then
         return 0; # true
     else
         return 1

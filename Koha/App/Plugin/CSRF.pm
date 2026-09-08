@@ -73,18 +73,27 @@ sub register {
 
             my $method = $c->req->method;
             if ( $method eq 'GET' || $method eq 'HEAD' || $method eq 'OPTIONS' || $method eq 'TRACE' ) {
-                my $op = $c->req->param('op');
+                my $op       = $c->req->param('op');
+                my $login_op = $c->req->param('login_op');
                 if ( $op && $op =~ /^cud-/ ) {
                     return $c->reply->exception(
                         'Incorrect use of a safe HTTP method with an `op` parameter that starts with "cud-"')
                         ->rendered(400);
+                } elsif ( defined $login_op ) {
+                    return $c->reply->exception('Incorrect use of a safe HTTP method with a `login_op` parameter')
+                        ->rendered(400);
                 }
             } else {
-                my $op = $c->req->param('op');
-                if ( $op && $op !~ /^cud-/ ) {
+                my $op       = $c->req->param('op');
+                my $login_op = $c->req->param('login_op');
+                if ( ( $op && $op !~ /^cud-/ ) && !$login_op ) {
                     return $c->reply->exception(
                         'Incorrect use of an unsafe HTTP method with an `op` parameter that does not start with "cud-"')
                         ->rendered(400);
+                } elsif ( defined $login_op && $login_op !~ /^cud-login$/ ) {
+                    return $c->reply->exception(
+                        'Incorrect use of an unsafe HTTP method with a `login_op` parameter that does not contain cud-login'
+                    )->rendered(400);
                 }
 
                 if ( $c->cookie('CGISESSID') && !$self->is_csrf_valid( $c->req ) ) {

@@ -1209,7 +1209,7 @@ sub _handle_seqno {
 
     my ( $seq, $list, $op ) = @_;    # op = ADD | REMOVE | CHECK (default: ADD)
     my $seq_r = $seq;
-    $seq_r =~ s/([()])/\\$1/g;       # Adjust disturbing parentheses for regex, maybe extend in future
+    $seq_r =~ s/([(){}])/\\$1/g;     # Adjust disturbing parentheses for regex, maybe extend in future
 
     if ( !$op or $op eq 'ADD' ) {
         $list .= "; $seq" if $list !~ /(^|;)\s*$seq_r(?=;|$)/;

@@ -64,6 +64,9 @@ if ( C4::Context->preference('RestrictPatronsWithFailedNotices') ) {
                 unless ( $failed_notice->message_transport_type eq 'sms'
                 || $failed_notice->message_transport_type eq 'email' );
 
+            # Messages failed for being duplicates do not indicate an issue with contacting the patron
+            next if $failed_notice->failure_code eq 'DUPLICATE_MESSAGE';
+
             # If failed sms or email notice has no recipient patron then skip to next failed
             # notice
             next unless $failed_notice->borrowernumber;

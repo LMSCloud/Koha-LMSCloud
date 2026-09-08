@@ -22,15 +22,15 @@
                 <td>
                     <select name="f1" id="f1">
                         [% IF ( f1 == "cri" ) %]
-                            <option value=" " selected="selected">cri - cartographic image</option>
+                            <option value="cri" selected="selected">cri - cartographic image</option>
                         [% ELSE %]
-                            <option value=" ">cri - cartographic image</option>
+                            <option value="cri">cri - cartographic image</option>
                         [% END %]
 
                         [% IF ( f1 == "crm" ) %]
                             <option value="crm" selected="selected">crm - cartographic moving image</option>
                         [% ELSE %]
-                            <option value="a">crm - cartographic moving image</option>
+                            <option value="crm">crm - cartographic moving image</option>
                         [% END %]
 
                         [% IF ( f1 == "crt" ) %]

@@ -3,6 +3,7 @@ document.addEventListener("DOMContentLoaded", function () {
         e.preventDefault();
         var row =
             '<li class="form-horizontal">' +
+            "<label>&nbsp;</label>" +
             '<input type="text" class="custom-name ' +
             "form-control input-fluid custom-field-input" +
             '" name="custom_key" placeholder="' +

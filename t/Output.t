@@ -18,8 +18,9 @@
 use Modern::Perl;
 
 use Test::NoWarnings;
-use Test::More tests => 9;
+use Test::More tests => 10;
 use Test::Warn;
+use Test::Exception;
 use Test::MockModule;
 
 use File::Temp qw/tempfile/;
@@ -30,7 +31,7 @@ use C4::Auth qw( get_template_and_user );
 use t::lib::Mocks;
 
 BEGIN {
-    use_ok( 'C4::Output', qw( output_html_with_http_headers output_and_exit_if_error parametrized_url ) );
+    use_ok( 'C4::Output', qw( output_html_with_http_headers output_and_exit_if_error output_error parametrized_url ) );
 }
 
 our $output_module = Test::MockModule->new('C4::Output');
@@ -136,4 +137,35 @@ subtest 'output_and_exit_if_error() tests' => sub {
 
     # Next call triggers test in the mocked sub
     output_and_exit_if_error( $query, $cookie, $template, { check => 'csrf_token' } );
+};
+
+subtest 'output_error' => sub {
+    plan tests => 4;
+
+    local *STDOUT;
+    my $stdout;
+
+    my $query = CGI->new();
+    my $cookie;
+    my $output = 'foobarbaz';
+
+    open STDOUT, '>', \$stdout;
+    output_error( $query, "404" );
+    like( $stdout, qr{Error 404}, '404 returned' );
+    close STDOUT;
+
+    open STDOUT, '>', \$stdout;
+    output_error( $query, "403" );
+    like( $stdout, qr{Error 403}, '403 returned' );
+    close STDOUT;
+
+    throws_ok {
+        output_error($query);
+    }
+    'Koha::Exceptions::WrongParameter';
+
+    throws_ok {
+        output_error( $query, "Error" );
+    }
+    'Koha::Exceptions::WrongParameter';
 };

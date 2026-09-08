@@ -41,9 +41,9 @@
                             <td class="recall-patron"> [% INCLUDE 'patron-title.inc' patron=recall.patron hide_patron_infos_if_needed=1 link_to="circulation_recalls" %] </td>
                         [% END %]
 
-                        <td class="recall-date"> [% recall.created_date | $KohaDates %] </td>
+                        <td class="recall-date" data-order="[% recall.created_date | html %]"> [% recall.created_date | $KohaDates %] </td>
 
-                        <td class="recall-expiry">
+                        <td class="recall-expiry" data-order="[% recall.expiration_date | html %]">
                             [% IF ( recall.expiration_date ) %]
                                 [% recall.expiration_date | $KohaDates %]
                             [% ELSIF ( !recall.completed ) %]
@@ -74,7 +74,7 @@
                         </td>
 
                         [% UNLESS viewing_old %]
-                            <td class="recall-duedate">
+                            <td class="recall-duedate" data-order="[% recall.checkout.date_due | html %]">
                                 [% IF recall.requested and recall.checkout %]
                                     <span>Due to be returned by [% recall.checkout.date_due | $KohaDates %]</span>
                                 [% ELSIF recall.waiting and RECALL.expiration_date %]

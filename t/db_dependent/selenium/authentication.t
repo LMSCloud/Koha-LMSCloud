@@ -43,7 +43,7 @@ SKIP: {
     my $driver  = $s->driver;
 
     subtest 'Staff interface authentication' => sub {
-        plan tests => 7;
+        plan tests => 9;
         my $mainpage = $s->base_url . q|mainpage.pl|;
         $driver->get($mainpage);
         like( $driver->get_title, qr(Log in to Koha), 'Hitting the main page should redirect to the login form' );
@@ -59,6 +59,22 @@ SKIP: {
             $driver->get_title, qr(Access denied),
             'Patron without permission should be redirected to the login form'
         );
+
+        is(
+            $driver->find_element('//input[@id="password"]')->get_attribute('type'),
+            'password',
+            'Password field is obscured initially'
+        );
+
+        $driver->find_element('//input[@class="show-password-toggle-checkbox"]')->click;
+
+        is(
+            $driver->find_element('//input[@id="password"]')->get_attribute('type'),
+            'text',
+            'Password field is shown'
+        );
+
+        $driver->find_element('//input[@class="show-password-toggle-checkbox"]')->click;
 
         # Try logging in as someone else (even a non-existent patron) and you should still be denied access
         $s->auth( 'Bond', 'James Bond' );

@@ -19,7 +19,7 @@ use Modern::Perl;
 
 use DateTime::Duration;
 use Test::NoWarnings;
-use Test::More tests => 96;
+use Test::More tests => 95;
 use Test::Warn;
 
 use t::lib::Mocks;
@@ -38,7 +38,7 @@ use Koha::Suggestions;
 BEGIN {
     use_ok(
         'C4::Suggestions',
-        qw( GetSuggestion ModSuggestion GetSuggestionInfo GetSuggestionFromBiblionumber GetSuggestionInfoFromBiblionumber GetSuggestionByStatus ConnectSuggestionAndBiblio DelSuggestion MarcRecordFromNewSuggestion GetUnprocessedSuggestions DelSuggestionsOlderThan )
+        qw( ModSuggestion GetSuggestionInfo GetSuggestionFromBiblionumber GetSuggestionInfoFromBiblionumber GetSuggestionByStatus ConnectSuggestionAndBiblio DelSuggestion MarcRecordFromNewSuggestion GetUnprocessedSuggestions DelSuggestionsOlderThan )
     );
 }
 
@@ -177,17 +177,16 @@ isnt( $my_suggestionid, 0, 'Suggestion is correctly saved' );
 my $my_suggestion_with_budget_object = Koha::Suggestion->new($my_suggestion_with_budget)->store;
 my $my_suggestionid_with_budget      = $my_suggestion_with_budget_object->id;
 
-is( GetSuggestion(), undef, 'GetSuggestion without the suggestion id returns undef' );
-my $suggestion = GetSuggestion($my_suggestionid);
-is( $suggestion->{title},         $my_suggestion->{title},         'Suggestion stores the title correctly' );
-is( $suggestion->{author},        $my_suggestion->{author},        'Suggestion stores the author correctly' );
-is( $suggestion->{publishercode}, $my_suggestion->{publishercode}, 'Suggestion stores the publishercode correctly' );
-is( $suggestion->{suggestedby},   $my_suggestion->{suggestedby},   'Suggestion stores the borrower number correctly' );
-is( $suggestion->{biblionumber},  $my_suggestion->{biblionumber},  'Suggestion stores the biblio number correctly' );
-is( $suggestion->{STATUS},        'ASKED', 'Suggestion stores a suggestion with the status ASKED by default' );
-is( $suggestion->{managedby}, undef, 'Suggestion stores empty string as undef for non existent foreign key (integer)' );
-is( $suggestion->{manageddate}, undef, 'Suggestion stores empty string as undef for date' );
-is( $suggestion->{budgetid},    undef, 'Suggestion should set budgetid to NULL if not given' );
+my $suggestion = Koha::Suggestions->find($my_suggestionid);
+is( $suggestion->title,         $my_suggestion->{title},         'Suggestion stores the title correctly' );
+is( $suggestion->author,        $my_suggestion->{author},        'Suggestion stores the author correctly' );
+is( $suggestion->publishercode, $my_suggestion->{publishercode}, 'Suggestion stores the publishercode correctly' );
+is( $suggestion->suggestedby,   $my_suggestion->{suggestedby},   'Suggestion stores the borrower number correctly' );
+is( $suggestion->biblionumber,  $my_suggestion->{biblionumber},  'Suggestion stores the biblio number correctly' );
+is( $suggestion->STATUS,    'ASKED', 'Suggestion stores a suggestion with the status ASKED by default' );
+is( $suggestion->managedby, undef,   'Suggestion stores empty string as undef for non existent foreign key (integer)' );
+is( $suggestion->manageddate, undef, 'Suggestion stores empty string as undef for date' );
+is( $suggestion->budgetid,    undef, 'Suggestion should set budgetid to NULL if not given' );
 
 is( ModSuggestion(), undef, 'ModSuggestion without the suggestion returns undef' );
 my $mod_suggestion1 = {
@@ -203,20 +202,20 @@ is( $status, undef, 'ModSuggestion without the suggestion id returns undef' );
 $mod_suggestion1->{suggestionid} = $my_suggestionid;
 $status = ModSuggestion($mod_suggestion1);
 is( $status, 1, 'ModSuggestion modifies one entry' );
-$suggestion = GetSuggestion($my_suggestionid);
-is( $suggestion->{title},  $mod_suggestion1->{title},  'ModSuggestion modifies the title  correctly' );
-is( $suggestion->{author}, $mod_suggestion1->{author}, 'ModSuggestion modifies the author correctly' );
+$suggestion = Koha::Suggestions->find($my_suggestionid);
+is( $suggestion->title,  $mod_suggestion1->{title},  'ModSuggestion modifies the title  correctly' );
+is( $suggestion->author, $mod_suggestion1->{author}, 'ModSuggestion modifies the author correctly' );
 is(
-    $suggestion->{publishercode}, $mod_suggestion1->{publishercode},
+    $suggestion->publishercode, $mod_suggestion1->{publishercode},
     'ModSuggestion modifies the publishercode correctly'
 );
 is(
-    $suggestion->{managedby}, undef,
+    $suggestion->managedby, undef,
     'ModSuggestion stores empty string as undef for non existent foreign key (integer)'
 );
-is( $suggestion->{manageddate}, undef, 'ModSuggestion stores empty string as undef for date' );
-isnt( $suggestion->{accepteddate}, undef, 'ModSuggestion does not update a non given date value' );
-is( $suggestion->{note}, 'my note', 'ModSuggestion should not erase data if not given' );
+is( $suggestion->manageddate, undef, 'ModSuggestion stores empty string as undef for date' );
+isnt( $suggestion->accepteddate, undef, 'ModSuggestion does not update a non given date value' );
+is( $suggestion->note, 'my note', 'ModSuggestion should not erase data if not given' );
 
 my $messages = C4::Letters::GetQueuedMessages( { borrowernumber => $borrowernumber } );
 is( @$messages, 0, 'ModSuggestions does not send an email if the status is not updated' );
@@ -247,8 +246,8 @@ my $mod_suggestion3 = {
 t::lib::Mocks::mock_preference( 'FallbackToSMSIfNoEmail', 0 );
 $status = ModSuggestion($mod_suggestion3);
 is( $status, 1, 'ModSuggestion modifies one entry' );
-$suggestion = GetSuggestion($my_suggestionid);
-is( $suggestion->{STATUS}, $mod_suggestion3->{STATUS}, 'ModSuggestion modifies the status correctly' );
+$suggestion = Koha::Suggestions->find($my_suggestionid);
+is( $suggestion->STATUS, $mod_suggestion3->{STATUS}, 'ModSuggestion modifies the status correctly' );
 $messages = C4::Letters::GetQueuedMessages( { borrowernumber => $borrowernumber } );
 is( @$messages, 1, 'ModSuggestion sends an email if the status is updated' );
 is(
@@ -438,9 +437,9 @@ is( ConnectSuggestionAndBiblio(), '0E0', 'ConnectSuggestionAndBiblio without arg
 my $biblio_2                      = $builder->build_object( { class => 'Koha::Biblios' } );
 my $connect_suggestion_and_biblio = ConnectSuggestionAndBiblio( $my_suggestionid, $biblio_2->biblionumber );
 is( $connect_suggestion_and_biblio, '1', 'ConnectSuggestionAndBiblio returns 1' );
-$suggestion = GetSuggestion($my_suggestionid);
+$suggestion = Koha::Suggestions->find($my_suggestionid);
 is(
-    $suggestion->{biblionumber}, $biblio_2->biblionumber,
+    $suggestion->biblionumber, $biblio_2->biblionumber,
     'ConnectSuggestionAndBiblio updates the biblio number correctly'
 );
 
@@ -469,13 +468,13 @@ is( $suggestions->[1]->{title}, $del_suggestion->{title}, 'DelSuggestion deletes
 $my_suggestion->{budgetid} = '';    # If budgetid == '', NULL should be set in DB
 my $my_suggestionid_test_budget_object = Koha::Suggestion->new($my_suggestion)->store;
 my $my_suggestionid_test_budgetid      = $my_suggestionid_test_budget_object->id;
-$suggestion = GetSuggestion($my_suggestionid_test_budgetid);
-is( $suggestion->{budgetid}, undef, 'Suggestion Should set budgetid to NULL if equals an empty string' );
+$suggestion = Koha::Suggestions->find($my_suggestionid_test_budgetid);
+is( $suggestion->budgetid, undef, 'Suggestion Should set budgetid to NULL if equals an empty string' );
 
 $my_suggestion->{budgetid} = '';    # If budgetid == '', NULL should be set in DB
 ModSuggestion($my_suggestion);
-$suggestion = GetSuggestion($my_suggestionid_test_budgetid);
-is( $suggestion->{budgetid}, undef, 'Suggestion Should set budgetid to NULL if equals an empty string' );
+$suggestion = Koha::Suggestions->find($my_suggestionid_test_budgetid);
+is( $suggestion->budgetid, undef, 'Suggestion Should set budgetid to NULL if equals an empty string' );
 
 my $suggestion2 = {
     title    => "Cuisine d'automne",
@@ -511,11 +510,11 @@ subtest 'GetUnprocessedSuggestions' => sub {
         'GetUnprocessedSuggestions should return 0 if a suggestion has been processed but not linked to a fund'
     );
     my $status     = ModSuggestion($mod_suggestion1);
-    my $suggestion = GetSuggestion($my_suggestionid);
-    is( $suggestion->{budgetid}, undef, 'ModSuggestion should set budgetid to NULL if not given' );
+    my $suggestion = Koha::Suggestions->find($my_suggestionid);
+    is( $suggestion->budgetid, undef, 'ModSuggestion should set budgetid to NULL if not given' );
     ModSuggestion( { suggestionid => $my_suggestionid, budgetid => $budget_id } );
-    $suggestion = GetSuggestion($my_suggestionid);
-    is( $suggestion->{budgetid}, $budget_id, 'ModSuggestion should modify budgetid if given' );
+    $suggestion = Koha::Suggestions->find($my_suggestionid);
+    is( $suggestion->budgetid, $budget_id, 'ModSuggestion should modify budgetid if given' );
 
     $unprocessed_suggestions = C4::Suggestions::GetUnprocessedSuggestions;
     is(
@@ -734,8 +733,8 @@ subtest 'ModSuggestion should work on suggestions without a suggester' => sub {
 
     $dbh->do(q|DELETE FROM suggestions|);
     my $my_suggestionid = Koha::Suggestion->new($my_suggestion_without_suggestedby)->store()->id;
-    $suggestion = GetSuggestion($my_suggestionid);
-    is( $suggestion->{suggestedby}, undef, "Suggestedby is undef" );
+    $suggestion = Koha::Suggestions->find($my_suggestionid);
+    is( $suggestion->suggestedby, undef, "Suggestedby is undef" );
 
     ModSuggestion(
         {
@@ -744,9 +743,9 @@ subtest 'ModSuggestion should work on suggestions without a suggester' => sub {
             note         => "Test note"
         }
     );
-    $suggestion = GetSuggestion($my_suggestionid);
+    $suggestion = Koha::Suggestions->find($my_suggestionid);
 
-    is( $suggestion->{note}, "Test note", "ModSuggestion works on suggestions without a suggester" );
+    is( $suggestion->note, "Test note", "ModSuggestion works on suggestions without a suggester" );
 };
 
 subtest 'place_hold tests' => sub {

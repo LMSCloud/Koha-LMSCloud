@@ -325,9 +325,9 @@
 
         $(document).ready(function() {
             [% IF ( listclosed) %]
-                $("#basket_groups a[href='#closed']").tab("show");
+                $("#basket_groups a[href='#closed_panel']").tab("show");
             [% ELSE %]
-                $("#basket_groups a[href='#opened']").tab("show");
+                $("#basket_groups a[href='#opened_panel']").tab("show");
             [% END %]
             [% UNLESS ( grouping ) %]
                 $("#basket_group_closed").kohaTable({

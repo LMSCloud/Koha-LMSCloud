@@ -17,7 +17,7 @@
 
 use Modern::Perl;
 use Test::NoWarnings;
-use Test::More tests => 5;
+use Test::More tests => 6;
 use C4::Context;
 use t::lib::Mocks;
 
@@ -89,4 +89,25 @@ subtest 'generate_dsn' => sub {
         'dbi:mysql:database=koha;host=localhost;port=3306;mysql_ssl=1;mysql_ssl_ca_file=/path/to/ca.pem',
         'DSN string for MySQL configuration with TLS with ca file.'
     );
+};
+
+subtest 'table_exists' => sub {
+    plan tests => 5;
+
+    # Use the existing dbh established at the top of the test
+    my $dbh = C4::Context->dbh;
+
+    # Test with a table that definitely exists
+    ok( Koha::Database->table_exists( $dbh, 'borrowers' ), 'borrowers table exists (class method with dbh)' );
+
+    # Test with a table that doesn't exist
+    ok(
+        !Koha::Database->table_exists( $dbh, 'nonexistent_table_xyz' ),
+        'nonexistent table returns false (class method with dbh)'
+    );
+
+    # Test with various standard Koha tables
+    ok( Koha::Database->table_exists( $dbh, 'items' ),       'items table exists' );
+    ok( Koha::Database->table_exists( $dbh, 'biblioitems' ), 'biblioitems table exists' );
+    ok( Koha::Database->table_exists( $dbh, 'plugin_data' ), 'plugin_data table exists' );
 };

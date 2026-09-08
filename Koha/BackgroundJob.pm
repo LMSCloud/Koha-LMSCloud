@@ -194,12 +194,6 @@ sub process {
 
     return {} if ref($self) ne 'Koha::BackgroundJob';
 
-    # Our background jobs are called in forked processes
-    # to ensure we have all plugin hooks and data we call
-    # get_enabled_plugins at the star of processing
-    # to populate the cache
-    Koha::Plugins->get_enabled_plugins();
-
     my $derived_class = $self->_derived_class;
 
     $args ||= {};
@@ -480,7 +474,6 @@ sub plugin_types_to_classes {
     my ($self) = @_;
 
     unless ( exists $self->{_plugin_mapping} ) {
-        require Koha::Plugins;
         my @plugins = Koha::Plugins->new()->GetPlugins( { method => 'background_tasks', } );
 
         foreach my $plugin (@plugins) {

@@ -306,7 +306,12 @@ fieldset.order_details ol li .label:first-child {
 
 tbody tr.active:nth-child( 2n+1 ) td,
 tbody tr.active td {
-    background-color: #FFFFCC;
+    background-color: var( --bs-warning-bg-subtle );
+}
+
+tbody tr.previous:nth-child( 2n+1 ) td,
+tbody tr.previous td {
+    background-color: var( --bs-info-bg-subtle );
 }
 
 #loading {

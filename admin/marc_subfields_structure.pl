@@ -28,6 +28,7 @@ use Koha::Authority::Types;
 use Koha::AuthorisedValueCategories;
 use Koha::Filter::MARC::ViewPolicy;
 use Koha::BiblioFrameworks;
+use Koha::Plugins;
 
 use List::MoreUtils qw( uniq );
 
@@ -125,6 +126,24 @@ if ( $op eq 'add_form' ) {
     }
     @value_builder = sort { $a cmp $b } @value_builder;
     closedir $dir_h;
+
+    # Add valuebuilders from plugins
+    if ( C4::Context->config("enable_plugins") ) {
+        my $plugins = Koha::Plugins->new();
+
+        # Use the dedicated get_valuebuilders_installed method
+        my @plugin_valuebuilders = $plugins->get_valuebuilders_installed();
+
+        foreach my $vb_entry (@plugin_valuebuilders) {
+            my $vb_name = $vb_entry->{name};
+
+            # Avoid duplicates
+            push( @value_builder, $vb_name ) unless grep { $_ eq $vb_name } @value_builder;
+        }
+
+        # Re-sort the list after adding plugin valuebuilders
+        @value_builder = sort { $a cmp $b } @value_builder;
+    }
 
     # build values list
     my $mss = Koha::MarcSubfieldStructures->search(

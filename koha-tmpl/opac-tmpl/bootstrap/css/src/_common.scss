@@ -176,6 +176,15 @@ caption {
     }
 }
 
+.badge {
+    &.bg-info-subtle,
+    &.bg-secondary-subtle {
+        color: #000 !important;
+        margin-left: .3em;
+        text-indent: 0;
+    }
+}
+
 .btn-primary {
     background-color: $base-theme-color;
     border: 1px solid darken( $base-theme-color, 10% );

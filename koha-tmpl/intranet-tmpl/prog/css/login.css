@@ -1,117 +1,121 @@
-a.edit, a.delete, a.edit:hover, a.delete:hover {
-	border-bottom: none;
-	display: block;
-	padding: 5px 0;
-	text-align: center;
+a.edit,
+a.delete,
+a.edit:hover,
+a.delete:hover {
+    border-bottom: none;
+    display: block;
+    padding: 5px 0;
+    text-align: center;
 }
 
 a.edit:hover {
-	background: #ccc;
-	color: #036;
+    background: #CCC;
+    color: #036;
 }
 
 a:visited {
-	color: #006;
+    color: #006;
 }
 
 a:hover {
-/*	border-bottom: 1px solid #3a75ae;*/
-	color: #069;
+    color: #069;
 }
 
-body	{
-	background: #f3f4f4;
+body {
+    background: #F3F4F4;
 }
 
-form, label input {
-	margin: 0;
-	padding: 0;
+form,
+label input {
+    margin: 0;
+    padding: 0;
 }
 
-input:focus, textarea:focus, label:focus {
-	background: #fff;
-	border: 1px solid #686868;
+input:focus,
+textarea:focus,
+label:focus {
+    background: #FFF;
+    border: 1px solid #686868;
 }
 
 label {
-	display : block;
-	margin : .2em 0;
+    display: block;
+    margin: .2em 0;
 }
 
 #logo { margin-bottom: 2em; }
 
 #login {
-	background: #fff;
-	border: none;
-	box-shadow: 8px 8px 12px rgb(170 170 170);
-	margin: 4em auto;
-	padding: 1.5em;
-	position : relative;
-	top : auto;
-	right : auto;
-	width: 25em;
+    background: #FFF;
+    border: none;
+    box-shadow: 8px 8px 12px #AAAAAA;
+    margin: 4em auto;
+    padding: 1.5em;
+    position: relative;
+    right: auto;
+    top: auto;
+    width: 25em;
 }
 
 #login #login_error {
-	background: #D23F3F;
-	border: 1px solid #a40000;
-	color: #fff;
-	font-size: 120%;
-	line-height: 140%;
-	font-weight: bold;
-	margin: 1em 0;
-	padding: .5em;
-	text-align: center;
-	text-shadow: 0px 1px 1px #6C1010;
-	filter: dropshadow(color=#6C1010, offx=0, offy=1);
-	-moz-border-radius: 5px;
-	border-radius: 5px;
+    background: #D23F3F;
+    border: 1px solid #A40000;
+    border-radius: 5px;
+    color: #FFF;
+    filter: dropshadow( color=#6C1010, offx=0, offy=1 );
+    font-size: 120%;
+    font-weight: bold;
+    line-height: 140%;
+    margin: 1em 0;
+    padding: .5em;
+    text-align: center;
+    text-shadow: 0 1px 1px #6C1010;
 }
 
 #login #login_error a:link,
 #login #login_error a:visited {
-	color : #FFC;
+    color: #FFC;
     text-decoration: underline;
 }
 
 #login #login_error a:hover,
 #login #login_error a:active {
-	color : #FCFC4D;
+    color: #FCFC4D;
     text-decoration: underline;
 }
 
 #login h1 {
-    background: url(../img/koha-logo.gif) no-repeat top center;
-	margin-top: 0;
-	margin-bottom : .5em;
+    background: url( "../img/koha-logo.gif" ) no-repeat top center;
+    margin-bottom: .5em;
+    margin-top: 0;
 }
 
 #login h1 a {
     /* http://www.zeldman.com/2012/03/01/replacing-the-9999px-hack-new-image-replacement/ */
-	display: block;
-	height: 74px;
+    display: block;
+    height: 74px;
+    overflow: hidden;
     text-indent: 100%;
     white-space: nowrap;
-    overflow: hidden;
 }
 
 #login ul {
-	list-style: none;
-	margin: 0;
-	padding: 0;
+    list-style: none;
+    margin: 0;
+    padding: 0;
 }
 
 #login ul li {
-	display: inline;
-	margin-left: 1.4em;
-	text-align: center;
+    display: inline;
+    margin-left: 1.4em;
+    text-align: center;
 }
 
 #footer {
-        text-align: center;
-        border-top: 1px solid #ccc;
-        padding-top: 1em;
-        font-style: italic;
+    border-top: 1px solid #CCC;
+    font-style: italic;
+    padding-top: 1em;
+    text-align: center;
 }
 
 .submit {
@@ -124,21 +128,23 @@ label {
 
 input[type="submit"]:active,
 input[type="submit"]:focus {
-    box-shadow: inset 0 0 0 1px #edb423;
+    box-shadow: inset 0 0 0 1px #EDB423;
 }
 
 input[type="submit"]:active,
 input[type="submit"]:focus,
 input[type="submit"]:hover {
-    background: #ffd15e none;
-    border: 1px solid #ffc32b;
+    background: #FFD15E none;
+    border: 1px solid #FFC32B;
 }
 
-textarea, input, select {
-    background: #fff;
-    border: 1px solid #b2b2b2;
+textarea,
+input,
+select {
+    background: #FFF;
+    border: 1px solid #B2B2B2;
     color: #000;
-    font:  13px Verdana, Arial, Helvetica, sans-serif;
+    font: 13px Verdana, Arial, Helvetica, sans-serif;
     margin: 1px;
     padding: 3px;
 }
@@ -147,8 +153,17 @@ select {
     width: 97%;
 }
 
-input[type='text'],
-input[type='password'] {
+input[type="text"],
+input[type="password"] {
     font-size: 1.7em;
     width: 97%;
+}
+
+.show-password-toggle {
+    margin: .7rem 0;
+}
+
+input.show-password-toggle-checkbox {
+    float: left;
+    margin: 0 .5rem 0 0;
 }

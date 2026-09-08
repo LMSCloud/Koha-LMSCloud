@@ -704,6 +704,12 @@ if ( $tab eq 'team' ) {
         ? YAML::XS::LoadFile( "$docdir" . "/contributors.yaml" )
         : {};
     delete $contributors->{_others_};
+
+    ## Sponsors
+    my $sponsors =
+        -e "$docdir" . "/sponsors.yaml"
+        ? eval { YAML::XS::LoadFile( "$docdir" . "/sponsors.yaml" ) } // {}
+        : {};
     for my $version ( sort { $a <=> $b } keys %{ $teams->{team} } ) {
         for my $role ( keys %{ $teams->{team}->{$version} } ) {
             my $detail          = $teams->{team}->{$version}->{$role};
@@ -776,6 +782,7 @@ if ( $tab eq 'team' ) {
 
     $template->param( kohaCodename     => $codename );
     $template->param( contributors     => \@people );
+    $template->param( sponsors         => $sponsors );
     $template->param( maintenance_team => $teams->{team}->{$dev_team} );
     $template->param( release_team     => $teams->{team}->{$short_version} );
 

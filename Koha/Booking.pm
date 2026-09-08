@@ -179,11 +179,11 @@ sub store {
                 value     => $self->biblio_id,
             ) unless ( $self->biblio );
 
-            # Skip clash detection when transitioning to a final status.
-            # During checkout C4::Circulation sets status to 'completed'
-            # and calls ->store; the clash checks are irrelevant at that
-            # point and can produce false positives (e.g. checkouts on
-            # non-bookable sibling items inflating the unavailable count).
+            # Skip clash detection when transitioning to a final
+            # status.  During checkout C4::Circulation sets status
+            # to 'completed' and calls ->store; the clash checks
+            # are irrelevant at that point and can produce false
+            # positives.
             unless ( $self->_is_final_status_transition ) {
 
                 # Throw exception for item level booking clash
@@ -415,6 +415,8 @@ sub to_api {
 
 =head3 _is_final_status_transition
 
+    my $bool = $self->_is_final_status_transition;
+
 Returns true when the booking is being transitioned to a final status
 (cancelled or completed).  Used to skip clash detection and date-range
 validation that are only meaningful for active bookings.
@@ -426,8 +428,8 @@ sub _is_final_status_transition {
 
     return 0 unless $self->in_storage;
 
-    my %updated_columns = $self->_result->get_dirty_columns;
-    my $new_status      = $updated_columns{'status'};
+    my $updated_columns = { $self->_result->get_dirty_columns };
+    my $new_status      = $updated_columns->{status};
 
     return 0 unless $new_status;
     return 1 if any { $_ eq $new_status } qw( cancelled completed );

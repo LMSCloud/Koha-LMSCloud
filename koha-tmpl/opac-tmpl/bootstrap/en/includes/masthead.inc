@@ -521,7 +521,7 @@
                                     [% PROCESS login_label for="muserid" %]<input type="text" id="muserid" name="login_userid" autocomplete="off" /> <label for="mpassword">Password:</label
                                     ><input type="password" id="mpassword" name="login_password" autocomplete="off" />
                                     <fieldset class="action">
-                                        <input type="hidden" name="op" value="cud-login" />
+                                        <input type="hidden" name="login_op" value="cud-login" />
                                         <input type="submit" class="btn btn-primary" value="Log in" />
                                     </fieldset>
                                 </div>

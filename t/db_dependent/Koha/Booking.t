@@ -20,7 +20,7 @@
 use Modern::Perl;
 use utf8;
 
-use Test::More tests => 6;
+use Test::More tests => 7;
 use Test::NoWarnings;
 
 use Test::Warn;
@@ -1210,6 +1210,53 @@ subtest 'Integration test: Full optimal selection workflow' => sub {
         \@booking_order, \@expected_order,
         'Items were selected in optimal order: longest availability first (B->C->A)'
     );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'store() skips clash detection on terminal status transition' => sub {
+    plan tests => 3;
+    $schema->storage->txn_begin;
+
+    my $patron = $builder->build_object( { class => "Koha::Patrons" } );
+    t::lib::Mocks::mock_userenv( { patron => $patron } );
+
+    my $biblio            = $builder->build_sample_biblio();
+    my $bookable_item     = $builder->build_sample_item( { biblionumber => $biblio->biblionumber, bookable => 1 } );
+    my $non_bookable_item = $builder->build_sample_item( { biblionumber => $biblio->biblionumber, bookable => 0 } );
+
+    my $start = dt_from_string()->truncate( to => 'day' );
+    my $end   = $start->clone->add( days => 7 );
+
+    # Create booking first, before any checkouts exist so
+    # store() succeeds without interference from Bug 41886.
+    my $booking = Koha::Booking->new(
+        {
+            patron_id         => $patron->borrowernumber,
+            biblio_id         => $biblio->biblionumber,
+            item_id           => $bookable_item->itemnumber,
+            pickup_library_id => $bookable_item->homebranch,
+            start_date        => $start,
+            end_date          => $end,
+        }
+    )->store();
+    ok( $booking->in_storage, 'Booking on bookable item stored OK' );
+
+    # Now check out the non-bookable sibling item. This
+    # checkout inflates the unavailable count in
+    # Biblio::check_booking (see Bug 41886) and causes a
+    # false clash when there is only one bookable item.
+    C4::Circulation::AddIssue( $patron, $non_bookable_item->barcode );
+
+    # Without the fix, transitioning to 'completed' runs clash
+    # detection which sees the non-bookable checkout and throws
+    # Koha::Exceptions::Booking::Clash → 500 error.
+    lives_ok { $booking->status('completed')->store() }
+    'Transition to completed skips clash detection';
+
+    # Cancellation from completed is also a terminal transition
+    lives_ok { $booking->status('cancelled')->store() }
+    'Transition to cancelled skips clash detection';
 
     $schema->storage->txn_rollback;
 };

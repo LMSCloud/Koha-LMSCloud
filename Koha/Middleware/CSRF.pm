@@ -61,17 +61,27 @@ sub call {
     }
 
     my ($error);
-    if ( $stateless_methods{$request_method} && defined $original_op && $original_op =~ m{^cud-} ) {
-        $error = sprintf "Programming error - op '%s' must not start with 'cud-' for %s %s (referer: %s)", $original_op,
-            $request_method, $uri, $referer;
+    if ( $stateless_methods{$request_method} ) {
+        if ( defined $original_op && $original_op =~ m{^cud-} ) {
+            $error = sprintf "Programming error - op '%s' must not start with 'cud-' for %s %s (referer: %s)",
+                $original_op,
+                $request_method, $uri, $referer;
+        } elsif ( defined $req->param('login_op') ) {
+            $error = sprintf "Programming error - login_op not permitted for %s %s (referer: %s)",
+                $request_method, $uri, $referer;
+        }
     } elsif ( $stateful_methods{$request_method} ) {
 
         # Get the CSRF token from the param list or the header
         my $csrf_token = $req->param('csrf_token') || $req->header('CSRF-TOKEN');
 
-        if ( defined $req->param('op') && $original_op !~ m{^cud-} ) {
+        if ( ( defined $req->param('op') && $original_op !~ m{^cud-} ) && !$req->param('login_op') ) {
             $error = sprintf "Programming error - op '%s' must start with 'cud-' for %s %s (referer: %s)", $original_op,
                 $request_method, $uri, $referer;
+        } elsif ( defined $req->param('login_op') && $req->param('login_op') !~ m/^cud-login$/ ) {
+            $error = sprintf "Programming error - login_op must contain cud-login for %s %s (referer: %s)",
+                $request_method, $uri, $referer;
+
         } elsif ( !$csrf_token ) {
             $error = sprintf "Programming error - No CSRF token passed for %s %s (referer: %s)", $request_method,
                 $uri, $referer;

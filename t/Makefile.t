@@ -31,6 +31,7 @@ my @ignored = qw(
     .gitignore
     .mailmap
     .mocharc.json
+    .nvmrc
     .perlcriticrc
     .prettierignore
     .proverc

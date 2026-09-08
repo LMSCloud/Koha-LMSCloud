@@ -342,6 +342,7 @@
                             $(this).prop("checked", true).change();
                         }
                     });
+                    $("#merge-patrons").prop("disabled", true);
                 });
                 $("#clear_all").on("click", function (e) {
                     e.preventDefault();

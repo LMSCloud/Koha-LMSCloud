@@ -233,6 +233,34 @@ sub generate_dsn {
     return $dsn;
 }
 
+=head2 table_exists
+
+    my $exists = Koha::Database->table_exists($dbh, 'plugin_data');
+    my $exists = Koha::Database->new->table_exists('plugin_data');
+
+Checks if a table exists in the database. Can be called as a class method
+with a dbh parameter, or as an instance method. This method is safe for use
+during early initialization.
+
+=cut
+
+sub table_exists {
+    my ( $class, $dbh, $table ) = @_;
+
+    # If called as instance method, get dbh from instance
+    if ( ref $class ) {
+        $table = $dbh;
+        $dbh   = $class->dbh;
+    }
+
+    eval {
+        local $dbh->{PrintError} = 0;
+        local $dbh->{RaiseError} = 1;
+        $dbh->do(qq{SELECT * FROM $table WHERE 1 = 0});
+    };
+    return $@ ? 0 : 1;
+}
+
 =head2 EXPORT
 
 None by default.

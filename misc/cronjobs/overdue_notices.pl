@@ -656,6 +656,8 @@ END_SQL
             my $branchsel = 'branches.branchcode = issues.branchcode';
             if ($owning_library) {
                 $branchsel = 'branches.branchcode = items.homebranch';
+            } elsif ($patron_homelibrary) {
+                $branchsel = 'branches.branchcode = borrowers.branchcode';
             }
             my $borrower_sql = <<"END_SQL";
 SELECT DISTINCT borrowers.borrowernumber, firstname, surname, address, address2, city, zipcode, country, email, emailpro, B_email, smsalertnumber, phone, 

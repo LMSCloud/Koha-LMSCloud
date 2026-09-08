@@ -14,6 +14,7 @@
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="Koha" />
 <!-- leave this for stats -->
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 [% IF ( Koha.Preference('OpacFavicon') ) %]
     <link rel="shortcut icon" href="[% Koha.Preference('OpacFavicon') | url %]" type="image/x-icon" />
 [% ELSE %]
@@ -94,21 +95,23 @@
                                             [% END %]
                                         </h2></legend
                                     >
-                                    <div class="row">
+                                    <div class="row mb-1">
                                         <div class="col">
                                             <label for="barcode">Scan a new item or enter its barcode[% IF batch_checkouts_allowed %](or for <b>multiple checkouts only,</b> enter a barcode list, one barcode per line)[% END %]:</label>
                                         </div>
-                                        <div class="col-3">
+                                    </div>
+                                    <div class="row mb-1">
+                                        <div class="col-12 col-lg-4">
                                             [% IF batch_checkouts_allowed %]
                                                 <textarea id="barcode" name="barcode" rows="10" cols="30" class="focus form-control"></textarea>
                                             [% ELSE %]
                                                 <input id="barcode" name="barcode" size="20" type="text" class="focus form-control" autocomplete="off" />
                                             [% END %]
                                         </div>
-                                        <div class="col-auto">
+                                    </div>
+                                    <div class="row mb-1">
+                                        <div class="col">
                                             <button type="submit" class="btn btn-primary">Submit</button>
-                                        </div>
-                                        <div class="col ml-auto">
                                             <button type="button" id="logout_form" class="btn btn-info"><i class="fa fa-check" aria-hidden="true"></i> Finish</button>
                                             <input type="hidden" name="op" value="cud-checkout" />
                                             <input type="hidden" name="patronid" value="[% patronid | html %]" />
@@ -180,9 +183,9 @@
                                                                     <th class="all anti-the">Title</th>
                                                                     <th>Call number</th>
                                                                     <th class="psort">Due</th>
-                                                                    <th class="all no-sort">Renew</th>
+                                                                    <th class="no-sort">Renew</th>
                                                                     [% IF Koha.Preference('SCOAllowCheckin') %]
-                                                                        <th class="all no-sort">Check in</th>
+                                                                        <th class="no-sort">Check in</th>
                                                                     [% END %]
                                                                     [% UNLESS ( nofines ) %]
                                                                         <th>Fines</th>
@@ -363,7 +366,7 @@
                                         [% FOREACH INPUT IN INPUTS %]
                                             <input type="hidden" name="[% INPUT.name | html %]" value="[% INPUT.value | html %]" />
                                         [% END %]
-                                        <input type="hidden" name="op" value="cud-login" />
+                                        <input type="hidden" name="login_op" value="cud-login" />
                                     </fieldset>
                                 </form>
                                 <!-- /#mainform -->
