@@ -913,7 +913,6 @@ export default {
                     },
                     {
                         name: "replace",
-                        required: true,
                         indexRequired: true,
                         type: "text",
                         placeholder: "Welcome to your library!",
@@ -1117,6 +1116,15 @@ export default {
                 account.convert_nonprinting_characters = null;
             }
 
+            if (account.screen_msg_regexs) {
+                account.screen_msg_regexs = account.screen_msg_regexs.map(
+                    item => ({
+                        ...item,
+                        replace: item.replace ?? "",
+                    })
+                );
+            }
+
             account.item_fields = account.item_fields?.map(
                 ({ account_id, account_item_field_id, ...rest }) => rest
             );
@@ -1128,14 +1136,17 @@ export default {
 
             try {
                 if (sip_account_id) {
-                    await client.update(account, sip_account_id);
+                    let updatedAccount = await client.update(
+                        account,
+                        sip_account_id
+                    );
                     baseResource.setMessage(__("Account updated"));
+                    return updatedAccount;
                 } else {
-                    await client.create(account);
+                    let createdAccount = await client.create(account);
                     baseResource.setMessage(__("Account created"));
+                    return createdAccount;
                 }
-
-                baseResource.router.push({ name: "SIP2AccountsList" });
             } catch (error) {
                 // Handle errors if needed
             }

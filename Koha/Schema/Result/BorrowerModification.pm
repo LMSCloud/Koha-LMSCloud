@@ -674,11 +674,6 @@ Missing POD for koha_object_class.
 
 =cut
 
-__PACKAGE__->add_columns(
-    '+gonenoaddress' => { is_boolean => 1 },
-    '+lost'          => { is_boolean => 1 },
-);
-
 sub koha_object_class {
     'Koha::Patron::Modification';
 }

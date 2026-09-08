@@ -126,8 +126,8 @@ function checkOrderBudgets() {
     var all_budget_id = $("#all_budget_id");
     // If we don't have an overarching default set we need to check each selected order
     if (!all_budget_id.val()) {
-        $("fieldset.biblio.rows.order-selected").each(function () {
-            var default_order_fund = $(this).find("[name='budget_id']");
+        $(".biblio .order-selected fieldset.rows").each(function () {
+            var default_order_fund = $(this).find("[name^='budget_id']");
             // For each order we see if budget is set for order
             if (!default_order_fund.val()) {
                 $(this).find(".item_fund.required").show();

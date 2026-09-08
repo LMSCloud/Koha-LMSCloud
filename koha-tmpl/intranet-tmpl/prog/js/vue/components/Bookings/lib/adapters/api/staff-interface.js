@@ -272,11 +272,11 @@ export async function fetchCirculationRules(params = {}) {
 }
 
 /**
- * Fetches holidays (closed days) for a library within a date range
+ * Fetches the closed dates (holidays) of a library within a date range
  * @param {string} libraryId - The library ID (branchcode)
  * @param {string} [from] - Start date for the range (ISO format, e.g., 2024-01-01). Defaults to today.
  * @param {string} [to] - End date for the range (ISO format, e.g., 2024-03-31). Defaults to 3 months from 'from'.
- * @returns {Promise<string[]>} Array of holiday dates in YYYY-MM-DD format
+ * @returns {Promise<string[]>} Array of closed dates in YYYY-MM-DD format
  * @throws {Error} If the request fails or returns a non-OK status
  */
 export async function fetchHolidays(libraryId, from, to) {
@@ -288,7 +288,7 @@ export async function fetchHolidays(libraryId, from, to) {
     if (from) params.set("from", from);
     if (to) params.set("to", to);
 
-    const url = `/api/v1/libraries/${encodeURIComponent(libraryId)}/holidays${params.toString() ? `?${params.toString()}` : ""}`;
+    const url = `/api/v1/libraries/${encodeURIComponent(libraryId)}/closed_dates${params.toString() ? `?${params.toString()}` : ""}`;
 
     const response = await fetch(url);
 
