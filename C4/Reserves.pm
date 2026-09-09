@@ -2174,6 +2174,17 @@ sub _koha_notify_reserve {
 
             &$send_notification( $mtt, $letter_code, $messagingprefs->{wants_digest} );
         }
+
+        # LMS divergence from Bug 40960: up to 22.11 a patron with no active
+        # transport for Hold_Filled received a print notice. Upstream moved the
+        # fallback inside the loop, so that case now sends nothing at all.
+        # Restored for the empty-transport case only; $notification_sent stays 0
+        # after a successful send and must not be used as the condition here.
+        # TODO: stopgap. Remove when the divergence is resolved - the remedy is
+        # undecided and may not be a transport preference for every patron.
+        unless ( $messagingprefs && $messagingprefs->{transports} && %{ $messagingprefs->{transports} } ) {
+            &$send_notification( 'print', 'HOLD' );
+        }
     }
 }
 
