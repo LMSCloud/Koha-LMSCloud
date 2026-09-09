@@ -103,7 +103,10 @@
         schema:
           $ref: ../swagger.yaml#/definitions/booking
       400:
-        description: Bad request
+        description: |
+          Bad request. Possible `error_code` attribute values:
+
+            * `booking_would_conflict`
         schema:
           $ref: ../swagger.yaml#/definitions/error
       401:
@@ -115,7 +118,10 @@
         schema:
           $ref: ../swagger.yaml#/definitions/error
       409:
-        description: Conflict
+        description: |
+          Conflict. Possible `error_code` attribute values:
+
+            * `duplicate_booking_id`
         schema:
           $ref: ../swagger.yaml#/definitions/error
       500:
@@ -228,7 +234,10 @@
         schema:
           $ref: ../swagger.yaml#/definitions/booking
       400:
-        description: Bad request
+        description: |
+          Bad request. Possible `error_code` attribute values:
+
+            * `booking_would_conflict`
         schema:
           $ref: ../swagger.yaml#/definitions/error
       401:
@@ -278,7 +287,10 @@
         schema:
           $ref: ../swagger.yaml#/definitions/booking
       400:
-        description: Bad request
+        description: |
+          Bad request. Possible `error_code` attribute values:
+
+            * `booking_would_conflict`
         schema:
           $ref: ../swagger.yaml#/definitions/error
       401:
