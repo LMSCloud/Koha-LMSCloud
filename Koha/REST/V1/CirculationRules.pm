@@ -28,7 +28,7 @@ use Koha::Libraries;
 use Koha::Patron::Categories;
 use Koha::Patrons;
 
-use C4::Circulation qw( GetLoanLength CalcDateDue _GetCircControlBranch );
+use C4::Circulation qw( GetLoanLength CalcDateDue );
 
 use Try::Tiny qw( catch try );
 
@@ -68,7 +68,14 @@ sub _add_days_with_calendar {
 
 =head2 _calculate_circulation_dates
 
-Calculate due dates and periods using CalcDateDue
+Calculate due dates and periods using CalcDateDue.
+
+The lookup is always made against C<branchcode>, the requested pickup library:
+the booking period is what that library grants for the patron category and
+item type, independent of C<CircControl>. C<_GetCircControlBranch> is not used
+here because under C<PickupLibrary> it resolves to the session branch (the
+booking desk, or an OPAC patron's home library), which is not where the item
+is picked up.
 
     my $calculated_data = _calculate_circulation_dates({
         patron_category => $patron_category,
@@ -99,14 +106,6 @@ sub _calculate_circulation_dates {
         return {};
     }
 
-    my $test_item = Koha::Item->new(
-        {
-            itype         => $item_type,
-            homebranch    => $branchcode,
-            holdingbranch => $branchcode,
-        }
-    );
-
     my $test_patron = Koha::Patron->new(
         {
             categorycode => $patron_category,
@@ -114,8 +113,7 @@ sub _calculate_circulation_dates {
         }
     );
 
-    my $circ_branch      = _GetCircControlBranch( $test_item, $test_patron );
-    my $effective_branch = $circ_branch || $branchcode;
+    my $effective_branch = $branchcode;
 
     my $start_dt    = $start_date ? dt_from_string( $start_date, 'rfc3339' ) : dt_from_string();
     my $due_date    = CalcDateDue( $start_dt, $item_type, $effective_branch, $test_patron );

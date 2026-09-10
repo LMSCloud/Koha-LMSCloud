@@ -18,7 +18,7 @@
 use Modern::Perl;
 
 use Test::NoWarnings;
-use Test::More tests => 3;
+use Test::More tests => 4;
 use Test::Mojo;
 
 use t::lib::TestBuilder;
@@ -415,6 +415,77 @@ subtest 'set_rules() tests' => sub {
     my $rules = Koha::CirculationRules->search(
         { categorycode => undef, branchcode => undef, itemtype => undef, rule_name => 'finedays' } );
     is( $rules->count, 0, "Finedays rule deleted from database" );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'list_rules() calculate_dates uses the requested library, not the session branch' => sub {
+    plan tests => 9;
+
+    $schema->storage->txn_begin;
+
+    Koha::CirculationRules->delete;
+
+    t::lib::Mocks::mock_preference( 'CircControl',                'PickupLibrary' );
+    t::lib::Mocks::mock_preference( 'useDaysMode',                'Days' );
+    t::lib::Mocks::mock_preference( 'BookingDateRangeConstraint', 'issuelength' );
+
+    my $session_library = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $pickup_library  = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $category        = $builder->build_object( { class => 'Koha::Patron::Categories' } );
+    my $itemtype        = $builder->build_object( { class => 'Koha::ItemTypes' } );
+
+    my $librarian = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => { flags => 2, branchcode => $session_library->branchcode }
+        }
+    );
+    my $password = 'thePassword123';
+    $librarian->set_password( { password => $password, skip_validation => 1 } );
+    my $userid = $librarian->userid;
+
+    # Only the pickup library has a loan period for this combination
+    Koha::CirculationRules->set_rules(
+        {
+            branchcode   => $pickup_library->branchcode,
+            categorycode => $category->categorycode,
+            itemtype     => $itemtype->itemtype,
+            rules        => { issuelength => 21, lengthunit => 'days' },
+        }
+    );
+
+    my $query =
+          "patron_category_id="
+        . $category->categorycode
+        . "&item_type_id="
+        . $itemtype->itemtype
+        . "&library_id="
+        . $pickup_library->branchcode
+        . "&effective=true&calculate_dates=true&rules=issuelength";
+
+    $t->get_ok("//$userid:$password@/api/v1/circulation_rules?$query")->status_is(200);
+
+    my $rules = $t->tx->res->json->[0];
+    is( $rules->{issuelength},        21,                          'issuelength comes from the pickup library' );
+    is( $rules->{circulation_branch}, $pickup_library->branchcode, 'due date is calculated for the pickup library' );
+    is( $rules->{calculated_period_days}, 21,                      'period matches the pickup library loan period' );
+
+    # Give the session library a shorter loan period: it must not leak into the result
+    Koha::CirculationRules->set_rules(
+        {
+            branchcode   => $session_library->branchcode,
+            categorycode => $category->categorycode,
+            itemtype     => $itemtype->itemtype,
+            rules        => { issuelength => 3, lengthunit => 'days' },
+        }
+    );
+
+    $t->get_ok("//$userid:$password@/api/v1/circulation_rules?$query")->status_is(200);
+
+    $rules = $t->tx->res->json->[0];
+    is( $rules->{circulation_branch},     $pickup_library->branchcode, 'session library rule ignored for the branch' );
+    is( $rules->{calculated_period_days}, 21,                          'session library rule ignored for the period' );
 
     $schema->storage->txn_rollback;
 };
