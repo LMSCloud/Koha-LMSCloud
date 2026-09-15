@@ -187,7 +187,7 @@ if ( $total_paid and $total_paid ne '0.00' ) {
             if ($writeoff_individual) {
                 $type = 'WRITEOFF';
             }
-            if ($writeoff_individual) {
+            if ($cancel_individual) {
                 $type = 'CANCELLATION';
             }
             $pay_result = $account->pay(
