@@ -3677,10 +3677,13 @@ sub opac_account_renewal_permitted {
     my @opacRenewCardPatronCategories = split( /\|/, C4::Context->preference("OpacRenewCardPatronCategories") );
     my $opacRenewCardLeadTime         = C4::Context->preference("OpacRenewCardLeadTime");
 
-    my ( $today_year, $today_month, $today_day ) = Today();
-    my ( $expiry_year, $expiry_month, $expiry_day ) = split /-/, $self->dateexpiry();
-    my $days_to_expiry = Date_to_Days( $expiry_year, $expiry_month, $expiry_day ) -
-        Date_to_Days( $today_year, $today_month, $today_day );
+    my $days_to_expiry;
+    if ( $self->dateexpiry ) {
+        my ( $today_year, $today_month, $today_day ) = Today();
+        my ( $expiry_year, $expiry_month, $expiry_day ) = split /-/, $self->dateexpiry();
+        $days_to_expiry = Date_to_Days( $expiry_year, $expiry_month, $expiry_day ) -
+            Date_to_Days( $today_year, $today_month, $today_day );
+    }
 
     my $enrolment_period = undef;
     my $category         = $self->category();
@@ -3701,7 +3704,7 @@ sub opac_account_renewal_permitted {
     }
 
     # 2. Check if the lead time before card expiry is not exceeded.
-    elsif ( $days_to_expiry > $opacRenewCardLeadTime ) {
+    elsif ( defined $days_to_expiry && $days_to_expiry > $opacRenewCardLeadTime ) {
         $error[0] = 'maximum_lead_time_exceeded';
         $error[1] = $opacRenewCardLeadTime + 0;
     }
