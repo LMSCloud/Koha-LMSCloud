@@ -654,7 +654,7 @@ Returns a reference on a list of hashes of all the baskets that match the select
 
 =over
 
-=item C<$selparam> is a hash containig values for a free number of fields that must be matched by the aqbaskets records to be selected
+=item C<$selparam> is a hash containig values for a free number of fields that must be matched by the aqbaskets records to be selected. The values are passed to the database as bind parameters, so they must be supplied unquoted.
 =item C<$extra> is the extra sql parameters, can be
 
  $extra->{groupby}: group baskets by column
@@ -671,31 +671,39 @@ sub GetBaskets {
 
     my $ret = [];
     if ( keys %{$selparam} ) {
-        my $query = '';
-        foreach my $col ( keys %{$selparam} ) {
-            if ( length($query) == 0 ) {
-                $query = "SELECT * FROM aqbasket WHERE $col = $selparam->{$col}";
-            } else {
-                $query .= " AND $col = $selparam->{$col}";
-            }
-        }
-        if ($extra) {
-            if ( $extra->{groupby} ) {
-                $query .= " GROUP by $extra->{groupby}";
-            }
-            if ( $extra->{orderby} ) {
-                $query .= " ORDER by $extra->{orderby}";
-            }
-            if ( $extra->{limit} ) {
-                $query .= " LIMIT $extra->{limit}";
-            }
-        }
         my $dbh = C4::Context->dbh;
+
+        my ( @conditions, @bind );
+        foreach my $col ( sort keys %{$selparam} ) {
+            push @conditions, $dbh->quote_identifier($col) . ' = ?';
+            push @bind,       $selparam->{$col};
+        }
+        my $query = 'SELECT * FROM aqbasket WHERE ' . join( ' AND ', @conditions );
+        $query .= _basket_extra_clauses($extra);
+
         my $sth = $dbh->prepare($query);
-        $sth->execute();
+        $sth->execute(@bind);
         $ret = $sth->fetchall_arrayref( {} );
     }
     return $ret;
+}
+
+# Builds the optional GROUP BY / ORDER BY / LIMIT tail shared by GetBaskets and
+# GetBasketgroupsGeneric. groupby and orderby are SQL fragments supplied by the
+# caller and are not escapable; limit is accepted only as a plain integer.
+sub _basket_extra_clauses {
+    my ($extra) = @_;
+
+    return q{} unless $extra;
+
+    my $clauses = q{};
+    $clauses .= " GROUP by $extra->{groupby}" if $extra->{groupby};
+    $clauses .= " ORDER by $extra->{orderby}" if $extra->{orderby};
+    if ( defined $extra->{limit} && $extra->{limit} =~ m/^\s*(\d+)\s*$/ ) {
+        $clauses .= " LIMIT $1";
+    }
+
+    return $clauses;
 }
 
 =head3 GetBasketsByBookseller
@@ -1260,7 +1268,7 @@ Returns a reference to the array of all the aqbasketgroups records that match th
 
 =over
 
-=item C<$selparam> is a hash containig values for a free number of fields that must be matched by the aqbasketgroups records to be selected
+=item C<$selparam> is a hash containig values for a free number of fields that must be matched by the aqbasketgroups records to be selected. The values are passed to the database as bind parameters, so they must be supplied unquoted.
 =item C<$extra> is the extra sql parameters, can be
 
  $extra->{groupby}: group basketgroups by column
@@ -1276,28 +1284,18 @@ sub GetBasketgroupsGeneric {
 
     my $ret = [];
     if ( keys %{$selparam} ) {
-        my $query = '';
-        foreach my $col ( keys %{$selparam} ) {
-            if ( length($query) == 0 ) {
-                $query = "SELECT * FROM aqbasketgroups WHERE $col = $selparam->{$col}";
-            } else {
-                $query .= " AND $col = $selparam->{$col}";
-            }
-        }
-        if ($extra) {
-            if ( $extra->{groupby} ) {
-                $query .= " GROUP by $extra->{groupby}";
-            }
-            if ( $extra->{orderby} ) {
-                $query .= " ORDER by $extra->{orderby}";
-            }
-            if ( $extra->{limit} ) {
-                $query .= " LIMIT $extra->{limit}";
-            }
-        }
         my $dbh = C4::Context->dbh;
+
+        my ( @conditions, @bind );
+        foreach my $col ( sort keys %{$selparam} ) {
+            push @conditions, $dbh->quote_identifier($col) . ' = ?';
+            push @bind,       $selparam->{$col};
+        }
+        my $query = 'SELECT * FROM aqbasketgroups WHERE ' . join( ' AND ', @conditions );
+        $query .= _basket_extra_clauses($extra);
+
         my $sth = $dbh->prepare($query);
-        $sth->execute();
+        $sth->execute(@bind);
         $ret = $sth->fetchall_arrayref( {} );
     }
     return $ret;

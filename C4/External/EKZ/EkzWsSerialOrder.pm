@@ -330,7 +330,7 @@ sub genKohaRecords {
                     # Search or create a Koha acquisition order basket,
                     # i.e. search / insert a record in table aqbasket so that the following new aqorders records can link to it via aqorders.basketno = aqbasket.basketno .
                     my $basketname = 'F-' . $ekzBestellNr;
-                    my $selbaskets = C4::Acquisition::GetBaskets( { 'basketname' => "\'$basketname\'" } );
+                    my $selbaskets = C4::Acquisition::GetBaskets( { 'basketname' => $basketname } );
                     if ( @{$selbaskets} > 0 ) {
                         $basketno     = $selbaskets->[0]->{'basketno'};
                         $authorisedby = $selbaskets->[0]->{'authorisedby'};
@@ -1187,7 +1187,7 @@ sub genKohaRecords {
 
                     # search/create basket group with aqbasketgroups.name = pseudo ekz order number and aqbasketgroups.booksellerid = and update aqbasket accordingly
                     my $params = {
-                        name         => "\'$aqbasket->{basketname}\'",
+                        name         => $aqbasket->{basketname},
                         booksellerid => $aqbasket->{booksellerid}
                     };
                     $basketgroupid = undef;

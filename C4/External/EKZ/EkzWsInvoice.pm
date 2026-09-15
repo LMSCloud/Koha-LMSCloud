@@ -1208,7 +1208,7 @@ sub genKohaRecords {
                             # Search or create a Koha acquisition order basket,
                             # i.e. search / insert a record in table aqbasket so that the following new aqorders records can link to it via aqorders.basketno = aqbasket.basketno .
                             my $basketname = 'R-' . $rechnungNummer . '/' . 'R-' . $rechnungNummer;
-                            my $selbaskets = C4::Acquisition::GetBaskets( { 'basketname' => "\'$basketname\'" } );
+                            my $selbaskets = C4::Acquisition::GetBaskets( { 'basketname' => $basketname } );
                             if ( @{$selbaskets} > 0 ) {
                                 $basketno     = $selbaskets->[0]->{'basketno'};
                                 $authorisedby = $selbaskets->[0]->{'authorisedby'};
@@ -1686,7 +1686,7 @@ sub genKohaRecords {
 
                     # search/create basket group with aqbasketgroups.name = ekz order number and aqbasketgroups.booksellerid = and update aqbasket accordingly
                     my $params = {
-                        name         => "\'$aqbasket->{basketname}\'",
+                        name         => $aqbasket->{basketname},
                         booksellerid => $aqbasket->{booksellerid}
                     };
                     $basketgroupid = undef;
@@ -2467,8 +2467,8 @@ sub processItemInvoice {
         my $aqbasket_of_invoice_name = 'R-' . $rechnungNummer . '/' . $aqbasket_of_order->{basketname};
         my $aqbasket_of_invoice      = undef;
         my $params                   = {
-            basketname   => '"' . $aqbasket_of_invoice_name . '"',
-            booksellerid => "$aqbasket_of_order->{booksellerid}"
+            basketname   => $aqbasket_of_invoice_name,
+            booksellerid => $aqbasket_of_order->{booksellerid},
         };
         my $aqbasket_of_invoice_hits = &C4::Acquisition::GetBaskets( $params, { orderby => "basketno DESC" } );
         $logger->debug(
@@ -2553,7 +2553,7 @@ sub processItemInvoice {
 
         # search/create basket group with name derived from invoice and same bookseller and update aqbasket_of_invoice accordingly
         $params = {
-            name         => '"' . $aqbasket_of_invoice_name . '"',
+            name         => $aqbasket_of_invoice_name,
             booksellerid => $aqbasket_of_order->{booksellerid}
         };
         $basketgroupid = undef;

@@ -1156,7 +1156,7 @@ sub genKohaRecords {
                             # Search or create a Koha acquisition order basket,
                             # i.e. search / insert a record in table aqbasket so that the following new aqorders records can link to it via aqorders.basketno = aqbasket.basketno .
                             my $basketname = 'L-' . $lieferscheinNummer . '/' . 'L-' . $lieferscheinNummer;
-                            my $selbaskets = C4::Acquisition::GetBaskets( { 'basketname' => "\'$basketname\'" } );
+                            my $selbaskets = C4::Acquisition::GetBaskets( { 'basketname' => $basketname } );
                             if ( @{$selbaskets} > 0 ) {
                                 $basketno     = $selbaskets->[0]->{'basketno'};
                                 $authorisedby = $selbaskets->[0]->{'authorisedby'};
@@ -1581,7 +1581,7 @@ sub genKohaRecords {
 
                     # search/create basket group with aqbasketgroups.name = ekz order number and aqbasketgroups.booksellerid = and update aqbasket accordingly
                     my $params = {
-                        name         => "\'$aqbasket->{basketname}\'",
+                        name         => $aqbasket->{basketname},
                         booksellerid => $aqbasket->{booksellerid}
                     };
                     $basketgroupid = undef;
@@ -2276,8 +2276,8 @@ sub processItemOrder {
         my $aqbasket_delivery_name = 'L-' . $lieferscheinNummer . '/' . $aqbasket_of_order->{basketname};
         my $aqbasket_delivery      = undef;
         my $params                 = {
-            basketname   => '"' . $aqbasket_delivery_name . '"',
-            booksellerid => "$aqbasket_of_order->{booksellerid}"
+            basketname   => $aqbasket_delivery_name,
+            booksellerid => $aqbasket_of_order->{booksellerid},
         };
         my $aqbasket_delivery_hits = &C4::Acquisition::GetBaskets( $params, { orderby => "basketno DESC" } );
         $logger->trace( "processItemOrder() Dumper aqbasket_delivery_hits:" . Dumper($aqbasket_delivery_hits) . ":" );
@@ -2342,7 +2342,7 @@ sub processItemOrder {
 
         # search/create basket group with name derived from Delivery note and same bookseller and update aqbasket_delivery accordingly
         $params = {
-            name         => '"' . $aqbasket_delivery_name . '"',
+            name         => $aqbasket_delivery_name,
             booksellerid => $aqbasket_of_order->{booksellerid}
         };
         $basketgroupid = undef;
