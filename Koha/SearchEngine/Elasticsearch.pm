@@ -788,7 +788,8 @@ sub marc_records_to_documents {
                             foreach my $subf ( split( //, $subfields_group ) ) {
                                 foreach my $subv ( $data_field->subfield($subf) ) {
                                     $subv =~ s/(^\s+|\s+$)// if ($subv);
-                                    push @fieldvals, $subv if ( $tag ne '952' && $subv );
+                                    push @fieldvals, $subv
+                                        if ( $tag ne '952' && defined($subv) && $subv ne '' );
                                     push @fieldvals, $subv if ( $tag eq '952' && defined($subv) );
                                 }
                             }
