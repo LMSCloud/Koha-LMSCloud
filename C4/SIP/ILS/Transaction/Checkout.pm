@@ -180,7 +180,6 @@ sub do_checkout {
             {
                 cardnumber => $patron->cardnumber,
                 barcode    => $barcode,
-                timestamp  => $no_block_due_date,
                 due_date   => $no_block_due_date,
                 timestamp  => dt_from_string,
             }
