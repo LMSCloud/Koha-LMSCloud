@@ -543,7 +543,7 @@
                     </a>
                 </xsl:when>
                 <xsl:otherwise>
-                    <a><xsl:attribute name="href"><xsl:value-of select="$searchurl"/>?q=se:("<xsl:value-of select="str:encode-uri(str:replace(str:replace(translate(marc:subfield[@code='a'],$ucletters,$lcletters),'not','\not'),'?','\?'), true())"/>)</xsl:attribute>
+                    <a><xsl:attribute name="href"><xsl:value-of select="$searchurl"/>?q=se:(<xsl:value-of select="str:encode-uri(str:replace(str:replace(translate(marc:subfield[@code='a'],$ucletters,$lcletters),'not','\not'),'?','\?'), true())"/>)</xsl:attribute>
                         <xsl:call-template name="chopPunctuation">
                             <xsl:with-param name="chopString">
                                 <xsl:call-template name="subfieldSelect">

@@ -108,18 +108,6 @@
                  }
             } ));
 
-            $('table[id^="finestable-"]').dataTable($.extend(true, {}, dataTablesDefaults, {
-                 "responsive": {
-                    "details": { "type": 'column',"target": -1 }
-                 },
-                 "columnDefs": [
-                    { "className": 'dtr-control', "orderable": false, "targets": -1 }
-                 ],
-                 'fnDrawCallback': function() {
-                    show_hiddentfoot('table[id^="finestable-"]');
-                 }
-            } ));
-
             [% FOREACH r IN relatives %]
             var fines_table_[% r.patron.id | html %] = $("#finestable-[% r.patron.id | html %]").dataTable($.extend(true, {}, dataTablesDefaults, {
                  [% IF ENABLE_OPAC_PAYMENTS %]
