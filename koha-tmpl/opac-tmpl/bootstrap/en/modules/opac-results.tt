@@ -689,7 +689,7 @@
                             Not finding what you're looking for?
                             <ul>
                                 [% IF Koha.Preference( 'suggestion' ) %]
-                                    <li>Make a <a href="/cgi-bin/koha/opac-suggestions.pl?op=add">purchase suggestion</a></li>
+                                    <li>Make a <a href="/cgi-bin/koha/opac-suggestions.pl?op=add_form">purchase suggestion</a></li>
                                 [% END %]
                                 [% IF Koha.Preference( 'ILLModule' ) %]
                                     <li>Make an <a href="/cgi-bin/koha/opac-illrequests.pl?op=create">Interlibrary loan request</a></li>

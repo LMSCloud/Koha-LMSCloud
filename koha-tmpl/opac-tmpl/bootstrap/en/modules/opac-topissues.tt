@@ -150,7 +150,7 @@
             $("#topissuest").dataTable(
                 $.extend(true, {}, dataTablesDefaults, {
                     autoWidth: false,
-                    sorting: [[3, "desc"]],
+                    order: [[3, "desc"]],
                     columnDefs: [
                         { sortable: false, searchable: false, targets: ["NoSort"] },
                         { type: "anti-the", targets: ["anti-the"] },
