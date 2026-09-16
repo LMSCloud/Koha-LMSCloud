@@ -442,6 +442,7 @@ if ( $indexes[0] && !$indexes[1] ) {
     my $idx = "ms_" . $indexes[0];
     $idx =~ s/\,/comma/g;    # template toolkit doesn't like variables with a , in it
     $idx =~ s/-/dash/g;      # template toolkit doesn't like variables with a dash in it
+    $idx =~ s/\./dot/g;      # template toolkit doesn't like variables with a . in it
     $template->param( $idx => 1 );
 }
 
