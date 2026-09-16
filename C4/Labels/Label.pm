@@ -609,7 +609,7 @@ LABEL_FIELDS:    # process data for requested fields on current label
                     }
                 }
                 if ( $field->{'code'} eq 'title' && scalar(@line) >= $checkmaxlines ) {
-                    while ( scalar(@line) > 2 ) {
+                    while ( scalar(@line) > $checkmaxlines ) {
                         pop @line;
                     }
                 } else {

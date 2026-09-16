@@ -279,10 +279,10 @@ sub GetPatronLetters {
 =cut
 
 sub GetAdhocNoticeLetters {
-    my $letters      = GetPatronLetters();
-    my $selletters   = [];
-    my $pattern      = C4::Context->preference('AdhocNoticesLetterCodes');
-    my @codepatterns = [];
+    my $letters    = GetPatronLetters();
+    my $selletters = [];
+    my $pattern    = C4::Context->preference('AdhocNoticesLetterCodes');
+    my @codepatterns;
     foreach my $codepattern ( split( /\s*\|\s*/, $pattern ) ) {
         $codepattern =~ s/\*/\.\*/g;
         $codepattern = '^' . $codepattern . '$';

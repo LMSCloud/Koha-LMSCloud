@@ -205,7 +205,7 @@ sub init_handler {
                 if ( $invalid eq 'invaliduser' ) {
                     $msg = "Bad Userid";
                     ( $args->{ERR_CODE}, $args->{ERR_STR} ) = ( 1010, $msg );
-                    $self->{logger}->error("    returning authentication error 1011: $msg");
+                    $self->{logger}->error("    returning authentication error 1010: $msg");
                     return;
                 } elsif ( $invalid eq 'invalidpassword' ) {
                     $msg = "Bad Userid and/or Password";
@@ -216,7 +216,7 @@ sub init_handler {
             } else {
                 my $msg = "Bad Userid";
                 ( $args->{ERR_CODE}, $args->{ERR_STR} ) = ( 1010, $msg );
-                $self->{logger}->error("    returning authentication error 1011: $msg");
+                $self->{logger}->error("    returning authentication error 1010: $msg");
                 return;
             }
         }

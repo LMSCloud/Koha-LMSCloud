@@ -302,8 +302,10 @@ if ( C4::Context->preference('DivibibEnabled') ) {
     }
 }
 
-my $pending_checkouts =
-    $patron->pending_checkouts->search( {}, { order_by => [ { -desc => 'date_due' }, { -asc => 'issue_id' } ] } );
+my $pending_checkouts = $patron->pending_checkouts->search(
+    {},
+    { order_by => [ { -desc => 'date_due' }, { -asc => 'issue_id' } ], prefetch => 'item' }
+);
 my $are_renewable_items = 0;
 if ( $pending_checkouts->count ) {    # Useless test
     while ( my $c = $pending_checkouts->next ) {
