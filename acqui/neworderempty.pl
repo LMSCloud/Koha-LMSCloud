@@ -605,8 +605,8 @@ sub MARCfindbreeding {
                     } else {
                         $field->add_subfields( "$subfield" => ucfirst($firstname) . ", " . ucfirst($lastname) );
                     }
-                    $record->insert_fields_ordered($field);
                 }
+                $record->insert_fields_ordered($field);
             }
             return $record, $encoding;
         }
