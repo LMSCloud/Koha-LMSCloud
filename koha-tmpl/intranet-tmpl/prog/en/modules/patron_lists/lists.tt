@@ -1,7 +1,6 @@
 [% USE raw %]
 [% USE Koha %]
 [% USE Asset %]
-[% USE Koha %]
 [% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
@@ -214,15 +213,6 @@
                     $("#delete_selected_lists").removeClass("disabled").prop("disabled", false);
                 }
             });
-
-                $(document).on("click", ".select_list", function() {
-                    var checkedItems = $("input[name=patron_lists_ids]:checked");
-                    if ( checkedItems.size() == 0 ) {
-                        $("#delete_selected_lists").addClass("disabled").prop("disabled", true);
-                    } else {
-                        $("#delete_selected_lists").removeClass("disabled").prop("disabled", false);
-                     }
-                 });
 
                 $(".print_cards").on("click", function(e){
                     e.preventDefault();
