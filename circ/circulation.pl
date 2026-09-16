@@ -129,8 +129,7 @@ my $desk_id = $userenv->{"desk_id"} || '';
 
 my $findborrower;
 my $autoswitched;
-my @itemsFound = ();
-my @issuesDone = ();
+my @itemsIssued = ();
 
 if ( C4::Context->preference("AutoSwitchPatron") && $barcode ) {
     my $new_barcode = $barcode;
@@ -374,7 +373,6 @@ if ( @$barcodes && $op eq 'cud-checkout' ) {
         my $biblio;
         if ($item) {
             $biblio = $item->biblio;
-            push @itemsFound, $item;
         }
 
         if ( $issuingimpossible->{'STATS'} ) {
@@ -580,7 +578,7 @@ if ( @$barcodes && $op eq 'cud-checkout' ) {
 
                 $session->clear('auto_renew');
                 $inprocess = 1;
-                push @issuesDone, $issue;
+                push @itemsIssued, $item;
             }
         }
 
@@ -839,9 +837,8 @@ $template->param(
 );
 
 # LMSCloud: Auto-return ILL items that don't need shipping back
-if ( scalar @issuesDone > 0 ) {
-    @issuesDone = ();
-    foreach my $item (@itemsFound) {
+if ( scalar @itemsIssued > 0 ) {
+    foreach my $item (@itemsIssued) {
         my ( $itisanillitem, $illrequest ) = ( 0, undef );
         if ( C4::Context->preference("IllModule") ) {
             eval {
@@ -859,6 +856,6 @@ if ( scalar @issuesDone > 0 ) {
         }
     }
 }
-@itemsFound = ();
+@itemsIssued = ();
 
 output_html_with_http_headers $query, $cookie, $template->output;
