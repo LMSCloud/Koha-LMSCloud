@@ -1,3 +1,4 @@
+[% USE raw %]
 [% USE To %]
 [% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
