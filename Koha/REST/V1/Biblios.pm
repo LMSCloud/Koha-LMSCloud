@@ -139,66 +139,6 @@ sub delete {
     };
 }
 
-=head3 get_biblios_public
-
-Controller function that handles retrieving biblios by querying the database
-via the searchengine that's currently in use. Use the q_ccl query paramater.
-
-=cut
-
-sub get_biblios_public {
-
-    my $c = shift->openapi->valid_input or return;
-
-    my $searcher = Koha::SearchEngine::Search->new( { index => 'biblios' } );
-    my $query    = $c->validation->param('q_ccl');
-
-    my ( $error, $results, $total_hits ) = $searcher->simple_search_compat( $query, 0, undef );
-
-    if ( !$total_hits ) {
-        return $c->render(
-            status  => 404,
-            openapi => { error => 'Nothing found.' }
-        );
-    }
-
-    return try {
-
-        my $patron                = $c->stash('koha.user');
-        my $is_public             = $c->stash('is_public');
-        my $opachiddenitems_rules = C4::Context->yaml_preference('OpacHiddenItems');
-        my $marcflavour           = C4::Context->preference('marcflavour');
-        my $searchengine          = C4::Context->preference('SearchEngine');
-
-        my @biblionumbers =
-            $searchengine eq 'Zebra'
-            ? map { MARC::Record->new_from_xml( $_, 'UTF-8' )->field('999')->subfield('c') } $results->@*
-            : map { $_->field('999')->subfield('c') } $results->@*;
-        my @biblios = map { Koha::Biblios->find( { biblionumber => $_ } ) } @biblionumbers;
-        my @records = map {
-            next
-                if ( $is_public
-                && !( $patron && $patron->category->override_hidden_items )
-                && $_->hidden_in_opac( { rules => $opachiddenitems_rules } ) );
-            $_->metadata->record;
-        } @biblios;
-
-        $c->respond_to(
-            mij => {
-                status => 200,
-                format => 'mij',
-                data   => '[' . ( join q{,}, map { $_->to_mij } @records ) . ']',
-            },
-            any => {
-                status  => 406,
-                openapi => [ 'application/marc-in-json', ]
-            }
-        );
-    } catch {
-        $c->unhandled_exception($_);
-    };
-}
-
 =head3 get_public
 
 Controller function that handles retrieving a single biblio object
