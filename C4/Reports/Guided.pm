@@ -1045,7 +1045,6 @@ sub GetReservedAuthorisedValues {
         'cn_source',
         'categorycode',
         'biblio_framework',
-        'branchcategories',
         'cash_registers',
         'debit_types',
         'credit_types'

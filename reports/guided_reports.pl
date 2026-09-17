@@ -863,11 +863,6 @@ if ( $op eq 'run' ) {
                             push @authorised_values, $library->branchcode;
                             $authorised_lib{ $library->branchcode } = $library->branchname;
                         }
-                    } elsif ( $authorised_value eq "branchcategories" ) {
-                        for my $category ( Koha::LibraryCategories->search ) {
-                            push @authorised_values, $category->categorycode;
-                            $authorised_lib{ $category->categorycode } = $category->categoryname;
-                        }
                     } elsif ( $authorised_value eq "itemtypes" ) {
                         my $sth = $dbh->prepare("SELECT itemtype,description FROM itemtypes ORDER BY description");
                         $sth->execute;

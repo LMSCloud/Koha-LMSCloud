@@ -132,10 +132,6 @@ subtest 'GetReservedAuthorisedValues' => sub {
         'cash_registers'   => 1,
         'debit_types'      => 1,
         'credit_types'     => 1,
-
-        # LMS reserves branchcategories as well, for reports parameterised by
-        # library group
-        'branchcategories' => 1
     );
 
     my $reserved_authorised_values = GetReservedAuthorisedValues();
