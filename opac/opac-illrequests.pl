@@ -102,7 +102,11 @@ if ( ( $op eq 'cud-create' || $op eq 'cancreq' || $op eq 'cud-update' ) && !$can
 }
 
 if ( $op eq 'list' ) {
-    $template->param( backends => $backends );
+    my $requests = Koha::ILL::Requests->search( { borrowernumber => $loggedinuser } );
+    $template->param(
+        requests => $requests,
+        backends => $backends
+    );
 } elsif ( $op eq 'view' ) {
     $template->param( request => $request );
 } elsif ( $op eq 'cud-update' ) {
