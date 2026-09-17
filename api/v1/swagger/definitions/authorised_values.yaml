@@ -1,19 +1,19 @@
 type: object
 properties:
-  id:
+  authorised_value_id:
     description: The internal id for this authorised value
-  category:
+  category_name:
     description: The category of this authorised value
-  authorised_value:
+  value:
     description: The code for this authorised value
-  lib:
+  description:
     description: The staff interface description for this authorised value
-  lib_opac:
+  opac_description:
     type:
       - string
       - 'null'
     description: The public interface description of this authorised value, if set
-  imageurl:
+  image_url:
     type:
       - string
       - 'null'
