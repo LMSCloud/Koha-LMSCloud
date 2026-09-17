@@ -275,16 +275,16 @@
 
             $('#pay-fines-form').preventDoubleFormSubmit();
             $("#woall").click(function(event){
+                event.preventDefault();
                 var msg = _("Are you sure you want to write off %s in outstanding charges? This cannot be undone!").format( "[% total | $Price %]" );
-                var answer = confirm(msg);
-                if (!answer){
-                    event.preventDefault();
-                    $(".cb").each(function(){
-                        $(this).prop("checked", true );
-                    });
-                    enableCheckboxActions();
-                    $("#writeoff-selected").click();
+                if (!confirm(msg)){
+                    return;
                 }
+                $(".cb").each(function(){
+                    $(this).prop("checked", true );
+                });
+                enableCheckboxActions();
+                $("#writeoff-selected").click();
             });
             $("#cancelall").click(function(event){
                 event.preventDefault();
