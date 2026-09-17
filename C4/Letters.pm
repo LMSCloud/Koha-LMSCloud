@@ -416,7 +416,7 @@ sub SendAlerts {
             );
 
             if ( $letter->{is_html} ) {
-                $mail->html_body( _wrap_html( $letter->{content}, "" . $letter->{title} ) );
+                $mail->html_body( _wrap_html( $letter->{content}, "" . $letter->{title}, 1 ) );
             } else {
                 $mail->text_body( $letter->{content} );
             }
@@ -602,7 +602,7 @@ sub SendAlerts {
         );
 
         if ( $letter->{is_html} ) {
-            $mail->html_body( _wrap_html( $letter->{content}, "" . $letter->{title} ) );
+            $mail->html_body( _wrap_html( $letter->{content}, "" . $letter->{title}, 1 ) );
         } else {
             $mail->text_body( "" . $letter->{content} );
         }
@@ -1521,7 +1521,7 @@ sub _add_attachments {
     my $message = Koha::Email->new;
 
     if ( $letter->{is_html} ) {
-        $message->html_body( _wrap_html( $letter->{content}, $letter->{title} ) );
+        $message->html_body( _wrap_html( $letter->{content}, $letter->{title}, 1 ) );
     } else {
         $message->text_body( $letter->{content} );
     }
@@ -1764,7 +1764,7 @@ sub _send_message_by_email {
         } else {
             $email = Koha::Email->create($params);
             if ($is_html) {
-                $email->html_body( _wrap_html( $content, $subject ) );
+                $email->html_body( _wrap_html( $content, $subject, 1 ) );
             } else {
                 $email->text_body($content);
             }
@@ -1849,7 +1849,7 @@ sub _wrap_html {
     my ( $content, $title, $isEmail ) = @_;
 
     my $css = C4::Context->preference("NoticeCSSEmail");
-    $css = C4::Context->preference("NoticeCSSEmail") if ( !$isEmail );
+    $css = C4::Context->preference("NoticeCSS") if ( !$isEmail );
 
     $css = qq{<link rel="stylesheet" type="text/css" href="$css">} if ($css);
 
