@@ -15,7 +15,7 @@
 
 import { toDay, today as todayDate } from "../dates.js";
 
-const CONSTRAINT_MODE_END_DATE_ONLY = "end_date_only";
+export const CONSTRAINT_MODE_END_DATE_ONLY = "end_date_only";
 import {
     CONFLICT_REASONS,
     HARD_CONFLICT_REASONS,
