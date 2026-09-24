@@ -1245,9 +1245,10 @@ $(document).ready(function () {
                         borrowernumber,
                 },
                 bKohaAjaxSVC: true,
-                initComplete: function () {
+                initComplete: function (settings) {
+                    let api = new $.fn.dataTable.Api(settings);
                     $("#divibib-issues-tab").text(
-                        this.api().rows().count() +
+                        api.rows().count() +
                             " " +
                             $("#divibib-issues-tab").text()
                     );
