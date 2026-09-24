@@ -133,6 +133,7 @@ export default {
             () => [
                 props.hasFields,
                 props.extendedAttributeTypes,
+                props.extendedAttributes,
                 props.visible,
             ],
             () => {

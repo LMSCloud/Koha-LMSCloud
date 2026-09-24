@@ -88,6 +88,25 @@ window.BookingsTable = (function () {
     }
 
     /**
+     * The booking's additional field values in the shape the booking modal
+     * reads from its trigger's data-extended_attributes attribute
+     *
+     * @param {Object} row - The booking row as returned by the bookings API
+     * @returns {string} - JSON list of { field_id, value }, escaped for use
+     *   in a double-quoted HTML attribute
+     */
+    function extendedAttributesData(row) {
+        const values = (row.extended_attributes || [])
+            .filter(attr => attr && attr.record_id == row.booking_id)
+            .map(attr => ({ field_id: attr.field_id, value: attr.value }));
+        return JSON.stringify(values)
+            .replace(/&/g, "&amp;")
+            .replace(/"/g, "&quot;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+    }
+
+    /**
      * Render the Actions column: Edit, Cancel, Checkout and Extend gated on
      * booking status and the logged in user's permissions
      *
@@ -111,6 +130,7 @@ window.BookingsTable = (function () {
                         data-start_date="%s"
                         data-end_date="%s"
                         data-item_type_id="%s"
+                        data-extended_attributes="%s"
                     >
                         <i class="fa fa-pencil" aria-hidden="true"></i> %s
                     </button>
@@ -123,6 +143,7 @@ window.BookingsTable = (function () {
                     escape_str(row.start_date),
                     escape_str(row.end_date),
                     escape_str(row.item?.item_type_id),
+                    extendedAttributesData(row),
                     __("Edit")
                 );
                 actions += `
