@@ -1,4 +1,4 @@
-/* global __ escape_str $date */
+/* global __ escape_str $date AdditionalFields */
 
 /**
  * Shared rendering helpers for the patron and biblio bookings tables,
@@ -220,10 +220,46 @@ window.BookingsTable = (function () {
         }
     }
 
+    /**
+     * Render the booking's additional field values
+     *
+     * Requires the 'extended_attributes' embed on the API request.
+     *
+     * @param {Object} row - The booking row as returned by the bookings API
+     * @param {Object} fieldTypes - Booking additional field definitions, as
+     *   returned by AdditionalFields.fetchAndProcessExtendedAttributes
+     * @param {Object} authorisedValues - Authorised value descriptions by
+     *   category, as returned by AdditionalFields.fetchAndProcessAuthorizedValues
+     * @returns {string} - One line per field that has a value
+     */
+    function additionalFieldsContent(row, fieldTypes, authorisedValues) {
+        if (typeof AdditionalFields === "undefined") {
+            return "";
+        }
+
+        const values = (row.extended_attributes || []).filter(
+            attr =>
+                attr.record_id == row.booking_id &&
+                attr.value != null &&
+                attr.value !== ""
+        );
+        if (!values.length) {
+            return "";
+        }
+
+        return AdditionalFields.renderExtendedAttributesValues(
+            values,
+            fieldTypes,
+            authorisedValues,
+            row.booking_id
+        ).join("<br>");
+    }
+
     return {
         statusBadge,
         itemContent,
         actionsContent,
+        additionalFieldsContent,
         highlightRow,
     };
 })();

@@ -1464,6 +1464,8 @@ modules:
             -
               columnname: end_date
             -
+              columnname: extended_attributes
+            -
               columnname: actions
               cannot_be_toggled: 0
 

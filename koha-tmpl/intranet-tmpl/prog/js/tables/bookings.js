@@ -1,4 +1,4 @@
-/* global __ $biblio_to_html $date AdditionalFilters BookingsTable patron_borrowernumber table_settings_bookings_table */
+/* global __ $biblio_to_html $date AdditionalFields AdditionalFilters BookingsTable patron_borrowernumber table_settings_bookings_table */
 
 // Bookings
 var bookings_table;
@@ -6,6 +6,8 @@ $(document).ready(function () {
     if (!$("#bookings_table").length) {
         return;
     }
+
+    let additional_fields_loading;
 
     const af = AdditionalFilters.init([
         "filter-completed",
@@ -42,39 +44,55 @@ $(document).ready(function () {
         loadBookingsTable();
     });
 
-    function loadBookingsTable() {
-        if (!bookings_table) {
-            var extended_attribute_types;
-            var authorised_values;
-            if (typeof AdditionalFields !== "undefined") {
-                AdditionalFields.fetchAndProcessExtendedAttributes("booking")
-                    .then(types => {
-                        extended_attribute_types = types;
-                        const catArray = Object.values(types)
-                            .map(attr => attr.authorised_value_category_name)
-                            .filter(Boolean);
-                        return AdditionalFields.fetchAndProcessAuthorizedValues(
-                            catArray
-                        );
-                    })
-                    .then(values => {
-                        authorised_values = values;
-                    })
-                    .catch(e => {
-                        console.warn(
-                            "Could not load additional fields for bookings:",
-                            e
-                        );
-                    });
-            }
+    /**
+     * Load the booking additional field definitions and the descriptions of
+     * the authorised values they use, once per page
+     *
+     * @returns {Promise<{fieldTypes: Object, authorisedValues: Object}>}
+     */
+    function loadAdditionalFields() {
+        if (typeof AdditionalFields === "undefined") {
+            additional_fields_loading ??= Promise.resolve({
+                fieldTypes: {},
+                authorisedValues: {},
+            });
+            return additional_fields_loading;
+        }
+        additional_fields_loading ??=
+            AdditionalFields.fetchAndProcessExtendedAttributes("booking")
+                .then(fieldTypes => {
+                    const categories = Object.values(fieldTypes)
+                        .map(field => field.authorised_value_category_name)
+                        .filter(Boolean);
+                    return AdditionalFields.fetchAndProcessAuthorizedValues(
+                        categories
+                    ).then(authorisedValues => ({
+                        fieldTypes,
+                        authorisedValues,
+                    }));
+                })
+                .catch(() => ({ fieldTypes: {}, authorisedValues: {} }));
+        return additional_fields_loading;
+    }
 
+    function loadBookingsTable() {
+        if (bookings_table || additional_fields_loading) {
+            return;
+        }
+        loadAdditionalFields().then(({ fieldTypes, authorisedValues }) => {
             var bookings_table_url = "/api/v1/bookings";
             bookings_table = $("#bookings_table").kohaTable(
                 {
                     ajax: {
                         url: bookings_table_url,
                     },
-                    embed: ["biblio", "item", "item.checkout", "patron", "extended_attributes"],
+                    embed: [
+                        "biblio",
+                        "item",
+                        "item.checkout",
+                        "patron",
+                        "extended_attributes",
+                    ],
                     createdRow: function (row, data) {
                         BookingsTable.highlightRow(data, row);
                     },
@@ -134,34 +152,15 @@ $(document).ready(function () {
                         },
                         {
                             data: "extended_attributes",
-                            title: _("Additional fields"),
+                            title: __("Additional fields"),
                             searchable: false,
                             orderable: false,
                             render: function (data, type, row, meta) {
-                                // Filter to only show attributes with actual values
-                                const filteredAttributes = (data || []).filter(
-                                    attr => {
-                                        return (
-                                            attr.record_id == row.booking_id &&
-                                            attr.value != null &&
-                                            attr.value !== ""
-                                        );
-                                    }
+                                return BookingsTable.additionalFieldsContent(
+                                    row,
+                                    fieldTypes,
+                                    authorisedValues
                                 );
-
-                                // Only render if there are attributes with values
-                                if (filteredAttributes.length === 0) {
-                                    return "";
-                                }
-
-                                if (typeof AdditionalFields === "undefined")
-                                    return "";
-                                return AdditionalFields.renderExtendedAttributesValues(
-                                    filteredAttributes,
-                                    extended_attribute_types,
-                                    authorised_values,
-                                    row.booking_id
-                                ).join("<br>");
                             },
                         },
                         {
@@ -180,6 +179,6 @@ $(document).ready(function () {
                 0,
                 additional_filters
             );
-        }
+        });
     }
 });
