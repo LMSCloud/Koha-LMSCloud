@@ -428,11 +428,13 @@ export function getBookingTableColumns(
             orderable: false,
             /** @type {(data:any, type:any, row:any)=>any} */
             render: function (_data, _type, row) {
+                // An issued booking is extended through its checkout, which
+                // community's renderer gates on the circulate permission
+                if (row.status === "issued") {
+                    return window.BookingsTable?.actionsContent(row) ?? "";
+                }
                 if (!canManageBookings()) return "";
-                const isReadOnly = ["cancelled", "completed"].includes(
-                    row.status
-                );
-                if (isReadOnly) return "";
+                if (row.status !== "new") return "";
                 const ext = (row.extended_attributes || [])
                     .filter(
                         (/** @type {{record_id:string|number}} */ a) =>

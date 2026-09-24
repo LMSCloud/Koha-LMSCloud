@@ -111,13 +111,14 @@ export function additionalFields() {
 }
 
 /**
- * Permission flag
+ * Whether the user may edit and cancel bookings, as registered by the page
+ * through Koha.addPermissions
  * @returns {boolean}
  */
 export function canManageBookings() {
     /** @type {any} */
     const w = window;
-    return !!w["CAN_user_circulate_manage_bookings"];
+    return !!w.Koha?.permissions?.CAN_user_circulate_manage_bookings;
 }
 
 /**

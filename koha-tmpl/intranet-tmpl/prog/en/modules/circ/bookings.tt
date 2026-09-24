@@ -93,6 +93,7 @@
         <table id="bookingst"></table>
         [% INCLUDE 'modals/cancel_booking.inc' %]
         [% INCLUDE 'modals/convert_to_checkout.inc' %]
+        [% INCLUDE 'modals/extend_booking.inc' %]
         [% INCLUDE 'modals/booking/island.inc' %]
     </div>
 [% END %]
@@ -106,6 +107,7 @@
     [% Asset.js("js/combobox.js") | $raw %]
     [% Asset.js("js/cancel_booking_modal.js") | $raw %]
     [% Asset.js("js/convert_to_checkout_modal.js") | $raw %]
+    [% Asset.js("js/extend_booking_modal.js") | $raw %]
 
     [%# Process library data for JavaScript %]
     [% SET libraries = Branches.all %]
@@ -127,8 +129,10 @@
     <script>
         let cancel_success = false;
         var bookings_table;
-        // Expose permission to JS for actions column rendering
-        var CAN_user_circulate_manage_bookings = [% CAN_user_circulate_manage_bookings | $raw %];
+        Koha.addPermissions({
+            CAN_user_circulate_manage_bookings: [% CAN_user_circulate_manage_bookings ? 1 : 0 | html %],
+            CAN_user_circulate_circulate_remaining_permissions: [% CAN_user_circulate_circulate_remaining_permissions ? 1 : 0 | html %],
+        });
 
         $(document).ready(function() {
             // Initialize extended attributes
