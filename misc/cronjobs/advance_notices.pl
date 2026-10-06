@@ -318,6 +318,7 @@ UPCOMINGITEM: foreach my $upcoming (@$upcoming_dues) {
                         branchcode     => Koha::Libraries->get_effective_branch($branchcode),
                         biblionumber   => $item->biblionumber,
                         itemnumber     => $upcoming->{'itemnumber'},
+                        items          => [$item_info],
                         substitute     => {
                             'items.content' => $title,
                             checkout        => $item_info,
@@ -385,6 +386,7 @@ UPCOMINGITEM: foreach my $upcoming (@$upcoming_dues) {
                         branchcode     => Koha::Libraries->get_effective_branch($branchcode),
                         biblionumber   => $item->biblionumber,
                         itemnumber     => $upcoming->{'itemnumber'},
+                        items          => [$item_info],
                         substitute     => {
                             'items.content' => $title,
                             checkout        => $item_info,
@@ -685,6 +687,7 @@ PATRON: while ( my ( $borrowernumber, $digest ) = each %{ $params->{digests} } )
                     letter_code    => $params->{letter_code},
                     borrowernumber => $borrowernumber,
                     checkouts      => \@checkouts,
+                    items          => \@checkouts,
                     substitute     => {
                         count           => $count,
                         'items.content' => $titles,
