@@ -27,7 +27,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 12;
+use Test::More tests => 13;
 
 use File::Slurp qw( read_file );
 
@@ -756,6 +756,52 @@ subtest '--test charges nothing and records no claims' => sub {
     is( queued_odue( $patron->borrowernumber ), 0, 'no notice is queued' );
     is_deeply( debits( $patron->borrowernumber ),   [], 'no fee is charged' );
     is_deeply( claim_levels( $checkout->issue_id ), [], 'no claim is recorded' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'The most specific claiming rule applies: library, then category, then item type' => sub {
+    plan tests => 4;
+
+    $schema->storage->txn_begin;
+    setup_odue_template();
+    mock_notice_preferences();
+    $schema->resultset('ClaimingRule')->delete;
+    $schema->resultset('NoticeFeeRule')->delete;
+
+    my ( $own_rules, $defaults ) = ( new_library(),  new_library() );
+    my ( $category,  $other )    = ( new_category(), new_category() );
+    my $itemtype = $builder->build_object( { class => 'Koha::ItemTypes' } )->itemtype;
+    build_rule( $_->[0], $_->[1], [5] ) for [ $own_rules, $category ], [ $defaults, $category ], [ $defaults, $other ];
+    add_claiming_rule( claim_fee_level1 => 1 );
+    add_claiming_rule( itemtype         => $itemtype,  claim_fee_level1 => 3 );
+    add_claiming_rule( categorycode     => $category,  claim_fee_level1 => 2 );
+    add_claiming_rule( branchcode       => $own_rules, claim_fee_level1 => 4 );
+
+    my $claimed = sub {
+        my ( $library, $categorycode, $type ) = @_;
+        my $patron = $builder->build_object(
+            {
+                class => 'Koha::Patrons',
+                value => {
+                    categorycode => $categorycode, branchcode => $library, email => 'overdue-test@example.com',
+                    debarred     => undef
+                }
+            }
+        );
+        add_overdue_checkout( $patron, $library, 5, $type );
+        return $patron;
+    };
+    my $library_rule  = $claimed->( $own_rules, $category, $itemtype );
+    my $category_rule = $claimed->( $defaults,  $category, $itemtype );
+    my $itemtype_rule = $claimed->( $defaults,  $other,    $itemtype );
+    my $default_rule  = $claimed->( $defaults,  $other,    undef );
+
+    run_overdue_notices();
+    is_deeply( debits( $library_rule->borrowernumber ),  ["CLAIM_LEVEL1 4.00 $own_rules"], 'the library\'s rule' );
+    is_deeply( debits( $category_rule->borrowernumber ), ["CLAIM_LEVEL1 2.00 $defaults"],  'the category\'s rule' );
+    is_deeply( debits( $itemtype_rule->borrowernumber ), ["CLAIM_LEVEL1 3.00 $defaults"],  'the item type\'s rule' );
+    is_deeply( debits( $default_rule->borrowernumber ),  ["CLAIM_LEVEL1 1.00 $defaults"],  'the default rule' );
 
     $schema->storage->txn_rollback;
 };
