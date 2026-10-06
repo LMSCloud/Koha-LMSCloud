@@ -939,7 +939,11 @@ END_SQL
                     }
 
                     # check whether there are claiming fee rules defined
-                    if ( $nocharge == 0 && $new_overdue_item == 1 && $claimFees->checkForClaimingRules() == 1 ) {
+                    if (  !$test_mode
+                        && $nocharge == 0
+                        && $new_overdue_item == 1
+                        && $claimFees->checkForClaimingRules() == 1 )
+                    {
 
                         # check whether there is a matching claiming fee rule
                         my $claimFeeRule = $claimFees->getFittingClaimingRule(
@@ -983,7 +987,7 @@ END_SQL
                     }
 
                     # store information that the item was claimed
-                    if ($new_overdue_item) {
+                    if ( $new_overdue_item && !$test_mode ) {
                         Koha::OverdueIssue->new(
                             {
                                 issue_id    => $item_info->{'issue_id'},
@@ -1074,7 +1078,12 @@ END_SQL
                             lang                   => $patron->lang
                         }
                     );
-                    if ( $noticefee && $noticefee > 0.0 && $letter_template && $letter_template->content ) {
+                    if (  !$test_mode
+                        && $noticefee
+                        && $noticefee > 0.0
+                        && $letter_template
+                        && $letter_template->content )
+                    {
 
                         # Bad for the patron, staff has assigned a notice fee for sending the notification
                         $noticeFees->AddNoticeFee(

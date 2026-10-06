@@ -27,7 +27,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 11;
+use Test::More tests => 12;
 
 use File::Slurp qw( read_file );
 
@@ -732,6 +732,30 @@ subtest 'A minor family card member without email is notified at the owner\'s ad
     is( $minor_messages->[0]->{message_transport_type}, 'email',             'the minor gets an email notice' );
     is( $minor_messages->[0]->{to_address},             'owner@example.com', 'sent to the card owner\'s address' );
     is( queued_messages( $adult->borrowernumber )->[0]->{message_transport_type}, 'print', 'an adult gets print' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest '--test charges nothing and records no claims' => sub {
+    plan tests => 3;
+
+    $schema->storage->txn_begin;
+    setup_odue_template();
+    mock_notice_preferences();
+    $schema->resultset('ClaimingRule')->delete;
+    $schema->resultset('NoticeFeeRule')->delete;
+
+    my $library  = new_library();
+    my $category = new_category();
+    build_rule( $library, $category, [5] );
+    add_claiming_rule( claim_fee_level1 => 1.5 );
+    add_notice_fee_rule( notice_fee => 0.5 );
+
+    my ( $patron, $checkout ) = build_overdue_checkout( $library, $category, 5 );
+    run_overdue_notices('--test');
+    is( queued_odue( $patron->borrowernumber ), 0, 'no notice is queued' );
+    is_deeply( debits( $patron->borrowernumber ),   [], 'no fee is charged' );
+    is_deeply( claim_levels( $checkout->issue_id ), [], 'no claim is recorded' );
 
     $schema->storage->txn_rollback;
 };
