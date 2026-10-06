@@ -1,7 +1,7 @@
 /**
- * Staff ILL requests: the LMSCloud default and completed request lists and
- * the handling of unknown requests, on community's ILL module with its
- * Standard backend.
+ * Staff ILL requests: the LMSCloud default, completed and per backend request
+ * lists and the handling of unknown requests, on community's ILL module with
+ * its Standard backend.
  */
 
 /**
@@ -102,5 +102,35 @@ describe("LMSCloud ILL requests", () => {
             "/cgi-bin/koha/ill/ill-requests.pl"
         );
         cy.get("#hitheader").should("contain", "Details for all open requests");
+    });
+
+    it("restricts the per backend lists of open requests to their backend", function () {
+        addRequest(this.objects.patron, `${this.title} open`);
+        const open_list = backend =>
+            `/cgi-bin/koha/ill/ill-requests.pl?method=illlist&backend=${backend}` +
+            "&infilter=status,-not_in,COMP,QUEUED&hitname=Details for all open requests";
+
+        cy.visit(open_list("NoSuchBackend"));
+        cy.get("#ill-requests tbody td.dt-empty").should("exist");
+        cy.get("#illfilter_keyword").type(this.title);
+        cy.get("#illfilter_form").submit();
+        cy.get("#ill-requests tbody td.dt-empty").should("exist");
+
+        cy.visit(open_list("Standard"));
+        listRows().should("contain", `${this.title} open`);
+        cy.get("#illfilter_keyword").type(this.title);
+        cy.get("#illfilter_form").submit();
+        listRows()
+            .should("have.length", 1)
+            .and("contain", `${this.title} open`);
+    });
+
+    it("finds requests by the patron's name", function () {
+        addRequest(this.objects.patron, `${this.title} open`);
+
+        cy.visit("/cgi-bin/koha/ill/ill-requests.pl");
+        cy.get("#illfilter_keyword").type(this.objects.patron.surname);
+        cy.get("#illfilter_form").submit();
+        listRows().should("contain", `${this.title} open`);
     });
 });

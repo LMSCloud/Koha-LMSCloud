@@ -254,8 +254,8 @@ $(document).ready(function () {
         "-and": function () {
             let keyword = $("#illfilter_keyword").val();
 
-            let filters = [];
-            let subquery_and = [];
+            // Every entry must hold; an array entry matches when any of its elements does
+            let conditions = [];
 
             if (keyword) {
                 const search_fields =
@@ -266,33 +266,30 @@ $(document).ready(function () {
                         [attr]: { like: "%" + keyword + "%" },
                     });
                 });
-                subquery_and.push(sub_or);
-                filters.push({ "-and": subquery_and });
 
                 let patronquery = buildPatronSearchQuery(keyword, {
                     table_prefix: "patron",
                 });
-                filters.push(patronquery);
-            }
 
-            if (keyword) {
                 // LMSCloud: extended list of attributes including German ILL attributes
                 const extended_attributes =
                     "title,type,author,article_title,pages,issue,volume,year,Titel,Verfasser,publyear,VerlagJahrSonst,ochk_Bearbeiter,ochk_BearbeitetAm,illPartnerLibraryIsil,sendingIllLibraryIsil,BestelltVonSigel,BestelltBeiSigel";
-                let extended_sub_or = [];
-                subquery_and = [];
-                extended_sub_or.push({
+                let extended_attributes_match = {
                     "extended_attributes.type": extended_attributes.split(","),
                     "extended_attributes.value": {
                         like: "%" + keyword + "%",
                     },
-                });
-                subquery_and.push(extended_sub_or);
+                };
 
-                filters.push({ "-and": subquery_and });
+                // The keyword matches a request field, the patron or an attribute
+                conditions.push([
+                    { "-and": [sub_or] },
+                    patronquery,
+                    extended_attributes_match,
+                ]);
             }
 
-            // LMSCloud: add additional_prefilters into the -and filter
+            // LMSCloud: the prefilters from the page parameters, e.g. backend=ILLALV
             let additional_prefilter_sub_and = [];
             for (let additional_prefilter_key in additional_prefilters) {
                 additional_prefilter_sub_and.push({
@@ -302,10 +299,10 @@ $(document).ready(function () {
                 });
             }
             if (additional_prefilter_sub_and.length > 0) {
-                filters.push({ "-and": additional_prefilter_sub_and });
+                conditions.push({ "-and": additional_prefilter_sub_and });
             }
 
-            // LMSCloud: add infilter supporting "AND ... IN ( ... )" and "AND ... NOT IN ( ... )"
+            // LMSCloud: infilter 'field,-in,A,...' or 'field,-not_in,A,...', reduced to its first value
             let additional_infilter_sub = [];
             for (let additional_infilt_key in additional_infilter) {
                 let vals =
@@ -333,11 +330,11 @@ $(document).ready(function () {
                 }
             }
             if (additional_infilter_sub.length > 0) {
-                filters.push({ "-and": additional_infilter_sub });
+                conditions.push({ "-and": additional_infilter_sub });
             }
 
-            if (filters.length === 0) return "";
-            return filters;
+            if (conditions.length === 0) return "";
+            return [{ "-and": conditions }];
         },
     };
 
