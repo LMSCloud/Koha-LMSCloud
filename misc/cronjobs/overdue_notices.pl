@@ -1048,32 +1048,7 @@ END_SQL
                                 $usebranch,     $overdue_rules->{categorycode},
                                 $effective_mtt, $overdue_rules->{"letter$i"}
                             );
-                            if ($noticeFeeRule) {
-                                $noticefee = $noticeFeeRule->notice_fee();
-                                if ( $noticefee && $noticefee > 0.0 ) {
-
-                                    # Bad for the patron, staff has assigned a notice fee for sending the notification
-                                    $noticeFees->AddNoticeFee(
-                                        {
-                                            borrowernumber => $borrowernumber,
-                                            amount         => $noticefee,
-                                            letter_code    => $overdue_rules->{"letter$i"},
-                                            letter_date    => output_pref( { dt => dt_from_string, dateonly => 1 } ),
-                                            claimlevel     => $i,
-                                            branchcode     => $usebranch,
-
-                                            # these are parameters that we need for fancy message printig
-                                            substitute =>
-                                                { # this appears to be a hack to overcome incomplete features in this code.
-                                                bib => $library->branchname,    # maybe 'bib' is a typo for 'lib<rary>'?
-                                                'items.content' => $titles,
-                                                'count'         => 1,
-                                                },
-                                            items => \@items
-                                        }
-                                    );
-                                }
-                            }
+                            $noticefee = $noticeFeeRule->notice_fee() if $noticeFeeRule;
                         }
                     }
 
@@ -1086,6 +1061,42 @@ END_SQL
                             lang                   => $patron->lang
                         }
                     );
+
+                    # If there is no template defined for the requested letter
+                    # Fallback on the original type
+                    my $letter_mtt      = $letter_exists ? $effective_mtt : $mtt;
+                    my $letter_template = $letter_exists || Koha::Notice::Templates->find_effective_template(
+                        {
+                            module                 => 'circulation',
+                            code                   => $overdue_rules->{"letter$i"},
+                            message_transport_type => $letter_mtt,
+                            branchcode             => $usebranch,
+                            lang                   => $patron->lang
+                        }
+                    );
+                    if ( $noticefee && $noticefee > 0.0 && $letter_template && $letter_template->content ) {
+
+                        # Bad for the patron, staff has assigned a notice fee for sending the notification
+                        $noticeFees->AddNoticeFee(
+                            {
+                                borrowernumber => $borrowernumber,
+                                amount         => $noticefee,
+                                letter_code    => $overdue_rules->{"letter$i"},
+                                letter_date    => output_pref( { dt => dt_from_string, dateonly => 1 } ),
+                                claimlevel     => $i,
+                                branchcode     => $usebranch,
+
+                                # these are parameters that we need for fancy message printig
+                                substitute =>
+                                    {    # this appears to be a hack to overcome incomplete features in this code.
+                                    bib             => $library->branchname,    # maybe 'bib' is a typo for 'lib<rary>'?
+                                    'items.content' => $titles,
+                                    'count'         => 1,
+                                    },
+                                items => \@items
+                            }
+                        );
+                    }
 
                     my $letter = parse_overdues_letter(
                         {
@@ -1100,10 +1111,7 @@ END_SQL
                                 'items.content' => $titles,
                                 'count'         => $itemcount,
                             },
-
-                            # If there is no template defined for the requested letter
-                            # Fallback on the original type
-                            message_transport_type => $letter_exists ? $effective_mtt : $mtt,
+                            message_transport_type => $letter_mtt,
                         }
                     );
                     unless ( $letter && $letter->{content} ) {

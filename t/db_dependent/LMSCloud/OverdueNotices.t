@@ -27,7 +27,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 10;
+use Test::More tests => 11;
 
 use File::Slurp qw( read_file );
 
@@ -290,6 +290,7 @@ sub queued_odue {
 }
 
 sub setup_odue_template {
+    my ($content) = @_;
 
     # a global ODUE email template so the notice actually renders + enqueues
     Koha::Notice::Templates->search( { code => 'ODUE' } )->delete;
@@ -300,7 +301,7 @@ sub setup_odue_template {
             branchcode             => '',
             name                   => 'Overdue',
             title                  => 'Overdue',
-            content                => 'You have overdue items.',
+            content                => $content // 'You have overdue items.',
             message_transport_type => 'email',
             lang                   => 'default',
             is_html                => 0,
@@ -581,6 +582,56 @@ subtest 'MaxFine caps the claiming fees of a run' => sub {
     is_deeply(
         debits( $patron->borrowernumber ), [ "CLAIM_LEVEL1 1.00 $library", "CLAIM_LEVEL1 3.00 $library" ],
         'the second fee is reduced to what is left up to MaxFine'
+    );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'Notice fees follow the transport a notice is actually sent by' => sub {
+    plan tests => 7;
+
+    $schema->storage->txn_begin;
+    setup_odue_template('Total: <<total_fines>>');
+    mock_notice_preferences();
+    $schema->resultset('ClaimingRule')->delete;
+    $schema->resultset('NoticeFeeRule')->delete;
+
+    my $library        = new_library();
+    my $category       = new_category();
+    my $other_category = new_category();
+    build_rule( $library, $category,       [5], [ 'email', 'sms' ] );
+    build_rule( $library, $other_category, [5], [ 'email', 'sms' ] );
+    add_notice_fee_rule( message_transport_type => 'email', notice_fee => 0.5 );
+    add_notice_fee_rule( message_transport_type => 'sms',   notice_fee => 0.3 );
+    add_notice_fee_rule( message_transport_type => 'print', notice_fee => 0.8 );
+    add_notice_fee_rule( categorycode => $other_category,   message_transport_type => 'print', notice_fee => 1 );
+
+    my ($with_email) = build_overdue_checkout( $library, $category,       5, { smsalertnumber => undef } );
+    my ($without)    = build_overdue_checkout( $library, $category,       5, without_addresses() );
+    my ($other)      = build_overdue_checkout( $library, $other_category, 5, without_addresses() );
+
+    run_overdue_notices();
+    my $transports = sub {
+        [ sort map { $_->{message_transport_type} } @{ queued_messages(shift) } ];
+    };
+    is_deeply(
+        $transports->( $with_email->borrowernumber ), ['email'],
+        'email only: no letter exists for the SMS that falls back to print'
+    );
+    is_deeply(
+        debits( $with_email->borrowernumber ), ["NOTIFICATION 0.50 $library"],
+        'charged the email fee only, not the fee of the notice that was not sent'
+    );
+    is_deeply( $transports->( $without->borrowernumber ), ['print'], 'no address: a single print notice' );
+    is_deeply( debits( $without->borrowernumber ), ["NOTIFICATION 0.80 $library"], 'charged the print fee once' );
+    like(
+        queued_messages( $without->borrowernumber )->[0]->{content}, qr/0[.,]80/,
+        'the letter\'s total includes the fee for this notice'
+    );
+    is_deeply( $transports->( $other->borrowernumber ), ['print'], 'other category: a single print notice' );
+    is_deeply(
+        debits( $other->borrowernumber ), ["NOTIFICATION 1.00 $library"],
+        'charged the print fee of the category\'s own rule'
     );
 
     $schema->storage->txn_rollback;
