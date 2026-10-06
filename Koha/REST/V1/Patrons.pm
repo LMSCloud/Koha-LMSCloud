@@ -181,8 +181,7 @@ sub _add_additional_params_to_query {
             my $add =
                 "( EXISTS (SELECT 1 FROM accountlines a WHERE a.borrowernumber = me.borrowernumber GROUP BY a.borrowernumber HAVING ";
             $add .= "SUM(a.amountoutstanding) <= ?) ";
-            $add .= "OR NOT EXISTS (SELECT 1 FROM accountlines aa WHERE aa.borrowernumber = me.borrowernumber) "
-                if ( $addional_params->{'charges_to'} == 0.0 );
+            $add .= "OR NOT EXISTS (SELECT 1 FROM accountlines aa WHERE aa.borrowernumber = me.borrowernumber) ";
             $add .= " )";
             push @{ $query->{'-and'} }, \[ $add, $addional_params->{'charges_to'} ];
         }
