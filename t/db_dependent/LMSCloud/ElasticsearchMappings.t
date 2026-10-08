@@ -25,7 +25,7 @@
 use Modern::Perl;
 use utf8;
 
-use Test::More tests => 7;
+use Test::More tests => 8;
 
 use MARC::Field;
 use MARC::Record;
@@ -218,6 +218,29 @@ subtest 'Query terms and limits' => sub {
     is(
         query_string( undef, ['x'], undef, ['available'] ), '(x) AND (availability:true) AND (NOT ekz-fsk:18)',
         'available limit with the additional availability search'
+    );
+
+    rollback();
+};
+
+subtest 'Publication years reach copydate for the year limit' => sub {
+    plan tests => 3;
+
+    $schema->storage->txn_begin;
+    reset_mappings();
+    t::lib::Mocks::mock_preference( 'QueryAutoTruncate', 0 );
+
+    is_deeply(
+        document( MARC::Field->new( '264', ' ', '1', c => '2021' ) )->{copydate}, ['2021'],
+        'a year in 264$c'
+    );
+    is_deeply(
+        document( MARC::Field->new( '260', ' ', ' ', c => '1999-' ) )->{copydate}, ['1999-'],
+        'an open-ended run in 260$c'
+    );
+    is(
+        query_string( undef, ['x'], undef, ['copydate,st-numeric=2021'] ), '(x) AND copydate:2021',
+        'the year limit searches copydate'
     );
 
     rollback();

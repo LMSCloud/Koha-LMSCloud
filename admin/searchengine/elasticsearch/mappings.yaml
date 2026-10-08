@@ -1667,7 +1667,7 @@ biblios:
       suggestible: ''
     opac: 1
     staff_client: 1
-    type: date
+    type: ''
   copynumber:
     label: copynumber
     mandatory: ~
