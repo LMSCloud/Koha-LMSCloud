@@ -19,7 +19,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 7;
+use Test::More tests => 9;
 use Test::NoWarnings;
 
 use DateTime;
@@ -417,6 +417,89 @@ subtest 'OverdueNoticeCalendar excludes closed days from the overdue delay count
         3,
         'OverdueNoticeCalendar on: days_between excludes the closed day (3 days), delay reached later'
     );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'SetDueDateOfItems moves the checkouts due on a day, per library or library group' => sub {
+    plan tests => 7;
+
+    $schema->storage->txn_begin;
+
+    my $day   = dt_from_string->add( days => 10 )->ymd;
+    my $later = dt_from_string->add( days => 17 )->ymd;
+    my ( $library, $grouped, $other ) =
+        map { $builder->build_object( { class => 'Koha::Libraries' } )->branchcode } 1 .. 3;
+    my $group = $builder->build_object( { class => 'Koha::Library::Groups', value => { branchcode => undef } } );
+    $builder->build_object(
+        { class => 'Koha::Library::Groups', value => { parent_id => $group->id, branchcode => $grouped } } );
+
+    my $checkout = sub {
+        my ( $branchcode, $date_due ) = @_;
+        my $item = $builder->build_sample_item( { library => $branchcode } );
+        return $builder->build_object(
+            {
+                class => 'Koha::Checkouts',
+                value => { itemnumber => $item->itemnumber, branchcode => $branchcode, date_due => $date_due }
+            }
+        );
+    };
+    my $moved     = $checkout->( $library, "$day 23:59:00" );
+    my $other_day = $checkout->( $library, dt_from_string->add( days => 11 )->ymd . ' 23:59:00' );
+    my $in_group  = $checkout->( $grouped, "$day 16:00:00" );
+    my $elsewhere = $checkout->( $other,   "$day 23:59:00" );
+    my $due       = sub { $_[0]->discard_changes->date_due };
+
+    is_deeply(
+        [ SetDueDateOfItems( { currentDueDate => $day, newDueDate => $later, branchcode => $library } ) ],
+        [ 1, '' ], 'one checkout of the library is moved'
+    );
+    is( $due->($moved),                                  "$later 23:59:00", 'to the new day, keeping the time' );
+    is( Koha::Items->find( $moved->itemnumber )->onloan, $later,            'and the item is on loan until then' );
+    is(
+        $due->($other_day), dt_from_string->add( days => 11 )->ymd . ' 23:59:00',
+        'a checkout due on another day stays'
+    );
+
+    is_deeply(
+        [ SetDueDateOfItems( { currentDueDate => $day, newDueDate => $later, libraryCategory => $group->id } ) ],
+        [ 1, '' ], 'one checkout of the library group is moved'
+    );
+    is( $due->($in_group),  "$later 16:00:00", 'the checkout of the group member' );
+    is( $due->($elsewhere), "$day 23:59:00",   'a checkout of a library outside the group stays' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'GetTransfers returns the open transfer of an item' => sub {
+    plan tests => 2;
+
+    $schema->storage->txn_begin;
+
+    my ( $from, $to ) = map { $builder->build_object( { class => 'Koha::Libraries' } )->branchcode } 1 .. 2;
+    my $item = $builder->build_sample_item;
+    $builder->build_object(
+        {
+            class => 'Koha::Item::Transfers',
+            value => {
+                itemnumber  => $item->itemnumber, frombranch    => $to, tobranch => $from,
+                datearrived => dt_from_string,    datecancelled => undef
+            }
+        }
+    );
+    $builder->build_object(
+        {
+            class => 'Koha::Item::Transfers',
+            value => {
+                itemnumber  => $item->itemnumber, frombranch    => $from, tobranch => $to,
+                datearrived => undef,             datecancelled => undef
+            }
+        }
+    );
+
+    my ( undef, $frombranch, $tobranch ) = GetTransfers( $item->itemnumber );
+    is( $frombranch, $from, 'from the library of the open transfer' );
+    is( $tobranch,   $to,   'to its destination, not the arrived transfer' );
 
     $schema->storage->txn_rollback;
 };

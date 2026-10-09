@@ -17,7 +17,7 @@
 # along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use Test::More tests => 6;
+use Test::More tests => 10;
 use Test::NoWarnings;
 
 use File::Slurp qw( read_file );
@@ -386,6 +386,252 @@ subtest 'Pickup branch resolves correctly for each SetPickupLocationOfReservedIt
         $item_holding->branchcode,
         q{non-empty override wins over hold_fulfillment_policy 'homebranch'}
     );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'Hold fees: not_always and issued_or_reserved, with unavailable items counted as issued' => sub {
+    plan tests => 12;
+
+    $schema->storage->txn_begin;
+
+    my $category = $builder->build_object( { class => 'Koha::Patron::Categories', value => { reservefee => 2 } } );
+    my $patron =
+        $builder->build_object( { class => 'Koha::Patrons', value => { categorycode => $category->categorycode } } );
+    my $other = $builder->build_object( { class => 'Koha::Patrons' } );
+    t::lib::Mocks::mock_preference( 'AllowHoldsOnDamagedItems', 0 );
+
+    my $fee = sub {
+        my ( $mode, $biblio ) = @_;
+        t::lib::Mocks::mock_preference( 'HoldFeeMode', $mode );
+        return C4::Reserves::GetReserveFee( $patron->borrowernumber, $biblio->biblionumber ) + 0;
+    };
+
+    my $item   = $builder->build_sample_item;
+    my $biblio = $item->biblio;
+    is( $fee->( 'not_always',         $biblio ), 0, 'not_always: available, no other holds' );
+    is( $fee->( 'issued_or_reserved', $biblio ), 0, 'issued_or_reserved: available, no other holds' );
+
+    my $hold = $builder->build_object(
+        {
+            class => 'Koha::Holds',
+            value => { biblionumber => $biblio->biblionumber, borrowernumber => $other->borrowernumber }
+        }
+    );
+    is( $fee->( 'not_always',         $biblio ), 0, 'not_always: available, another hold' );
+    is( $fee->( 'issued_or_reserved', $biblio ), 2, 'issued_or_reserved: available, another hold' );
+
+    $hold->delete;
+    $builder->build_object(
+        {
+            class => 'Koha::Checkouts',
+            value => { itemnumber => $item->itemnumber, borrowernumber => $other->borrowernumber }
+        }
+    );
+    is( $fee->( 'not_always',         $biblio ), 0, 'not_always: checked out, no other holds' );
+    is( $fee->( 'issued_or_reserved', $biblio ), 2, 'issued_or_reserved: checked out, no other holds' );
+
+    $builder->build_object(
+        {
+            class => 'Koha::Holds',
+            value => { biblionumber => $biblio->biblionumber, borrowernumber => $other->borrowernumber }
+        }
+    );
+    is( $fee->( 'not_always',         $biblio ), 2, 'not_always: checked out, another hold' );
+    is( $fee->( 'issued_or_reserved', $biblio ), 2, 'issued_or_reserved: checked out, another hold' );
+
+    foreach my $status (qw( itemlost withdrawn notforloan damaged )) {
+        my $unavailable = $builder->build_sample_item( { $status => 1 } );
+        is( $fee->( 'issued_or_reserved', $unavailable->biblio ), 2, "a $status item is not available" );
+    }
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'Hold notices: notice fee, discarded home libraries, suppression and print fallback' => sub {
+    plan tests => 7;
+
+    $schema->storage->txn_begin;
+
+    t::lib::Mocks::mock_preference( 'SuppressNotificationOnHolds',          0 );
+    t::lib::Mocks::mock_preference( 'DiscardHoldsNoticeFeeOfHomeLibraries', '' );
+    t::lib::Mocks::mock_preference( 'EmailFieldPrimary',                    'email' );
+    $schema->resultset('NoticeFeeRule')->delete;
+    $builder->build(
+        {
+            source => 'NoticeFeeRule',
+            value  => {
+                branchcode => '*', categorycode => '*', message_transport_type => '*', letter_code => 'HOLD',
+                notice_fee => 0.5
+            }
+        }
+    );
+    Koha::Notice::Templates->search( { module => 'reserves', code => 'HOLD' } )->delete;
+    for my $mtt (qw( email print )) {
+        $builder->build(
+            {
+                source => 'Letter',
+                value  => {
+                    module => 'reserves', code    => 'HOLD', branchcode => '', message_transport_type => $mtt,
+                    lang   => 'default',  is_html => 0,      content    => 'Your hold is waiting',
+                }
+            }
+        );
+    }
+
+    my $library    = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $attribute  = Koha::Patron::MessagePreference::Attributes->find( { message_name => 'Hold_Filled' } );
+    my $new_patron = sub {
+        my ($with_email_preference) = @_;
+        my $patron = $builder->build_object(
+            {
+                class => 'Koha::Patrons',
+                value => { branchcode => $library->branchcode, email => 'hold@example.com', smsalertnumber => undef }
+            }
+        );
+        C4::Members::Messaging::SetMessagingPreference(
+            {
+                borrowernumber          => $patron->borrowernumber,
+                message_attribute_id    => $attribute->message_attribute_id,
+                message_transport_types => ['email'],
+                wants_digest            => 0,
+            }
+        ) if $with_email_preference;
+        return $patron;
+    };
+    my $notify = sub {
+        my ($patron) = @_;
+        my $item     = $builder->build_sample_item( { library => $library->branchcode } );
+        my $hold     = $builder->build_object(
+            {
+                class => 'Koha::Holds',
+                value => {
+                    borrowernumber => $patron->borrowernumber, biblionumber => $item->biblionumber,
+                    itemnumber     => $item->itemnumber, branchcode => $library->branchcode, found => 'W',
+                }
+            }
+        );
+        C4::Reserves::_koha_notify_reserve( $hold->id );
+        return $item;
+    };
+    my $sent = sub {
+        my ($patron) = @_;
+        return [ map { $_->message_transport_type }
+                Koha::Notice::Messages->search( { borrowernumber => $patron->borrowernumber, letter_code => 'HOLD' } )
+                ->as_list ];
+    };
+    my $fees = sub {
+        my ($patron) = @_;
+        return [
+            map { sprintf '%.2f', $_->amount } Koha::Account::Lines->search(
+                { borrowernumber => $patron->borrowernumber, debit_type_code => 'NOTIFICATION' }
+            )->as_list
+        ];
+    };
+
+    my $charged = $new_patron->(1);
+    my $item    = $notify->($charged);
+    is_deeply( $sent->($charged), ['email'], 'the hold notice is sent' );
+    is_deeply( $fees->($charged), ['0.50'],  'and charged by the HOLD notice fee rule' );
+
+    t::lib::Mocks::mock_preference( 'DiscardHoldsNoticeFeeOfHomeLibraries', 'NOPE|' . $library->branchcode );
+    my $discarded = $new_patron->(1);
+    $notify->($discarded);
+    is_deeply( $sent->($discarded), ['email'], 'an item of a discarded home library is notified' );
+    is_deeply( $fees->($discarded), [],        'but not charged' );
+
+    t::lib::Mocks::mock_preference( 'DiscardHoldsNoticeFeeOfHomeLibraries', '' );
+    my $no_transport = $new_patron->(0);
+    $notify->($no_transport);
+    is_deeply( $sent->($no_transport), ['print'], 'a patron without transports gets a print notice' );
+
+    t::lib::Mocks::mock_preference( 'SuppressNotificationOnHolds', 1 );
+    my $suppressed = $new_patron->(1);
+    $notify->($suppressed);
+    is_deeply( $sent->($suppressed), [], 'SuppressNotificationOnHolds: no notice' );
+    is_deeply( $fees->($suppressed), [], 'and no fee' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'Bookmobile station patrons may hold items of their parent library' => sub {
+    plan tests => 2;
+
+    $schema->storage->txn_begin;
+
+    t::lib::Mocks::mock_preference( 'ReservesControlBranch', 'ItemHomeLibrary' );
+    Koha::CirculationRules->set_rules(
+        {
+            categorycode => undef, branchcode => undef, itemtype => undef,
+            rules        => { reservesallowed => 10, holds_per_record => 10, holds_per_day => 10 }
+        }
+    );
+    Koha::CirculationRules->set_rules(
+        {
+            branchcode => undef, itemtype => undef,
+            rules      =>
+                { holdallowed => 'from_home_library', hold_fulfillment_policy => 'any', returnbranch => 'homebranch' }
+        }
+    );
+
+    my $parent = $builder->build_object( { class => 'Koha::Libraries', value => { mobilebranch => undef } } );
+    my $station =
+        $builder->build_object( { class => 'Koha::Libraries', value => { mobilebranch => $parent->branchcode } } );
+    my $other = $builder->build_object( { class => 'Koha::Libraries', value => { mobilebranch => undef } } );
+    my $item  = $builder->build_sample_item( { library => $parent->branchcode } );
+
+    my $status = sub {
+        my ($library) = @_;
+        my $patron =
+            $builder->build_object( { class => 'Koha::Patrons', value => { branchcode => $library->branchcode } } );
+        Koha::Cache::Memory::Lite->flush;
+        return C4::Reserves::CanItemBeReserved( $patron, $item )->{status};
+    };
+    is( $status->($station), 'OK',                             'a station patron counts as the parent library' );
+    is( $status->($other),   'cannotReserveFromOtherBranches', 'a patron of another library does not' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'Holds on ILL items charge no hold fee unless the ILL backend accepts it' => sub {
+    plan tests => 2;
+
+    $schema->storage->txn_begin;
+
+    t::lib::Mocks::mock_preference( 'IllModule',   1 );
+    t::lib::Mocks::mock_preference( 'HoldFeeMode', 'any_time_is_placed' );
+    my $itemtype = $builder->build_object( { class => 'Koha::ItemTypes', value => { notforloan => 0 } } )->itemtype;
+    t::lib::Mocks::mock_preference( 'IllItemtypes', $itemtype );
+
+    my $library  = $builder->build_object( { class => 'Koha::Libraries',          value => { pickup_location => 1 } } );
+    my $category = $builder->build_object( { class => 'Koha::Patron::Categories', value => { reservefee      => 2 } } );
+    my $hold_fee = sub {
+        my ($with_ill_request) = @_;
+        my $patron = $builder->build_object(
+            {
+                class => 'Koha::Patrons',
+                value => { categorycode => $category->categorycode, branchcode => $library->branchcode }
+            }
+        );
+        my $item = $builder->build_sample_item( { itype => $itemtype, library => $library->branchcode } );
+        $builder->build_object(
+            {
+                class => 'Koha::ILL::Requests',
+                value => { biblio_id => $item->biblionumber, backend => 'Standard', borrowernumber => $patron->id }
+            }
+        ) if $with_ill_request;
+        C4::Reserves::AddReserve(
+            {
+                branchcode   => $library->branchcode, borrowernumber => $patron->borrowernumber,
+                biblionumber => $item->biblionumber,  itemnumber     => $item->itemnumber, priority => 1,
+            }
+        );
+        return Koha::Account::Lines->search(
+            { borrowernumber => $patron->borrowernumber, debit_type_code => 'RESERVE' } )->count;
+    };
+
+    is( $hold_fee->(1), 0, 'an item of an ILL request: no hold fee' );
+    is( $hold_fee->(0), 1, 'an item of the ILL item type without a request: the hold fee is charged' );
 
     $schema->storage->txn_rollback;
 };
