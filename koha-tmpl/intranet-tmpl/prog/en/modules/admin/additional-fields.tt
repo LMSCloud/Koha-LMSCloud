@@ -34,7 +34,7 @@
 [% show_marcfield = marcfield_tables.grep('^' _ tablename _ '$').size ? 1 : 0 %]
 [% show_searchable = searchable_tables.grep('^' _ tablename _ '$').size ? 1 : 0 %]
 
-<body id="admin_additional_fields" class="admin">
+<body id="ser_add_fields" class="ser">
 [% WRAPPER 'header.inc' %]
     [% INCLUDE 'cat-search.inc' %]
 [% END %]
