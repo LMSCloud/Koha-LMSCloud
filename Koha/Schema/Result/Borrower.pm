@@ -2307,18 +2307,46 @@ __PACKAGE__->has_many(
 );
 
 __PACKAGE__->add_columns(
-    '+anonymized'                    => { is_boolean => 1 },
-    '+autorenew_checkouts'           => { is_boolean => 1 },
-    '+gonenoaddress'                 => { is_boolean => 1 },
-    '+lost'                          => { is_boolean => 1 },
-    '+privacy_guarantor_checkouts'   => { is_boolean => 1 },
-    '+privacy_guarantor_fines'       => { is_boolean => 1 },
-    '+protected'                     => { is_boolean => 1 },
+    '+anonymized'                  => { is_boolean => 1 },
+    '+autorenew_checkouts'         => { is_boolean => 1 },
+    '+gonenoaddress'               => { is_boolean => 1 },
+    '+lost'                        => { is_boolean => 1 },
+    '+privacy_guarantor_checkouts' => { is_boolean => 1 },
+    '+privacy_guarantor_fines'     => { is_boolean => 1 },
+    '+protected'                   => { is_boolean => 1 },
 );
+
+__PACKAGE__->has_many(
+  "ill_requests",
+  "Koha::Schema::Result::Illrequest",
+  { "foreign.borrowernumber" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+__PACKAGE__->belongs_to(
+    "category",
+    "Koha::Schema::Result::Category",
+    { "foreign.categorycode"  => "self.categorycode" },
+    { is_deferrable => 1, on_delete => "RESTRICT", on_update => "RESTRICT" },
+);
+
+
+=head2 koha_objects_class
+
+Missing POD for koha_objects_class.
+
+=cut
 
 sub koha_objects_class {
     'Koha::Patrons';
 }
+
+=head2 koha_object_class
+
+Missing POD for koha_object_class.
+
+=cut
+
 sub koha_object_class {
     'Koha::Patron';
 }
