@@ -428,9 +428,7 @@ sub index_records {
             mark_zebraqueue_batch_done($entries);
 
         } else {
-            my $sth = select_all_records($record_type);
-            $num_records_exported =
-                export_marc_records_from_sth( $record_type, $sth, "$directory/$record_type", $nosanitize );
+            $num_records_exported = export_marc_records( $record_type, "$directory/$record_type", $nosanitize );
             unless ($do_not_clear_zebraqueue) {
                 mark_all_zebraqueue_done($record_type);
             }
@@ -524,6 +522,8 @@ sub select_all_authorities {
     $strsth .= qq{ WHERE $where }          if ($where);
     $strsth .= qq{ LIMIT $length }         if ( $length && !$offset );
     $strsth .= qq{ LIMIT $offset,$length } if ( $length && $offset );
+
+    # If we are forking, we use a new db handle to prevent a potential deadlock
     my $sth = $forks ? C4::Context::_new_dbh->prepare($strsth) : $dbh->prepare($strsth);
     $sth->execute();
     return $sth;
@@ -536,6 +536,8 @@ sub select_all_biblios {
     $strsth .= qq{ WHERE $where }          if ($where);
     $strsth .= qq{ LIMIT $length }         if ( $length && !$offset );
     $strsth .= qq{ LIMIT $offset,$length } if ($offset);
+
+    # If we are forking, we use a new db handle to prevent a potential deadlock
     my $sth = $forks ? C4::Context::_new_dbh->prepare($strsth) : $dbh->prepare($strsth);
     $sth->execute();
     return $sth;
