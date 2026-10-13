@@ -693,7 +693,11 @@
                                     <li>Make a <a href="/cgi-bin/koha/opac-suggestions.pl?op=add_form">purchase suggestion</a></li>
                                 [% END %]
                                 [% IF Koha.Preference( 'ILLModule' ) %]
-                                    <li>Make an <a href="/cgi-bin/koha/opac-illrequests.pl?op=create">Interlibrary loan request</a></li>
+                                    [% IF Koha.Preference( 'AutoILLBackendPriority' ) %]
+                                        <li>Make an <a href="/cgi-bin/koha/opac-illrequests.pl?op=create&amp;backend=Standard">Interlibrary loan request</a></li>
+                                    [% ELSE %]
+                                        <li>Make an <a href="/cgi-bin/koha/opac-illrequests.pl?op=create">Interlibrary loan request</a></li>
+                                    [% END %]
                                 [% END %]
                             </ul>
                         </div>
