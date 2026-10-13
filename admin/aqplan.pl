@@ -398,7 +398,7 @@ foreach my $budget (@budgets) {
 
 if ( $output eq "file" ) {
     _print_to_csv( \@authvals_row, \@budget_lines );
-    exit(1);
+    exit();
 }
 
 $template->param(
