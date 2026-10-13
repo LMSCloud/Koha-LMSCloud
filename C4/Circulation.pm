@@ -1354,30 +1354,6 @@ sub CanBookBeIssued {
         }
     }
 
-    ## CHECK FOR BOOKINGS
-    if (
-        my $booking = $item_object->find_booking(
-            { checkout_date => $now, due_date => $duedate, patron_id => $patron->borrowernumber }
-        )
-        )
-    {
-        my $booking_start = dt_from_string( $booking->start_date );
-
-        if ( $booking->patron_id == $patron->borrowernumber ) {
-            if ( $now < $booking_start ) {
-                $needsconfirmation{'BOOKED_EARLY'} = $booking;
-            } else {
-                $alerts{'BOOKED'} = $booking;
-            }
-        } else {
-            if ( $now < $booking_start && $duedate > $booking_start ) {
-                $needsconfirmation{'BOOKED_TO_ANOTHER'} = $booking;
-            } else {
-                $issuingimpossible{'BOOKED_TO_ANOTHER'} = $booking;
-            }
-        }
-    }
-
     ## CHECK AGE RESTRICTION
     my $agerestriction  = $biblioitem->agerestriction;
     my $restriction_age = GetAgeRestriction($agerestriction);
