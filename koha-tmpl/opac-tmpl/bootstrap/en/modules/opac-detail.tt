@@ -48,11 +48,17 @@
 [% END %]
 [% Asset.css("lib/Chocolat/css/chocolat.css") | $raw %]
 [% INCLUDE 'doc-head-close.inc' %]
-[% Asset.css("lib/emoji-picker/css/emoji.css") | $raw %]
-[% IF ( Koha.Preference('OPACShowMusicalInscripts') ) %]
-    [% Asset.css("lib/verovio/midiplayer.css") | $raw %]
+[% FILTER collapse %]
+    <style>
+        .component_part {
+            padding: 0.5rem 0.9rem;
+            border-bottom: 1px solid #bcbcbc;
+        }
+        .component_part:nth-child(2n + 1) {
+            background-color: #f3f4f4;
+        }
+    </style>
 [% END %]
-[% Asset.css("lib/Chocolat/css/chocolat.css") | $raw %]
 [% IF ( Koha.Preference('OPACBookings') ) %]
     [% INCLUDE 'js-date-format.inc' %]
 [% END %]
