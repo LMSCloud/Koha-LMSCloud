@@ -5,6 +5,7 @@
 [% USE To %]
 [% PROCESS 'i18n.inc' %]
 [% PROCESS 'html_helpers.inc' %]
+[% SET LoginEnabled = ( Koha.Preference('opacuserlogin') == 1 ) %]
 [% SET TagsShowEnabled = ( ( Koha.Preference( 'TagsEnabled' ) == 1 ) && Koha.Preference( 'TagsShowOnList' ) ) %]
 [% SET TagsInputEnabled = ( ( Koha.Preference( 'opacuserlogin' ) == 1 ) && ( Koha.Preference( 'TagsEnabled' ) == 1 ) && Koha.Preference( 'TagsInputOnList' ) ) %]
 
