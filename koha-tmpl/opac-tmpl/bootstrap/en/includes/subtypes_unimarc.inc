@@ -122,10 +122,10 @@
 </fieldset>
 
 <fieldset>
-    <legend>Serials</legend><p> </p
-    ><p>
-        <label>Serial type</label>
-        <select name="limit" class="subtype">
+    <legend>Serials</legend>
+    <p>
+        <label for="serial_type">Serial type </label>
+        <select id="serial_type" name="limit" class="subtype">
             <option value="">Any type</option>
             <option value="Type-Of-Serial:a">Periodical</option>
             <option value="Type-Of-Serial:b">Monographic series</option>
