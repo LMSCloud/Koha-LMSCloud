@@ -1343,7 +1343,7 @@
 
     <!-- Image processing code added here, takes precedence over text links including y3z text   -->
     <xsl:if test="marc:datafield[@tag=856 and not(marc:subfield[@code='n' and text()='Wikipedia']) and not(marc:subfield[@code='3' and text()='Titelbild']) and not(marc:subfield[@code='z' and text()='content sample']) and not(marc:subfield[@code='n' and text()='Antolin']) and not(marc:subfield[@code='q' and (text()='cover/jpg' or text()='cover/jpeg') ])]">
-        <xsl:if test="marc:datafield[@tag=856]/marc:subfield[@code='u']">
+        <xsl:if test="normalize-space(marc:datafield[@tag=856]/marc:subfield[@code='u'])">
         <span class="results_summary online_resources">
             <span class="label">Online resources: </span>
                 <ul class="resource_list">
