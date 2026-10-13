@@ -1060,12 +1060,6 @@ OPAC:
               exclusions: sort1|sort2|gonenoaddress|lost|flags
             - '<br /> NOTE: preferred_name will be set to firstname if not included in the form. It should also be selected in <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=BorrowerUnwantedField">BorrowerUnwantedField</a> if selected here.'
         -
-            - "Display the following additional instructions for patrons who self register via the OPAC ( HTML is allowed ):"
-            - pref: PatronSelfRegistrationAdditionalInstructions
-              type: textarea
-              syntax: text/html
-              class: html
-        -
             - pref: PatronSelfRegistrationEmailMustBeUnique
               choices:
                   1: "Consider"

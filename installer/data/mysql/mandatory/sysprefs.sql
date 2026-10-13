@@ -737,7 +737,6 @@ INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `
 ('PatronSelfModificationBorrowerUnwantedField','',NULL,'Name the fields you don\'t want to display when a patron is editing their information via the OPAC.','Free'),
 ('PatronSelfModificationMandatoryField','',NULL,'Define the required fields when a patron is editing their information via the OPAC','Free'),
 ('PatronSelfRegistration','0',NULL,'If enabled, patrons will be able to register themselves via the OPAC.','YesNo'),
-('PatronSelfRegistrationAdditionalInstructions','','','A free text field to display additional instructions to newly self registered patrons.','free'),
 ('PatronSelfRegistrationAgeRestriction', '', NULL, 'Patron\'s maximum age during self registration. If empty, no age restriction is applied.', 'Integer'),
 ('PatronSelfRegistrationAlert','0',NULL,'If enabled, an alter will be shown on staff interface home page when there are self-registered patrons.','YesNo'),
 ('PatronSelfRegistrationBorrowerMandatoryField','surname|firstname',NULL,'Choose the mandatory fields for a patron\'s account, when registering via the OPAC.','Free'),
