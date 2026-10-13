@@ -797,10 +797,6 @@ sub build_custom_field_string {
     return $string;
 }
 
-sub _fee_limit {
-    return C4::Context->preference('noissuescharge') || 5;
-}
-
 1;
 __END__
 

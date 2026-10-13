@@ -47,9 +47,7 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 
 my ( $can_be_discharged, $discharge_problems ) =
     Koha::Patron::Discharge::can_be_discharged( { borrowernumber => $loggedinuser } );
-if ( $can_be_discharged == 0 ) {
-    $template->param( has_checkouts => 1 );
-}
+my $patron = Koha::Patrons->find($loggedinuser);
 
 $template->param(
     can_be_discharged  => $can_be_discharged,

@@ -589,12 +589,6 @@ if (   ( $findborrower && $borrowernumber_hold || $findclub && $club_hold )
                             my $default_pickup_location =
                                 $pickup_locations->search( { branchcode => $default_pickup_branch } )->next;
                             $item->{default_pickup_location} = $default_pickup_location;
-                        } elsif ( C4::Context->preference('AllowHoldPolicyOverride') ) {
-                            $num_items_available++;
-                            $item->{override} = 1;
-                            my $default_pickup_location =
-                                $pickup_locations->search( { branchcode => $default_pickup_branch } )->next;
-                            $item->{default_pickup_location} = $default_pickup_location;
                         } else {
                             $item->{available}    = 0;
                             $item->{not_holdable} = "no_valid_pickup_location";
