@@ -672,9 +672,6 @@ sub barcode {
     $hide_text = '' if ( $self->{'print_barcode_text'} == 0 );
 
     if ( $params{'barcode_type'} =~ m/CODE39/ ) {
-        $bar_length     = '17.5';
-        $tot_bar_length = ( $bar_length * $num_of_bars ) + ( $guard_length * 2 );
-        $x_scale_factor = ( $params{'width'} / $tot_bar_length );
         if ( $params{'barcode_type'} eq 'CODE39MOD' ) {
             my $c39 = CheckDigits('code_39');    # get modulo43 checksum
             $params{'barcode_data'} = $c39->complete( $params{'barcode_data'} );
