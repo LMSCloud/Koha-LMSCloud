@@ -90,7 +90,11 @@ sub GetVolumeData {
     my $searchstring = "rcn:($refnumber)"; # not (bib-level:a or bib-level:b)";
     $searchstring .= " AND cna:($marcOrgCode)" if ( $marcOrgCode );
 
-    my ($error,$volumes) = SearchVolumeData($searchstring,$lang,'opacvolume');
+    # The rcn search also matches records which contain e.g. "(DE-600)1087691-1" in $w
+    # if the record number is 1087691. Therefore we check the found records whether
+    # they really link to the record number.
+    my $linkcheck = { refnumber => $refnumber, orgcode => $marcOrgCode };
+    my ($error,$volumes) = SearchVolumeData($searchstring,$lang,'opacvolume',undef,$linkcheck);
     return ($error,$volumes,undef) if ($error);
     
     my $linkedRecordData = [];
@@ -115,6 +119,7 @@ sub SearchVolumeData {
     my $lang         = shift;
     my $view         = shift;
     my $refbiblionumber = shift; 
+    my $linkcheck    = shift;
     
     my $searchengine = C4::Context->preference("SearchEngine");
     my ($builder, $searcher);
@@ -171,7 +176,8 @@ sub SearchVolumeData {
     foreach my $marcdata(@{$results_hashref->{$servers[0]}->{"RECORDS"}}) {
         my $marcrecord = C4::Search::new_record_from_zebra('biblioserver', $marcdata);
         if ( my $biblionumber = $marcrecord->subfield('999','c') ) {
-            if ( $refbiblionumber != $biblionumber ) {
+            next if ( $linkcheck && !hasLinkToRecord($marcrecord,$linkcheck->{refnumber},$linkcheck->{orgcode}) );
+            if ( !$refbiblionumber || $refbiblionumber != $biblionumber ) {
                 push @$userecords, $marcdata;
                 $records->{$biblionumber} = [[$marcrecord->subfield('245','a') || undef,$marcrecord->subfield('245','p') || undef,$marcrecord->subfield('245','n') || undef]];
                 for (my $i=0; $i<=2; $i++) {
@@ -184,6 +190,7 @@ sub SearchVolumeData {
         }
     }
     $results_hashref->{$servers[0]}->{"RECORDS"} = $userecords;
+    $results_hashref->{$servers[0]}->{"hits"}    = scalar(@$userecords);
     
     my $sortnum = 0;
     foreach my $biblionumber(  sort {  sortVolumeWords($records->{$a}->[1]->[0],$records->{$b}->[1]->[0]) || 
@@ -211,6 +218,41 @@ sub SearchVolumeData {
     }
     
     return ($error, \@results) 
+}
+
+=head2 hasLinkToRecord
+
+  $linked = hasLinkToRecord($marcrecord,$refnumber,$orgcode);
+
+Checks whether one of the linking fields 770, 772, 773, 774, 775, 776, 777, 780, 785,
+787, 800, 810 or 811 of the MARC record contains in subfield $w exactly the value
+"(<orgcode>)<refnumber>" or "<refnumber>". If no orgcode is provided, a value
+"(<any code>)<refnumber>" is accepted as well.
+
+=cut
+
+sub hasLinkToRecord {
+    my ($marcrecord,$refnumber,$orgcode) = @_;
+
+    return 0 if ( !defined($refnumber) );
+    $refnumber =~ s/^\s+//;
+    $refnumber =~ s/\s+$//;
+    return 0 if ( $refnumber eq '' );
+
+    foreach my $field ( $marcrecord->field('770','772','773','774','775','776','777','780','785','787','800','810','811') ) {
+        foreach my $value ( $field->subfield('w') ) {
+            next if ( !defined($value) );
+            $value =~ s/^\s+//;
+            $value =~ s/\s+$//;
+            return 1 if ( $value eq $refnumber );
+            if ( $value =~ /^\(([^\)]*)\)\s*(.*)$/ ) {
+                my ($code,$number) = ($1,$2);
+                next if ( $number ne $refnumber );
+                return 1 if ( !$orgcode || $code eq $orgcode );
+            }
+        }
+    }
+    return 0;
 }
 
 sub normalizeSortData {
