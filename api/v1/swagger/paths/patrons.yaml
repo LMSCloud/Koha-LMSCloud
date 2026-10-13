@@ -793,6 +793,10 @@
           * `internal_server_error`
         schema:
           $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
     x-koha-authorization:
       permissions:
         ill: "1"
