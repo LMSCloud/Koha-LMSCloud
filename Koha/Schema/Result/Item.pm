@@ -1044,7 +1044,13 @@ __PACKAGE__->belongs_to(
 
 __PACKAGE__->add_columns(
     '+bookable'                          => { is_boolean => 1 },
+    '+damaged'                           => { is_boolean => 0 },
     '+exclude_from_local_holds_priority' => { is_boolean => 1 },
+    '+itemlost'                          => { is_boolean => 0 },
+    '+notforloan'                        => { is_boolean => 0 },
+    '+restricted'                        => { is_boolean => 0 },
+    '+stack'                             => { is_boolean => 0 },
+    '+withdrawn'                         => { is_boolean => 0 },
 );
 
 # Relationship with orders via the aqorders_item table that not have foreign keys
@@ -1092,6 +1098,13 @@ __PACKAGE__->might_have(
 );
 
 use C4::Context;
+
+=head2 effective_itemtype
+
+Missing POD for effective_itemtype.
+
+=cut
+
 sub effective_itemtype {
     my ( $self ) = @_;
 

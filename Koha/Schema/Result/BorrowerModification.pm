@@ -677,6 +677,13 @@ Missing POD for koha_object_class.
 sub koha_object_class {
     'Koha::Patron::Modification';
 }
+
+=head2 koha_objects_class
+
+Missing POD for koha_objects_class.
+
+=cut
+
 sub koha_objects_class {
     'Koha::Patron::Modifications';
 }
