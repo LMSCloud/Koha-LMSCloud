@@ -359,17 +359,14 @@
             if( $("#subscription_years .tab-pane.active").length < 1 ){
                 $("#subscription_years a:first").tab("show");
             }
-            $(".subscription-year-table").dataTable($.extend(true, {}, dataTablesDefaults, {
-                "columnDefs": [
-                    { "targets": [ 0,-1 ], "orderable": false, "searchable":  false }
-                ],
-                "order": [[1, 'desc']],
-                "dom": 't',
-                "autoWidth": false,
-                "paging": false,
-                "info": false,
-                "searching": false,
-            } ));
+            $(".subscription-year-table").kohaTable({
+                order: [[1, "desc"]],
+                dom: "t",
+                autoWidth: false,
+                paging: false,
+                info: false,
+                searching: false,
+            });
 
             $(".CheckAll").on("click", function(e){
                 e.preventDefault();
