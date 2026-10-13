@@ -56,8 +56,7 @@ Script to control the guided report creation
 my $input    = CGI->new;
 my $usecache = Koha::Caches->get_instance->memcached_cache;
 
-my $op    = $input->param('op')    // '';
-my $phase = $input->param('phase') // '';
+my $op = $input->param('op') // '';
 my $flagsrequired;
 if (
        $op eq 'add_form'
@@ -87,8 +86,6 @@ if (
     $flagsrequired = { 'create_reports' => 1, 'execute_reports' => 1 };            #NOTE: "and" permissions
 } elsif ( $op eq 'cud-delete' ) {
     $flagsrequired = 'delete_reports';
-} elsif ( $phase eq 'Run this Report' ) {
-    $flagsrequired = 'execute_reports';
 } else {
 
     #NOTE: You should never get here

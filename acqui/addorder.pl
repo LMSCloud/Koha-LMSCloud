@@ -170,15 +170,6 @@ if ( $op eq 'cud-order' ) {
             $budget_ordered = $budget_ordered - ( $order->$ecost_field * $order->quantity );
         }
 
-        my $vars = $input->Vars;
-        my @vars_loop;
-        foreach ( keys %$vars ) {
-            push @vars_loop, {
-                name   => $_,
-                values => [ $input->multi_param($_) ],
-            };
-        }
-
         my $budget_used        = $budget_spent + $budget_ordered;
         my $budget_remaining   = $budget->{budget_amount} - $budget_used;
         my $budget_encumbrance = $budget->{budget_amount} * $budget->{budget_encumb} / 100;
