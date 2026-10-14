@@ -21,7 +21,7 @@ use Modern::Perl;
 
 use Mojo::Base 'Mojolicious::Controller';
 
-use C4::Auth qw( check_cookie_auth checkpw_internal get_session haspermission );
+use C4::Auth qw( check_cookie_auth checkpw get_session haspermission );
 use C4::Context;
 
 use Koha::ApiKeys;
@@ -234,20 +234,10 @@ sub authenticate_api_request {
             } else {
                 Koha::Exceptions::Authentication::Required->throw( error => 'Authentication failure.' );
             }
-        } elsif ( $c->req->url->to_abs->path eq '/api/v1/auth/two-factor/registration'
-            || $c->req->url->to_abs->path eq '/api/v1/auth/two-factor/registration/verification' )
-        {
+        } elsif ( _is_two_factor_setup_route($c) ) {
 
-            if ( $status eq 'setup-additional-auth-needed' ) {
+            if ( $status eq 'setup-additional-auth-needed' || $status eq 'ok' ) {
                 $user        = Koha::Patrons->find( $session->param('number') );
-                $cookie_auth = 1;
-            } elsif ( $status eq 'ok' ) {
-                $user = Koha::Patrons->find( $session->param('number') );
-                if ( $user->auth_method ne 'password' ) {
-
-                    # If the user already enabled 2FA they don't need to register again
-                    Koha::Exceptions::Authentication->throw( error => 'Cannot request this route.' );
-                }
                 $cookie_auth = 1;
             } else {
                 Koha::Exceptions::Authentication::Required->throw( error => 'Authentication failure.' );
@@ -270,6 +260,13 @@ sub authenticate_api_request {
                 Koha::Exceptions::Authentication->throw( error => 'Unexpected authentication status.' );
             }
         }
+    }
+
+    if ( $user && _is_two_factor_setup_route($c) && $user->auth_method eq 'two-factor' ) {
+
+        # If the user already enabled 2FA they don't need to register again.
+        # The password alone must not be enough to overwrite an existing 2FA secret
+        Koha::Exceptions::Authentication->throw( error => 'Cannot request this route.' );
     }
 
     $c->stash( 'koha.user' => $user );
@@ -317,6 +314,21 @@ sub authenticate_api_request {
     );
 }
 
+=head3 _is_two_factor_setup_route
+
+Returns true if the current request targets one of the two-factor
+registration endpoints (secret generation or verification).
+
+=cut
+
+sub _is_two_factor_setup_route {
+    my ($c) = @_;
+
+    my $path = $c->req->url->to_abs->path;
+    return $path eq '/api/v1/auth/two-factor/registration'
+        || $path eq '/api/v1/auth/two-factor/registration/verification';
+}
+
 =head3 validate_query_parameters
 
 Validates the query parameters against the spec.
@@ -359,17 +371,26 @@ sub _basic_auth {
     my $decoded_credentials = decode_base64($credentials);
     my ( $identifier, $password ) = split( /:/, $decoded_credentials, 2 );
 
-    my $patron = Koha::Patrons->find_by_identifier($identifier);
+    my ( $status, undef, undef, $patron ) = checkpw( $identifier, $password );
 
-    unless ( checkpw_internal( $identifier, $password ) ) {
+    if ( defined $status && $status == 1 ) {
+        return $patron;
+    }
+
+    if ( defined $status && $status == 0 ) {
         Koha::Exceptions::Authorization::Unauthorized->throw( error => 'Invalid password' );
     }
 
-    if ( $patron->password_expired ) {
+    if ( defined $status && $status == -2 ) {
         Koha::Exceptions::Authorization::Unauthorized->throw( error => 'Password has expired' );
     }
 
-    return $patron;
+    if ( not defined $status ) {
+        Koha::Exceptions::Authorization::Unauthorized->throw( error => 'Account has been locked' );
+    }
+
+    # Generic error to catch the other (potentially missed) cases
+    Koha::Exceptions::Authentication::Required->throw( error => 'Authentication failure.' );
 }
 
 =head3 _set_userenv

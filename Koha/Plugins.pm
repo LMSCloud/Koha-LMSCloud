@@ -47,9 +47,10 @@ BEGIN {
     pop @INC if $INC[-1] eq '.';
 
     # Load plugins early to ensure they're available before any transactions begin
+    # Skip under "perl -c" to avoid C3 error when syntax checking plugins
     my $enable_plugins = C4::Context->config("enable_plugins") // 0;
 
-    if ($enable_plugins) {
+    if ( $enable_plugins && !$^C ) {
         require Koha::Plugins::Loader;
         Koha::Plugins::Loader->get_enabled_plugins();
     }
@@ -131,6 +132,12 @@ sub get_enabled_plugins {
     require Koha::Plugins::Loader;
     return Koha::Plugins::Loader->get_enabled_plugins();
 }
+
+=head3 _verbose
+
+Helper function to reduce verbosity in tests
+
+=cut
 
 sub _verbose {
     my $class = shift;
@@ -321,6 +328,14 @@ sub InstallPlugins {
     }
 
     foreach my $plugin_class (@plugin_classes) {
+
+        # Force a fresh load from disk. Without this, a long-lived Plack
+        # worker that already has the plugin loaded would rescan a stale
+        # symbol table during an upgrade, so plugin_methods ends up out of
+        # sync with the installed .pm (e.g. missing newly-added methods or
+        # retaining methods that were renamed or removed).
+        $self->_forget_plugin_class($plugin_class);
+
         if ( can_load( modules => { $plugin_class => undef }, verbose => $verbose, nocache => 1 ) ) {
             next unless $plugin_class->isa('Koha::Plugins::Base');
 
@@ -356,6 +371,43 @@ sub InstallPlugins {
     $self->_restart_after_change();
 
     return @plugins;
+}
+
+=head3 _forget_plugin_class
+
+Force Perl to forget an in-memory plugin class, so a subsequent re-require
+picks up the .pm file as it currently exists on disk, rather than whatever
+was loaded into this worker previously.
+
+We deliberately do not use Symbol::delete_package here: it clears the
+whole symbol table, including any already-loaded packages nested under
+it (e.g. Koha::Plugin::Foo::Controller, bundled by the plugin in its own
+Koha/Plugin/Foo/Controller.pm). Since those keep their own %INC entry,
+they are never re-required afterwards and are left permanently blanked
+out. Module::Pluggable discovers them as their own entries in the plugin
+list regardless, so they get reloaded on their own turn; this helper
+only ever clears the target class's own symbols, leaving any nested
+packages alone.
+
+=cut
+
+sub _forget_plugin_class {
+    my ( $self, $plugin_class ) = @_;
+
+    return unless Class::Inspector->loaded($plugin_class);
+
+    no strict 'refs';    ## no critic (ProhibitNoStrict)
+    @{"${plugin_class}::ISA"} = ();
+    my $stash = \%{"${plugin_class}::"};
+    for my $symbol ( keys %$stash ) {
+        next if $symbol =~ /::\z/;    # leave nested packages alone
+        delete $stash->{$symbol};
+    }
+
+    ( my $plugin_inc_key = $plugin_class ) =~ s{::}{/}g;
+    delete $INC{"$plugin_inc_key.pm"};
+
+    return;
 }
 
 =head2 RemovePlugins
@@ -400,6 +452,13 @@ sub RemovePlugins {
 
     $class->_restart_after_change();
 }
+
+=head3 _restart_after_change
+
+Helper function to reload plack after a plugin change if the
+'plugins_restart' flag is enabled in the koha-conf.xml
+
+=cut
 
 sub _restart_after_change {
     my ( $class, $params ) = @_;

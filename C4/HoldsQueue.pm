@@ -480,7 +480,6 @@ sub _allocateWithTransportCostMatrix {
 
     my @m = map { [ (undef) x $num_tasks ] } ( 1 .. $num_agents );
 
-    my $inf = -1;    # Initially represent infinity with a negative value.
     my $max = 0;
 
     # If some candidate holds requests cannot be filled and there are
@@ -497,6 +496,7 @@ sub _allocateWithTransportCostMatrix {
 
 RETRY:
     while (1) {
+        my $inf = -1;    # Initially represent infinity with a negative value.
         return [] if $num_agents == 0 || $num_tasks + scalar(@remaining) == 0;
 
         if ( $num_tasks < $num_agents && @remaining ) {
@@ -672,20 +672,32 @@ RETRY:
 
         if ( $retries-- > 0 && @unallocated && @remaining ) {
 
+            # @unallocated is built by iterating agents (rows), so its
+            # entries are not necessarily in column order: Munkres'
+            # row-to-column assignment is a permutation, not a monotonic
+            # mapping. The matrix compaction below scans columns in
+            # ascending order and expects to consume @unallocated in that
+            # same order, so it must be sorted first.
+            my @unallocated_sorted = sort { $a <=> $b } @unallocated;
+
             # Remove the transport cost of unfilled holds and compact the matrix.
             # Also remove the hold request from the array.
             for ( my $i = 0 ; $i < $num_agents ; $i++ ) {
                 my $u = 0;
                 for ( my $j = 0 ; $j < $num_tasks ; $j++ ) {
-                    if ( $u < scalar(@unallocated) && $unallocated[$u] == $j ) {
+                    if ( $u < scalar(@unallocated_sorted) && $unallocated_sorted[$u] == $j ) {
                         $u++;
                     } elsif ( $u > 0 ) {
                         $m[$i][ $j - $u ] = $m[$i][$j];
                     }
                 }
             }
-            for ( my $u = 0 ; $u < scalar(@unallocated) ; $u++ ) {
-                splice @requests, $unallocated[$u], 1;
+
+            # Indices must be spliced out in reverse order, otherwise removing
+            # a lower index shifts the position of any higher index still to
+            # be removed.
+            for my $u ( reverse @unallocated_sorted ) {
+                splice @requests, $u, 1;
             }
             $num_tasks = scalar(@requests);
 

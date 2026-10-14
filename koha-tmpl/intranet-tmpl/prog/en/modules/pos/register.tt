@@ -52,6 +52,10 @@
             <div id="error_message" class="alert alert-warning"> You do not have permission to perform refund actions. </div>
         [% END %]
 
+        [% IF ( error_refund_anonymous_ac ) %]
+            <div id="error_message" class="alert alert-warning"> Account credit refunds are not available for anonymous transactions. Please choose a different refund type. </div>
+        [% END %]
+
         [% IF ( CAN_user_cash_management_cashup ) %]
             <div id="toolbar" class="btn-toolbar">
                 <button id="pos_cashup" type="button" class="btn btn-default" data-bs-toggle="modal" data-bs-target="#confirmCashupModal"><i class="fa-solid fa-money-bill-1"></i> Record cashup</button>
@@ -505,9 +509,10 @@
            var amountoutstanding = button.data('amountoutstanding') || 0;
            var paid = amount - amountoutstanding;
            $("#paid + span").text(paid.format_price());
-           $("#returned").attr({ "value": paid.format_price(), "max": paid });
-           var member = button.data('member');
-           if ( member === '' ) {
+            $("#returned").attr({ "value": paid.format_price(), "max": paid });
+            var member = button.data("member");
+            // Hide AC option for anonymous transactions (no borrowernumber)
+            if (!member || member === "") {
                $("#refund_type option[value='AC']").remove();
            } else if ( $("#refund_type option[value='AC']").length == 0 ) {
                $("#refund_type").prepend('<option value="AC" selected="selected">Account credit</option>');

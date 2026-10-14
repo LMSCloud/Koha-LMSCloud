@@ -891,10 +891,9 @@ sub elasticsearch_check {
             #       fetch the list of available indexes (e.g. plugins, etc)
             $es_status->{nodes} = $es_conf->{nodes};
             my $es = Search::Elasticsearch->new($es_conf);
-            my $es_status->{version} = $es->info->{version}->{number};
 
             foreach my $index (@indexes) {
-                my $index_count;
+                my $index_count = 0;
                 try {
                     $index_count = $es->indices->stats( index => $index )->{_all}{primaries}{docs}{count};
                 } catch {
@@ -930,6 +929,9 @@ sub elasticsearch_check {
                     };
             }
             $es_status->{running} = $es_running;
+            if ($es_running) {
+                $es_status->{version} = $es->info->{version}->{number};
+            }
 
             $template->param(
                 elasticsearch_status      => $es_status,

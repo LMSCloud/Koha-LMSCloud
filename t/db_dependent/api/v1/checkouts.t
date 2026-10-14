@@ -18,7 +18,7 @@
 use Modern::Perl;
 
 use Test::NoWarnings;
-use Test::More tests => 112;
+use Test::More tests => 113;
 use Test::MockModule;
 use Test::Mojo;
 use t::lib::Mocks;
@@ -33,6 +33,8 @@ use Koha::CirculationRules;
 use Koha::Database;
 use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Token;
+
+use JSON qw(encode_json );
 
 my $schema  = Koha::Database->schema;
 my $builder = t::lib::TestBuilder->new;
@@ -738,6 +740,61 @@ subtest 'renew() with requested due_date and bookings' => sub {
         dt_from_string( $booking->end_date )->compare($plural_renewal_due), 0,
         'Booking end_date synced by a renewal through the plural endpoint'
     );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'list checkouts that have been checked in and the patron has been deleted' => sub {
+    plan tests => 6;
+
+    $schema->storage->txn_begin;
+
+    # Create a librarian with circulate permission
+    my $librarian = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => { flags => 2 }     # Superlibrarian
+        }
+    );
+    my $password = 'thePassword123';
+    $librarian->set_password( { password => $password, skip_validation => 1 } );
+    my $userid = $librarian->userid;
+
+    # Create a regular patron
+    my $patron = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => { flags => 0 }
+        }
+    );
+    my $patron_id = $patron->borrowernumber;
+
+    my $old_checkout = $builder->build_object(
+        {
+            class => 'Koha::Old::Checkouts',
+            value => { borrowernumber => $patron_id }
+        }
+    );
+    my $old_checkout_id = encode_json( { checkout_id => $old_checkout->id } );
+
+    # Test 1: Checkout should be returned
+    $t->get_ok("//$userid:$password@/api/v1/checkouts?checked_in=1&q=$old_checkout_id")
+        ->status_is(200)
+        ->json_is( '/0/patron_id' => $patron_id );
+
+    my $old_checkout_2 = $builder->build_object(
+        {
+            class => 'Koha::Old::Checkouts',
+            value => { borrowernumber => undef }
+        }
+    );
+    my $old_checkout_2_id = encode_json( { checkout_id => $old_checkout_2->id } );
+
+    # Test 2: Checkout should be returned with null patron_id
+
+    $t->get_ok("//$userid:$password@/api/v1/checkouts?checked_in=1&q=$old_checkout_2_id")
+        ->status_is(200)
+        ->json_is( '/0/patron_id' => undef );
 
     $schema->storage->txn_rollback;
 };

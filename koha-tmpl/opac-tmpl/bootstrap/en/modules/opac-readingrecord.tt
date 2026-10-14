@@ -258,6 +258,7 @@
                 },
             );
 
+            if (table) {
             let table_dt = table.DataTable();
 
             $("#tabs a[data-bs-toggle='tab']").on("shown.bs.tab", function (e) {
@@ -270,6 +271,7 @@
                 }
                 table_dt.columns(0).search(pattern).draw();
             });
+            }
         });
     </script>
     [% IF ( Koha.Preference('OpacStarRatings') == 'all' ) %]

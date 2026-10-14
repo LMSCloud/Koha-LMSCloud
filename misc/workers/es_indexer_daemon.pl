@@ -211,6 +211,8 @@ $conn->disconnect;
 sub commit {
     my (@jobs) = @_;
 
+    return unless @jobs;
+
     my @bib_records;
     my @auth_records;
 
@@ -241,32 +243,65 @@ sub commit {
         }
     }
 
+    my $index_ok = 1;
+    my $no_nodes = 0;
+
     if (@auth_records) {
         my $auth_chunks = natatime $at_a_time, @auth_records;
-        while ( ( my @auth_chunk = $auth_chunks->() ) ) {
+        while ( !$no_nodes && ( my @auth_chunk = $auth_chunks->() ) ) {
             try {
                 $auth_indexer->update_index( \@auth_chunk );
             } catch {
                 $logger->warn( sprintf "Update of elastic index failed with: %s", $_ );
+                if ( ref($_) eq 'Search::Elasticsearch::Error::NoNodes' ) {
+                    $no_nodes = 1;
+                    $auth_indexer =
+                        Koha::SearchEngine::Indexer->new( { index => $Koha::SearchEngine::AUTHORITIES_INDEX } );
+                } else {
+                    $index_ok = 0;
+                }
             };
         }
     }
-    if (@bib_records) {
+    if ( !$no_nodes && @bib_records ) {
         my $biblio_chunks = natatime $at_a_time, @bib_records;
-        while ( ( my @bib_chunk = $biblio_chunks->() ) ) {
+        while ( !$no_nodes && ( my @bib_chunk = $biblio_chunks->() ) ) {
             try {
                 $biblio_indexer->update_index( \@bib_chunk );
             } catch {
                 $logger->warn( sprintf "Update of elastic index failed with: %s", $_ );
+                if ( ref($_) eq 'Search::Elasticsearch::Error::NoNodes' ) {
+                    $no_nodes = 1;
+                    $biblio_indexer =
+                        Koha::SearchEngine::Indexer->new( { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
+                } else {
+                    $index_ok = 0;
+                }
             };
         }
+    }
+
+    if ( $no_nodes && $index_ok ) {
+
+        # ES is unreachable, and no other error occurred — reset jobs to 'new' so they are retried
+        # after reconnection. If a genuine indexing error also occurred, fall through to record
+        # the batch as 'failed' instead, so that error isn't masked by the retry.
+        $logger->warn("Elasticsearch unavailable (NoNodes), resetting jobs for retry");
+        $jobs->update(
+            {
+                progress   => 0,
+                status     => 'new',
+                started_on => undef,
+            }
+        );
+        return;
     }
 
     # Finish
     $jobs->update(
         {
             progress => 1,
-            status   => 'finished',
+            status   => $index_ok ? 'finished' : 'failed',
             ended_on => \'NOW()',
         }
     );
