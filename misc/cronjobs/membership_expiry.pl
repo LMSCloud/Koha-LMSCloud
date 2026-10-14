@@ -285,57 +285,35 @@ while ( my $expiring_patron = $upcoming_mem_expires->next ) {
         $which_notice = $letter_expiry;
     }
 
-    my $from_address = $expiring_patron->library->from_email_address;
-    my $letter       = C4::Letters::GetPreparedLetter(
-        module      => 'members',
-        letter_code => $which_notice,
-        branchcode  => $expiring_patron->branchcode,
-        lang        => $expiring_patron->lang,
-        tables      => {
+    my $from_address  = $expiring_patron->library->from_email_address;
+    my $letter_params = {
+        module         => 'members',
+        letter_code    => $which_notice,
+        branchcode     => $expiring_patron->branchcode,
+        lang           => $expiring_patron->lang,
+        borrowernumber => $expiring_patron->borrowernumber,
+        tables         => {
             borrowers => $expiring_patron->borrowernumber,
             branches  => $expiring_patron->branchcode,
         },
-    );
-    last if !$letter;    # Letters.pm already warned, just exit
-    if ($nomail) {
-        print $letter->{'content'} . "\n";
-        next;
+    };
+
+    my $sending_params = {
+        letter_params => $letter_params,
+        message_name  => 'Patron_Expiry',
+        forceprint    => $forceprint,
+        test_mode     => $nomail,
+    };
+
+    my $categorycode        = $expiring_patron->categorycode;
+    my $is_notice_mandatory = grep { $_ eq $categorycode } @mandatory_expiry_notice_categories;
+    if ($is_notice_mandatory) {
+        $sending_params->{expiry_notice_mandatory} = 1;
+        $sending_params->{primary_contact_method}  = $forceprint ? 'print' : $expiring_patron->primary_contact_method;
     }
 
-    C4::Letters::EnqueueLetter(
-        {
-            letter                 => $letter,
-            borrowernumber         => $expiring_patron->borrowernumber,
-            from_address           => $from_address,
-            message_transport_type => 'email',
-            branchcode             => $expiring_patron->branchcode,
-        }
-    );
-    $count_enqueued++;
-
-    if ( $expiring_patron->smsalertnumber ) {
-        my $smsletter = C4::Letters::GetPreparedLetter(
-            module      => 'members',
-            letter_code => $which_notice,
-            branchcode  => $expiring_patron->branchcode,
-            lang        => $expiring_patron->lang,
-            tables      => {
-                borrowers => $expiring_patron->borrowernumber,
-                branches  => $expiring_patron->branchcode,
-            },
-            message_transport_type => 'sms',
-        );
-        if ($smsletter) {
-            C4::Letters::EnqueueLetter(
-                {
-                    letter                 => $smsletter,
-                    borrowernumber         => $expiring_patron->borrowernumber,
-                    message_transport_type => 'sms',
-                    branchcode             => $expiring_patron->branchcode,
-                }
-            );
-        }
-    }
+    my $result = $expiring_patron->queue_notice($sending_params);
+    $count_enqueued++ if $result->{sent};
 }
 
 if ($verbose) {
