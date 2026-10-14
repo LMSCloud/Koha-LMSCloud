@@ -15,6 +15,10 @@ return {
             'title-series' => 'Series',
             subject        => 'Topics',
             ln             => 'Languages',
+
+            # LMSCloud facets
+            'subject-genre-form' => 'Genres',
+            publyear             => 'Years',
         };
 
         # Do not update the label if different from the original one
