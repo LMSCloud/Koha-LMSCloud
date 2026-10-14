@@ -19,7 +19,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 9;
+use Test::More tests => 10;
 use Test::NoWarnings;
 
 use DateTime;
@@ -28,6 +28,7 @@ use C4::Circulation qw(
     CanBookBeIssued
     AddIssue
     AddRenewal
+    AddReturn
     SetDueDateOfItems
     GetTransfers
     GetIssuingCharges
@@ -500,6 +501,29 @@ subtest 'GetTransfers returns the open transfer of an item' => sub {
     my ( undef, $frombranch, $tobranch ) = GetTransfers( $item->itemnumber );
     is( $frombranch, $from, 'from the library of the open transfer' );
     is( $tobranch,   $to,   'to its destination, not the arrived transfer' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'AddReturn reports NotIssued only for items that are not checked out' => sub {
+    plan tests => 4;
+
+    $schema->storage->txn_begin;
+
+    my $library = $builder->build_object( { class => 'Koha::Libraries' } );
+    t::lib::Mocks::mock_userenv( { branchcode => $library->branchcode } );
+    my $patron =
+        $builder->build_object( { class => 'Koha::Patrons', value => { branchcode => $library->branchcode } } );
+    my $item = $builder->build_sample_item( { library => $library->branchcode } );
+
+    AddIssue( $patron, $item->barcode );
+    my ( $doreturn, $messages ) = AddReturn( $item->barcode, $library->branchcode );
+    ok( $doreturn,                      'A checked out item is returned' );
+    ok( !exists $messages->{NotIssued}, 'The return of a checked out item does not report NotIssued' );
+
+    ( $doreturn, $messages ) = AddReturn( $item->barcode, $library->branchcode );
+    ok( !$doreturn, 'An item that is not checked out is not returned' );
+    is( $messages->{NotIssued}, $item->barcode, 'The return of an item that is not checked out reports NotIssued' );
 
     $schema->storage->txn_rollback;
 };
