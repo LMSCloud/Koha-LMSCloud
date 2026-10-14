@@ -584,12 +584,19 @@ sub _convert_facets {
             };
         }
         if ( C4::Context->preference('FacetOrder') eq 'Alphabetical' ) {
-            @{ $facet->{facets} } =
-                sort { $a->{facet_label_value} cmp $b->{facet_label_value} } @{ $facet->{facets} }
-                if ( $type ne 'publyear' );
-            @{ $facet->{facets} } =
-                reverse sort { $a->{facet_label_value} cmp $b->{facet_label_value} } @{ $facet->{facets} }
-                if ( $type eq 'publyear' );
+            if ( $type eq 'publyear' ) {
+
+                # Publication years are listed newest first
+                @{ $facet->{facets} } =
+                    reverse sort { $a->{facet_label_value} cmp $b->{facet_label_value} } @{ $facet->{facets} };
+            } else {
+                my $sorted_facets = $self->_sort_facets( { facets => $facet->{facets} } );
+                if ($sorted_facets) {
+                    $facet->{facets} = $sorted_facets;
+                }
+            }
+        } elsif ( C4::Context->preference('FacetOrder') eq 'Stringwise' ) {
+            @{ $facet->{facets} } = sort { $a->{facet_label_value} cmp $b->{facet_label_value} } @{ $facet->{facets} };
         }
         push @facets, $facet if exists $facet->{facets};
     }

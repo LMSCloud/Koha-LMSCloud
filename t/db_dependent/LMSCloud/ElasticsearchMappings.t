@@ -25,7 +25,7 @@
 use Modern::Perl;
 use utf8;
 
-use Test::More tests => 8;
+use Test::More tests => 9;
 
 use MARC::Field;
 use MARC::Record;
@@ -33,7 +33,10 @@ use MARC::Record;
 use Koha::Database;
 use Koha::SearchEngine::Elasticsearch;
 use Koha::SearchEngine::Elasticsearch::QueryBuilder;
+use Koha::SearchEngine::Elasticsearch::Search;
 use Koha::SearchFields;
+
+use Test::MockModule;
 
 use t::lib::Mocks;
 
@@ -244,4 +247,47 @@ subtest 'Publication years reach copydate for the year limit' => sub {
     );
 
     rollback();
+};
+
+subtest 'Alphabetical facets sort by locale, publication years newest first' => sub {
+    plan tests => 3;
+
+    my $es = Test::MockModule->new('Koha::SearchEngine::Elasticsearch');
+    $es->mock(
+        get_facet_fields => sub {
+            map { Koha::SearchField->new( { name => $_, label => $_, facet_order => 1 } ) } qw( au publyear );
+        }
+    );
+    t::lib::Mocks::mock_preference( 'FacetMaxCount',      20 );
+    t::lib::Mocks::mock_preference( 'FacetSortingLocale', 'de_DE' );
+
+    my $buckets = sub {
+        return { buckets => [ map { { key => $_, doc_count => 1 } } @_ ] };
+    };
+    my $searcher = Koha::SearchEngine::Elasticsearch::Search->new( { index => 'biblios' } );
+    my $labels   = sub {
+        my ( $facets, $type ) = @_;
+        my ($facet) = grep { $_->{type_link_value} eq $type } @$facets;
+        return [ map { $_->{facet_label_value} } @{ $facet->{facets} } ];
+    };
+
+    t::lib::Mocks::mock_preference( 'FacetOrder', 'Alphabetical' );
+    my $facets = $searcher->_convert_facets(
+        {
+            au       => $buckets->( 'Zweig, Stefan', 'Österreich, Anna', 'adler, Jan' ),
+            publyear => $buckets->( '1999',          '2021',             '2005' ),
+        }
+    );
+    is_deeply(
+        $labels->( $facets, 'au' ), [ 'adler, Jan', 'Österreich, Anna', 'Zweig, Stefan' ],
+        'Umlauts and lower case sort in place'
+    );
+    is_deeply( $labels->( $facets, 'publyear' ), [ '2021', '2005', '1999' ], 'Publication years are newest first' );
+
+    t::lib::Mocks::mock_preference( 'FacetOrder', 'Stringwise' );
+    $facets = $searcher->_convert_facets( { au => $buckets->( 'Zweig, Stefan', 'Österreich, Anna', 'adler, Jan' ) } );
+    is_deeply(
+        $labels->( $facets, 'au' ), [ 'Zweig, Stefan', 'adler, Jan', 'Österreich, Anna' ],
+        'Stringwise sorts by code point'
+    );
 };
