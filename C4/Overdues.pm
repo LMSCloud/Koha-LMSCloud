@@ -672,7 +672,7 @@ sub UpdateFine {
                     note        => undef,
                     user_id     => undef,
                     interface   => C4::Context->interface,
-                    library_id  => undef,       #FIXME: Should we grab the checkout or circ-control branch here perhaps?
+                    library_id  => $branchcode,
                     type        => 'OVERDUE',
                     item_id     => $itemnum,
                     issue_id    => $issue_id,

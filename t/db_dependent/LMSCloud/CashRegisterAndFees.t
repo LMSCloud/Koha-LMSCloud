@@ -19,9 +19,11 @@
 
 use Modern::Perl;
 
-use Test::More tests => 4;
+use Test::More tests => 5;
 use Test::NoWarnings;
 
+use C4::Overdues qw( UpdateFine );
+use Koha::Account::Lines;
 use Koha::Database;
 use t::lib::TestBuilder;
 use t::lib::Mocks;
@@ -257,6 +259,42 @@ subtest 'Claiming fees' => sub {
             'ClaimingFees object can checkForClaimingRules'
         );
     };
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'UpdateFine records the checkout library on a new fine' => sub {
+    plan tests => 2;
+
+    $schema->storage->txn_begin;
+
+    my $checkout_library = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $patron           = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $item             = $builder->build_sample_item;
+    my $checkout         = $builder->build_object(
+        {
+            class => 'Koha::Checkouts',
+            value => {
+                itemnumber     => $item->itemnumber,
+                borrowernumber => $patron->borrowernumber,
+                branchcode     => $checkout_library->branchcode,
+            }
+        }
+    );
+
+    UpdateFine(
+        {
+            issue_id       => $checkout->issue_id,
+            itemnumber     => $item->itemnumber,
+            borrowernumber => $patron->borrowernumber,
+            amount         => '2.50',
+            due            => $checkout->date_due,
+        }
+    );
+
+    my $fines = Koha::Account::Lines->search( { issue_id => $checkout->issue_id, debit_type_code => 'OVERDUE' } );
+    is( $fines->count,            1,                             'One overdue fine is created' );
+    is( $fines->next->branchcode, $checkout_library->branchcode, 'The fine carries the checkout library' );
 
     $schema->storage->txn_rollback;
 };
