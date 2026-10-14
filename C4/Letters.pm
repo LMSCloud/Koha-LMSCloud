@@ -745,6 +745,28 @@ sub GetPreparedLetter {
         return Koha::Template::Plugin::KohaDates->strftime(@_);
     };
 
+    $letter->{content} = _process_tt(
+        {
+            content    => $letter->{content},
+            lang       => $lang,
+            loops      => $loops,
+            objects    => $objects,
+            substitute => $substitute,
+            tables     => $tables,
+        }
+    );
+
+    $letter->{title} = _process_tt(
+        {
+            content    => $letter->{title},
+            lang       => $lang,
+            loops      => $loops,
+            objects    => $objects,
+            substitute => $substitute,
+            tables     => $tables,
+        }
+    );
+
     if (%$substitute) {
         while ( my ( $token, $val ) = each %$substitute ) {
             $val //= q{};
@@ -792,28 +814,6 @@ sub GetPreparedLetter {
             }
         }
     }
-
-    $letter->{content} = _process_tt(
-        {
-            content    => $letter->{content},
-            lang       => $lang,
-            loops      => $loops,
-            objects    => $objects,
-            substitute => $substitute,
-            tables     => $tables,
-        }
-    );
-
-    $letter->{title} = _process_tt(
-        {
-            content    => $letter->{title},
-            lang       => $lang,
-            loops      => $loops,
-            objects    => $objects,
-            substitute => $substitute,
-            tables     => $tables,
-        }
-    );
 
     if (%$tables) {
         _substitute_tables( $letter, $tables );

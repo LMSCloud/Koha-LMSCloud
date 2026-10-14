@@ -19,11 +19,11 @@
 
 use Modern::Perl;
 
-use Test::More tests => 5;
+use Test::More tests => 6;
 use Test::NoWarnings;
 
 use C4::Context;
-use C4::Letters qw( GetAdhocNoticeLetters GetMessagesById EnqueueLetter );
+use C4::Letters qw( GetAdhocNoticeLetters GetMessagesById EnqueueLetter GetPreparedLetter );
 
 use Koha::Database;
 use Koha::Notice::Messages;
@@ -350,6 +350,46 @@ subtest 'EnqueueLetter branchcode propagation' => sub {
         $msg_no_branch->branchcode, $patron->branchcode,
         'Enqueued message without branchcode falls back to the patron home branch'
     );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'GetPreparedLetter does not evaluate Template Toolkit syntax in data' => sub {
+    plan tests => 2;
+
+    $schema->storage->txn_begin;
+
+    my $library = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $tt      = '[% USE Categories %][% Categories.all().count() %]';
+    my $item    = $builder->build_sample_item( { library => $library->branchcode } );
+    $item->set( { itemnotes => $tt } )->store;
+
+    $builder->build_object(
+        {
+            class => 'Koha::Notice::Templates',
+            value => {
+                module                 => 'test',
+                code                   => 'TT_IN_DATA',
+                branchcode             => '',
+                lang                   => 'default',
+                message_transport_type => 'email',
+                is_html                => 0,
+                title                  => 'Title',
+                content                => 'List: <<listname>>' . "\n" . '<item><<items.itemnotes>></item>',
+            }
+        }
+    );
+
+    my $letter = GetPreparedLetter(
+        module      => 'test',
+        letter_code => 'TT_IN_DATA',
+        branchcode  => $library->branchcode,
+        substitute  => { listname => $tt },
+        repeat      => { item     => [ { items => $item->itemnumber } ] },
+    );
+
+    like( $letter->{content}, qr/^List: \Q$tt\E$/m, 'A substitute value is inserted as text' );
+    like( $letter->{content}, qr/^\Q$tt\E$/m,       'A table value in a repeated block is inserted as text' );
 
     $schema->storage->txn_rollback;
 };
