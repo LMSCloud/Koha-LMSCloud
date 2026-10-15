@@ -71,15 +71,6 @@
                 [% WRAPPER breadcrumb_item %]
                     <a href="[% ReturnPath | url %]">Advanced search</a>
                 [% END %]
-                <li class="breadcrumb-item active">
-                    [% IF ( ms_value ) %]
-                        <a href="#" aria-current="page" title="You searched [% IF ( query_desc ) %]for '[% query_desc | html %]'[% END %] [% IF ( limit_desc ) %]with limit(s): '[% limit_desc | html %]'[% END %]"
-                            >Results of search for '[% ms_value | html %]'[% IF ( pages > 1) %], page [% current_page_number | html %] of [% pages | html %][% END %]</a
-                        >
-                    [% ELSE %]
-                        <a href="#" aria-current="page" title="You searched [% IF ( query_desc ) %]for '[% query_desc | html %]'[% END %] [% IF ( limit_desc ) %]with limit(s): '[% limit_desc | html %]'[% END %]">Search results</a>
-                    [% END %]
-                </li>
             [% ELSE %]
                 [% WRAPPER breadcrumb_item %]
                     <a href="/cgi-bin/koha/opac-search.pl">Advanced search</a>
@@ -95,8 +86,8 @@
                 [% END %]
             [% END %]
         [% ELSE %]
-            [% WRAPPER breadcrumb_item %]
-                <a href="/cgi-bin/koha/opac-search.pl">Advanced search</a>
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>You did not specify any search criteria</span>
             [% END %]
         [% END %]
     [% END #/ WRAPPER breadcrumbs %]
