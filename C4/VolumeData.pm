@@ -256,7 +256,8 @@ sub hasLinkToRecord {
     return 0 if ( $refnumber eq '' );
 
     foreach my $field (
-        $marcrecord->field( '770', '772', '773', '774', '775', '776', '777', '780', '785', '787', '800', '810', '811' ) )
+        $marcrecord->field( '770', '772', '773', '774', '775', '776', '777', '780', '785', '787', '800', '810', '811' )
+        )
     {
         foreach my $value ( $field->subfield('w') ) {
             next if ( !defined($value) );
@@ -265,7 +266,7 @@ sub hasLinkToRecord {
             return 1 if ( $value eq $refnumber );
             if ( $value =~ /^\(([^\)]*)\)\s*(.*)$/ ) {
                 my ( $code, $number ) = ( $1, $2 );
-                next if ( $number ne $refnumber );
+                next     if ( $number ne $refnumber );
                 return 1 if ( !$orgcode || $code eq $orgcode );
             }
         }
