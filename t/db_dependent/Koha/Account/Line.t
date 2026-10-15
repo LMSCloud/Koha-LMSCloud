@@ -520,9 +520,13 @@ subtest 'Keep account info when related patron, staff, item, issue or cash_regis
     $line = $line->get_from_storage;
     is( $line->manager_id, undef, "The account line should not be deleted when the related staff is delete" );
 
+    my $patron_id = $patron->borrowernumber;
     $patron->delete;
     $line = $line->get_from_storage;
-    is( $line->borrowernumber, undef, "The account line should not be deleted when the related patron is delete" );
+    is(
+        $line->borrowernumber, $patron_id,
+        "The account line should not be deleted and keeps the number of the deleted patron"
+    );
 
     $register->delete;
     $line = $line->get_from_storage;
