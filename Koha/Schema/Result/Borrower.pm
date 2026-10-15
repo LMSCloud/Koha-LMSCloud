@@ -932,21 +932,6 @@ Related object: L<Koha::Schema::Result::Accountline>
 __PACKAGE__->has_many(
   "accountlines",
   "Koha::Schema::Result::Accountline",
-  { "foreign.borrowernumber" => "self.borrowernumber" },
-  { cascade_copy => 0, cascade_delete => 0 },
-);
-
-=head2 accountlines_managers
-
-Type: has_many
-
-Related object: L<Koha::Schema::Result::Accountline>
-
-=cut
-
-__PACKAGE__->has_many(
-  "accountlines_managers",
-  "Koha::Schema::Result::Accountline",
   { "foreign.manager_id" => "self.borrowernumber" },
   { cascade_copy => 0, cascade_delete => 0 },
 );
@@ -2282,8 +2267,42 @@ Composing rels: L</user_permissions> -> permission
 __PACKAGE__->many_to_many("permissions", "user_permissions", "permission");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07051 @ 2026-04-21 07:25:39
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:appTVh0IvMifpqU4Kflv9A
+# Created by DBIx::Class::Schema::Loader v0.07051 @ 2026-10-15 06:35:20
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:o3rEkQ/aiaGg0SFfqKlemA
+
+# accountlines.borrowernumber has no foreign key (account lines keep the
+# number of a deleted patron), so the loader names the manager_id relation
+# "accountlines". Both relations are defined here with their usual meaning.
+
+=head2 accountlines
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::Accountline>
+
+=cut
+
+__PACKAGE__->has_many(
+    "accountlines",
+    "Koha::Schema::Result::Accountline",
+    { "foreign.borrowernumber" => "self.borrowernumber" },
+    { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 accountlines_managers
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::Accountline>
+
+=cut
+
+__PACKAGE__->has_many(
+    "accountlines_managers",
+    "Koha::Schema::Result::Accountline",
+    { "foreign.manager_id" => "self.borrowernumber" },
+    { cascade_copy => 0, cascade_delete => 0 },
+);
 
 __PACKAGE__->belongs_to(
   "library",

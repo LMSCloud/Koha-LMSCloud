@@ -44,7 +44,6 @@ __PACKAGE__->table("accountlines");
 =head2 borrowernumber
 
   data_type: 'integer'
-  is_foreign_key: 1
   is_nullable: 1
 
 =head2 itemnumber
@@ -161,7 +160,7 @@ __PACKAGE__->add_columns(
   "old_issue_id",
   { data_type => "integer", is_foreign_key => 1, is_nullable => 1 },
   "borrowernumber",
-  { data_type => "integer", is_foreign_key => 1, is_nullable => 1 },
+  { data_type => "integer", is_nullable => 1 },
   "itemnumber",
   { data_type => "integer", is_foreign_key => 1, is_nullable => 1 },
   "date",
@@ -262,26 +261,6 @@ __PACKAGE__->has_many(
   "Koha::Schema::Result::ArticleRequest",
   { "foreign.debit_id" => "self.accountlines_id" },
   { cascade_copy => 0, cascade_delete => 0 },
-);
-
-=head2 borrowernumber
-
-Type: belongs_to
-
-Related object: L<Koha::Schema::Result::Borrower>
-
-=cut
-
-__PACKAGE__->belongs_to(
-  "borrowernumber",
-  "Koha::Schema::Result::Borrower",
-  { borrowernumber => "borrowernumber" },
-  {
-    is_deferrable => 1,
-    join_type     => "LEFT",
-    on_delete     => "SET NULL",
-    on_update     => "CASCADE",
-  },
 );
 
 =head2 branchcode
@@ -460,8 +439,32 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2026-04-14 11:43:59
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:7on5aBIcgTRWQA3VgL5m5w
+# Created by DBIx::Class::Schema::Loader v0.07051 @ 2026-10-15 06:35:20
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:xOjA8RHBEd6wPG0jSbuuLw
+
+# accountlines.borrowernumber has no foreign key: account lines keep the
+# number of a deleted patron, which the cash register reports join to
+# deletedborrowers. The loader therefore does not generate this relation.
+
+__PACKAGE__->add_columns( '+borrowernumber' => { is_foreign_key => 1 } );
+
+=head2 borrowernumber
+
+Type: belongs_to
+
+Related object: L<Koha::Schema::Result::Borrower>
+
+=cut
+
+__PACKAGE__->belongs_to(
+    "borrowernumber",
+    "Koha::Schema::Result::Borrower",
+    { borrowernumber => "borrowernumber" },
+    {
+        is_deferrable => 1,
+        join_type     => "LEFT",
+    },
+);
 
 =head2 patron
 
