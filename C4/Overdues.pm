@@ -588,10 +588,12 @@ sub UpdateFine {
     # - accumulate fines for other items
     # so we can update $itemnum fine taking in account fine caps
     while ( my $overdue = $overdues->next ) {
-        if (   defined $overdue->checkout
+        if (
+               defined $overdue->checkout
             && $overdue->checkout->issue_id == $issue_id
             && $overdue->debit_type_code eq 'OVERDUE'
-            && ( $overdue->status eq 'UNRETURNED' || $overdue->status eq 'LOST' ) )
+            && ( $overdue->status eq 'UNRETURNED' || ( $overdue->status eq 'LOST' && $overdue->amountoutstanding > 0 ) )
+            )
         {
             if ($accountline) {
                 Koha::Logger->get->debug("Not a unique accountlines record for issue_id $issue_id")
