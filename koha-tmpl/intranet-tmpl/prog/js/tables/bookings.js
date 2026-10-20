@@ -1,4 +1,4 @@
-/* global __ $biblio_to_html $date AdditionalFields AdditionalFilters BookingsTable patron_borrowernumber table_settings_bookings_table */
+/* global __ $biblio_to_html $date escape_str AdditionalFields AdditionalFilters BookingsTable patron_borrowernumber table_settings_bookings_table */
 
 // Bookings
 var bookings_table;
@@ -130,6 +130,15 @@ $(document).ready(function () {
                             defaultContent: __("Any item"),
                             render: function (data, type, row, meta) {
                                 return BookingsTable.itemContent(row);
+                            },
+                        },
+                        {
+                            data: "item.callnumber",
+                            title: __("Call number"),
+                            searchable: true,
+                            orderable: true,
+                            render: function (data, type, row, meta) {
+                                return escape_str(row.item?.callnumber ?? "");
                             },
                         },
                         {

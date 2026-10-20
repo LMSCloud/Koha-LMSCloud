@@ -740,9 +740,11 @@ modules:
               cannot_be_modified: 1
             -
               columnname: status
-              is_hidden: 1
             -
               columnname: itemdata
+            -
+              columnname: callnumber
+              is_hidden: 1
             -
               columnname: patron
             -
@@ -751,8 +753,6 @@ modules:
               columnname: start_date
             -
               columnname: end_date
-            -
-              columnname: extended_attributes
             -
               columnname: actions
               cannot_be_toggled: 1
@@ -1459,6 +1459,9 @@ modules:
               columnname: title
             -
               columnname: item
+            -
+              columnname: callnumber
+              is_hidden: 1
             -
               columnname: start_date
             -

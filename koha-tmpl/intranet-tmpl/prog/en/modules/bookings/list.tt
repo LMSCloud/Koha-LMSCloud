@@ -2,6 +2,7 @@
 [% USE Koha %]
 [% USE Asset %]
 [% USE KohaDates %]
+[% USE TablesSettings %]
 [% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
@@ -237,6 +238,7 @@
                 });
 
 
+            let table_settings = [% TablesSettings.GetTableSettings( 'catalogue', 'detail', 'bookings', 'json' ) | $raw %];
             var bookings_table_url = "/api/v1/biblios/%s/bookings".format(biblionumber);
             bookings_table = $('#bookings_table').kohaTable(
                 {
@@ -272,6 +274,15 @@
                             defaultContent: _("Any item"),
                             render: function (data, type, row, meta) {
                                 return BookingsTable.itemContent(row);
+                            },
+                        },
+                        {
+                            data: "item.callnumber",
+                            title: _("Call number"),
+                            searchable: true,
+                            orderable: true,
+                            render: function (data, type, row, meta) {
+                                return escape_str(row.item?.callnumber ?? "");
                             },
                         },
                         {
@@ -325,7 +336,7 @@
                         },
                     ],
                 },
-                undefined,
+                table_settings,
                 0,
                 additional_filters
             );
