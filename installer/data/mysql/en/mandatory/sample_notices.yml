@@ -2206,46 +2206,46 @@ tables:
         - module: reserves
           code: HOLD_CANCELLATION
           branchcode: ""
-          name: "Vormerkung storniert (EKZ)"
+          name: "Hold cancelled (EKZ)"
           is_html: 1
-          title: "Ihre Vormerkung wurde storniert"
+          title: "Your hold has been cancelled"
           message_transport_type: email
           lang: default
           content:
             - "[%- USE KohaDates -%]"
-            - "Guten Tag [% borrowers.firstname %] [% borrowers.surname %],<br>"
+            - "Dear [% borrowers.firstname %] [% borrowers.surname %],<br>"
             - "<br>"
-            - "Ihre Vormerkung für das folgende Medium wurde storniert, da der Titel nicht lieferbar ist:<br>"
+            - "Your hold on the following item has been cancelled because the title is not available:<br>"
             - "<br>"
-            - "Titel: [% biblio.title %]<br>"
-            - "Autor/in: [% biblio.author %]<br>"
-            - "Vorgemerkt am: [% reserves.reservedate | $KohaDates %]<br>"
+            - "Title: [% biblio.title %]<br>"
+            - "Author: [% biblio.author %]<br>"
+            - "Hold placed on: [% reserves.reservedate | $KohaDates %]<br>"
             - "<br>"
-            - "Falls Sie Fragen haben, wenden Sie sich bitte an Ihre Bibliothek.<br>"
+            - "If you have any questions, please contact your library.<br>"
             - "<br>"
-            - "Mit freundlichen Grüßen<br>"
+            - "Kind regards,<br>"
             - "[% branches.branchname %]"
 
         - module: reserves
           code: HOLD_CANCELLATION
           branchcode: ""
-          name: "Vormerkung storniert (EKZ)"
+          name: "Hold cancelled (EKZ)"
           is_html: 0
-          title: "Ihre Vormerkung wurde storniert"
+          title: "Your hold has been cancelled"
           message_transport_type: print
           lang: default
           content:
-            - "Guten Tag [% borrowers.firstname %] [% borrowers.surname %],"
+            - "Dear [% borrowers.firstname %] [% borrowers.surname %],"
             - ""
-            - "Ihre Vormerkung für das folgende Medium wurde storniert, da der Titel nicht lieferbar ist:"
+            - "Your hold on the following item has been cancelled because the title is not available:"
             - ""
-            - "Titel: [% biblio.title %]"
-            - "Autor/in: [% biblio.author %]"
-            - "Vorgemerkt am: [% reserves.reservedate | $KohaDates %]"
+            - "Title: [% biblio.title %]"
+            - "Author: [% biblio.author %]"
+            - "Hold placed on: [% reserves.reservedate | $KohaDates %]"
             - ""
-            - "Falls Sie Fragen haben, wenden Sie sich bitte an Ihre Bibliothek."
+            - "If you have any questions, please contact your library."
             - ""
-            - "Mit freundlichen Grüßen"
+            - "Kind regards,"
             - "[% branches.branchname %]"
 
         - module: reserves

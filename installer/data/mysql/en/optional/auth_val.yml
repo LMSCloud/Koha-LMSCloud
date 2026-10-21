@@ -323,7 +323,7 @@ tables:
 
         - category: "HOLD_CANCELLATION"
           authorised_value: "EKZ_STORNO"
-          lib: "Titel nicht lieferbar (ekz-Storno)"
+          lib: "Title not available (ekz cancellation)"
 
         # article request cancellations
         - category: "AR_CANCELLATION"
