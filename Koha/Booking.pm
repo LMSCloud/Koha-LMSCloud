@@ -160,7 +160,9 @@ sub store {
             # redundant status writes (e.g. when switching an on-site
             # checkout) that must not re-trigger clash detection
             if ( $self->in_storage && !( () = $self->_result->get_dirty_columns ) ) {
-                return $self->SUPER::store;
+                $self->SUPER::store;
+                $self->extended_attributes($extended_attributes) if $extended_attributes;
+                return;
             }
 
             if ( $self->item_id ) {

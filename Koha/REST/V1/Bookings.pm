@@ -156,12 +156,14 @@ sub update {
 
     return try {
         my $body                = $c->req->json;
-        my $extended_attributes = delete $body->{extended_attributes} // [];
+        my $extended_attributes = delete $body->{extended_attributes};
 
         # Extract and remove itemtype_id from body (it's not a database column)
         my $itemtype_id = delete $body->{itemtype_id};
 
-        my @extended_attributes = map { { 'id' => $_->{field_id}, 'value' => $_->{value} } } @{$extended_attributes};
+        # A request without extended_attributes leaves the stored values alone
+        $extended_attributes = [ map { { 'id' => $_->{field_id}, 'value' => $_->{value} } } @{$extended_attributes} ]
+            if defined $extended_attributes;
 
         $booking->set_from_api($body);
 
@@ -170,7 +172,7 @@ sub update {
             $booking->set_itemtype_filter($itemtype_id);
         }
 
-        $booking->store( { extended_attributes => \@extended_attributes } );
+        $booking->store( { extended_attributes => $extended_attributes } );
         $booking->discard_changes;
 
         return $c->render( status => 200, openapi => $c->objects->to_api($booking) );
