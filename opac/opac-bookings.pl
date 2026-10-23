@@ -28,11 +28,13 @@ use Koha::Bookings  ();
 use Koha::DateUtils qw(dt_from_string);
 use Koha::Patrons   ();
 
-use CGI         qw( -utf8 );
-use Carp        qw( croak );
-use Digest::SHA qw( sha1_base64 );
-use JSON        ();
-use Time::HiRes qw( time );
+use CGI          qw( -utf8 );
+use Carp         qw( croak );
+use Digest::SHA  qw( sha1_base64 );
+use JSON         ();
+use Scalar::Util qw( blessed );
+use Time::HiRes  qw( time );
+use Try::Tiny    qw( catch try );
 
 my $query = CGI->new;
 if ( !C4::Context->preference('OPACBookings') ) {
@@ -64,11 +66,15 @@ if ( $op eq 'list' ) {
         $biblio = Koha::Biblios->find($biblio_id);
     }
 
+    my $booking_error = $query->param('booking_error') // q{};
+    $booking_error = q{} unless $booking_error =~ /^(?:would_conflict|exceeds_max_period)$/;
+
     $template->param(
-        op       => 'list',
-        BOOKINGS => $bookings,
-        BOOKING  => { booking_id => $hash },
-        biblio   => $biblio,
+        op            => 'list',
+        BOOKINGS      => $bookings,
+        BOOKING       => { booking_id => $hash },
+        biblio        => $biblio,
+        booking_error => $booking_error,
     );
 }
 
@@ -80,16 +86,32 @@ if ( $op eq 'cud-add' ) {
     my $start_date        = dt_from_string( $query->param('start_date'), 'rfc3339' );
     my $end_date          = dt_from_string( $query->param('end_date'),   'rfc3339' );
 
-    my $booking = Koha::Booking->new(
-        {
-            patron_id         => $patron_id,
-            biblio_id         => $biblio_id,
-            item_id           => $item_id,
-            pickup_library_id => $pickup_library_id,
-            start_date        => $start_date,
-            end_date          => $end_date,
+    my ( $booking, $booking_error );
+    try {
+        $booking = Koha::Booking->new(
+            {
+                patron_id         => $patron_id,
+                biblio_id         => $biblio_id,
+                item_id           => $item_id,
+                pickup_library_id => $pickup_library_id,
+                start_date        => $start_date,
+                end_date          => $end_date,
+            }
+        )->store;
+    } catch {
+        if ( blessed $_ && $_->isa('Koha::Exceptions::Booking::Clash') ) {
+            $booking_error = 'would_conflict';
+        } elsif ( blessed $_ && $_->isa('Koha::Exceptions::Booking::DateRangeConstraint') ) {
+            $booking_error = 'exceeds_max_period';
+        } else {
+            die $_;
         }
-    )->store;
+    };
+
+    if ($booking_error) {
+        print $query->redirect("/cgi-bin/koha/opac-bookings.pl?op=list&booking_error=$booking_error") or croak;
+        exit;
+    }
 
     # Handle extended attributes if provided
     my $extended_attributes_json = $query->param('extended_attributes');

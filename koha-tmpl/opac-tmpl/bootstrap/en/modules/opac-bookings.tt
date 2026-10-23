@@ -51,6 +51,11 @@
                     <h1>Bookings</h1>
 
                     [% IF op == 'list' %]
+                        [% IF booking_error == 'would_conflict' %]
+                            <div class="alert alert-warning">Your booking could not be saved because it conflicts with another booking.</div>
+                        [% ELSIF booking_error == 'exceeds_max_period' %]
+                            <div class="alert alert-warning">Your booking could not be saved because the booking period is longer than allowed.</div>
+                        [% END %]
                         <div class="toptabs">
                             <ul class="nav nav-tabs" id="list-tabs">
                                 <li id="user-bookings-tab" class="nav-item">

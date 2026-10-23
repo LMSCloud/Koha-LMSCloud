@@ -107,6 +107,7 @@
           Bad request. Possible `error_code` attribute values:
 
             * `booking_would_conflict`
+            * `booking_exceeds_max_period`
         schema:
           $ref: ../swagger.yaml#/definitions/error
       401:
@@ -238,6 +239,7 @@
           Bad request. Possible `error_code` attribute values:
 
             * `booking_would_conflict`
+            * `booking_exceeds_max_period`
         schema:
           $ref: ../swagger.yaml#/definitions/error
       401:
@@ -291,6 +293,7 @@
           Bad request. Possible `error_code` attribute values:
 
             * `booking_would_conflict`
+            * `booking_exceeds_max_period`
         schema:
           $ref: ../swagger.yaml#/definitions/error
       401:

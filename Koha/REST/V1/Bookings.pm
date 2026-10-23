@@ -126,6 +126,14 @@ sub add {
                     error_code => "booking_would_conflict",
                 }
             );
+        } elsif ( blessed $_ and $_->isa('Koha::Exceptions::Booking::DateRangeConstraint') ) {
+            return $c->render(
+                status  => 400,
+                openapi => {
+                    error      => "Booking period exceeds the maximum allowed by circulation rules",
+                    error_code => "booking_exceeds_max_period",
+                }
+            );
         } elsif ( blessed $_ and $_->isa('Koha::Exceptions::Object::DuplicateID') ) {
             return $c->render(
                 status  => 409,
@@ -183,6 +191,14 @@ sub update {
                 openapi => {
                     error      => "Booking would conflict",
                     error_code => "booking_would_conflict",
+                }
+            );
+        } elsif ( blessed $_ and $_->isa('Koha::Exceptions::Booking::DateRangeConstraint') ) {
+            return $c->render(
+                status  => 400,
+                openapi => {
+                    error      => "Booking period exceeds the maximum allowed by circulation rules",
+                    error_code => "booking_exceeds_max_period",
                 }
             );
         }
