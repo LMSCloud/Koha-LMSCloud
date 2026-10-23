@@ -136,11 +136,6 @@ describe("Accounts", () => {
         }).as("getItemTypes");
 
         // Click the button in the toolbar
-        cy.intercept("GET", "/api/v1/item_types*", {
-            statusCode: 200,
-            body: cy.getItemTypes(),
-        });
-
         cy.visit("/cgi-bin/koha/sip2/accounts");
         cy.wait("@getAccounts");
         cy.contains("New account").click();
