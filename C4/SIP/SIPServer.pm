@@ -25,6 +25,7 @@ use C4::SIP::Sip::MsgType  qw( handle login_core );
 use C4::SIP::Logger        qw(set_logger);
 
 use Koha::Caches;
+use Koha::Cache::Memory::Lite;
 use Koha::Logger;
 
 use C4::SIP::Trapper;
@@ -268,6 +269,7 @@ sub process_request {
 
     # Flush L1 before the freshness check so it sees the current shared value, not a stale one inherited at fork.
     Koha::Caches->flush_L1_caches();
+    Koha::Cache::Memory::Lite->flush();    # also clears cached circulation rules
 
     $self->{config} = $config;
     unless ( $self->_config_up_to_date() ) {
@@ -587,6 +589,7 @@ sub read_request {
 
     # SIP connections might be active for weeks, clear L1 cache on every request
     Koha::Caches->flush_L1_caches();
+    Koha::Cache::Memory::Lite->flush();    # also clears cached circulation rules
 
     # proper SPEC: (octal) \015 = (hex) x0D = (dec) 13 = (ascii) carriage return
     my $buffer = <STDIN>;
