@@ -193,8 +193,8 @@
         <div class="modal-content">
             <form id="noticeform">
                 <div class="modal-header">
+                    <h3 id="selectAdhocNoticeLetter_label" class="modal-title">Send Notice</h3>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    <h3 id="selectAdhocNoticeLetter_label">Send Notice</h3>
                 </div>
                 <div class="modal-body">
                     <p> Please select the letter that will be used to create notices to the selected patron. Please be aware that patrons might be charged for notices depending on the defined notice fee rules. </p>
