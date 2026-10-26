@@ -41,9 +41,9 @@
                 [% ELSE %]
                     <h3>Search for patron</h3>
                 [% END %]
-                <fieldset class="action">
+                <fieldset class="action patron_search_top_action">
                     <input type="submit" class="btn btn-primary search_patron_filter_btn" value="Search" />
-                    <input type="button" value="Clear" class="clear_search" />
+                    <input type="button" value="Clear" class="btn btn-default clear_search" />
                 </fieldset>
                 <ol>
                     <li>

@@ -78,7 +78,9 @@
                                 |
                                 <a href="#" class="btn btn-link" id="clear_all"><i class="fa fa-times"></i> Clear all</a>
                                 [% IF (CAN_user_circulate_send_adhoc_notices && Koha.Preference('AdhocNoticesLetterCodes') ) %]
-                                    <button id="send_notice_letter_select" class="btn btn-sm btn-default disabled" disabled="disabled" type="submit"><i class="fa fa-compress" aria-hidden="true"></i> Send notice</button>
+                                    <div class="btn-group">
+                                        <button id="send_notice_letter_select" class="btn btn-default btn-sm disabled" disabled="disabled" type="submit"><i class="fa fa-envelope" aria-hidden="true"></i> Send notice</button>
+                                    </div>
                                 [% END %]
                                 [% IF CAN_user_tools_manage_patron_lists %]
                                 [% END %]

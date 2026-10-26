@@ -211,3 +211,30 @@ div#header_search .dateinput {
 #circ_managecashregister table td {
     padding: .3em .3em;
 }
+
+/* Search/Clear above the patron search filters, laid out like the community pair below them */
+aside fieldset.brief fieldset.action.patron_search_top_action {
+    padding-left: calc( 1rem - .7em );
+    padding-right: calc( 1rem - .7em );
+
+    input {
+        margin-left: 0;
+    }
+}
+
+@media only screen and ( min-width: 1000px ) {
+    aside fieldset.brief fieldset.action.patron_search_top_action {
+        display: flex;
+        gap: .5rem;
+
+        input {
+            display: block;
+            flex-grow: 1;
+
+            &.clear_search {
+                flex-grow: 0;
+                flex-shrink: 1;
+            }
+        }
+    }
+}
