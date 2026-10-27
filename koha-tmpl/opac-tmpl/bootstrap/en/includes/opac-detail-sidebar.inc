@@ -134,7 +134,7 @@
             <li>
                 <div id="wikipedia_menu">
                     <div class="dropdown">
-                        <a id="format" class="btn btn-link btn-lg dropdown-toggle" data-bs-toggle="dropdown" href="#"><i class="fa fa-fw fa-wikipedia-w" aria-hidden="true"></i> Wikipedia-Article <b class="caret"></b></a>
+                        <a id="format" class="btn btn-link btn-lg dropdown-toggle" data-bs-toggle="dropdown" href="#"><i class="fa-brands fa-fw fa-wikipedia-w" aria-hidden="true"></i> Wikipedia-Article <b class="caret"></b></a>
                         <div class="dropdown-menu dropdown-menu-end" aria-labelledby="format">
                             [% FOREACH MARCurl IN wikipedia_links %]
                                 <a
