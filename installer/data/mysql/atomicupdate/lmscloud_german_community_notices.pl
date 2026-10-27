@@ -4,7 +4,7 @@ use Koha::Installer::Output qw(say_info say_success);
 
 return {
     bug_number  => "",
-    description => "Translate the community notices added since 22.11 to German on upgraded databases",
+    description => "Translate the community notices added since 22.11 to German and unify their names",
     up          => sub {
         my ($args) = @_;
         my ( $dbh, $out ) = @$args{qw(dbh out)};
@@ -971,5 +971,22 @@ return {
                 say_info( $out, "$notice->{code} notice already present, skipping" );
             }
         }
+
+        # The notices list groups by name, so rows of one notice with different
+        # names per transport show up as separate notices. Name every transport
+        # after the email row, as saving the notice in the editor would.
+        my $renamed = $dbh->do(
+            q{
+            UPDATE letter l
+            JOIN letter e
+              ON  e.module = l.module AND e.code = l.code
+              AND e.branchcode = l.branchcode AND e.lang = l.lang
+              AND e.message_transport_type = 'email'
+            SET l.name = e.name, l.updated_on = l.updated_on
+            WHERE l.message_transport_type <> 'email'
+              AND l.name <> e.name
+        }
+        );
+        say_success( $out, "Aligned the names of $renamed notice transport(s)" ) if $renamed > 0;
     },
 };
