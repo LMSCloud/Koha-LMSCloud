@@ -134,7 +134,7 @@
                 v-if="!calendarEnabled && !readiness.availabilityError"
                 class="booking-calendar-placeholder"
             >
-                <i class="fa fa-calendar-o" aria-hidden="true"></i>
+                <i class="fa fa-calendar" aria-hidden="true"></i>
                 {{
                     $__(
                         "The booking calendar isn't available yet - select a patron, pickup location, and item type or item, and confirm bookings are available for this record"
