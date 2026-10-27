@@ -1592,6 +1592,17 @@ nav {
     }
 }
 
+/* OPACSearchForTitleIn links without the dropdown-item class */
+#moresearches_menu .dropdown-menu > a:not(.dropdown-item) {
+    border: 0;
+    clear: both;
+    display: block;
+    padding: var(--bs-dropdown-item-padding-y) var(--bs-dropdown-item-padding-x);
+    text-align: inherit;
+    white-space: nowrap;
+    width: 100%;
+}
+
 .hint {
     color: #727272;
     font-size: 90%;
