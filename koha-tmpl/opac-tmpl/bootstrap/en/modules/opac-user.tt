@@ -1169,6 +1169,7 @@
 [% BLOCK jsinclude %]
     [% INCLUDE 'calendar.inc' %]
     [% INCLUDE 'datatables.inc' %]
+    [% Asset.js("js/LMSResponsiveChildRow.js") | $raw %]
     [% IF Koha.Preference('OPACBookings') && BOOKINGS.count %]
         [% Asset.js("js/combobox.js") | $raw %]
         [% Asset.js("js/modals/booking/cancel.js") | $raw %]
@@ -1423,7 +1424,7 @@
                         details: {
                             type: 'column',
                             target: -1,
-                            display: $.fn.dataTable.Responsive.display.childRowImmediate
+                            display: $.fn.dataTable.Responsive.display.childRowImmediateOrNone
                         }
                     },
                     buttons: [

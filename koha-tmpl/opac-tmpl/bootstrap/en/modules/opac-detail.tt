@@ -1797,6 +1797,7 @@
         [% INCLUDE 'calendar.inc' %]
     [% END %]
     [% INCLUDE 'datatables.inc' %]
+    [% Asset.js("js/LMSResponsiveChildRow.js") | $raw %]
     [% IF ( Koha.Preference('IdRef') ) %]
         [% INCLUDE greybox.inc %]
     [% END %]
@@ -2159,7 +2160,7 @@
                         details: {
                             type: "column",
                             target: -1,
-                            display: $.fn.dataTable.Responsive.display.childRowImmediate,
+                            display: $.fn.dataTable.Responsive.display.childRowImmediateOrNone,
                         },
                     },
                 },
@@ -2174,7 +2175,7 @@
                         details: {
                             type: "column",
                             target: -1,
-                            display: $.fn.dataTable.Responsive.display.childRowImmediate,
+                            display: $.fn.dataTable.Responsive.display.childRowImmediateOrNone,
                         },
                     },
                 },
