@@ -445,13 +445,11 @@ if (RFIDWebService === undefined)
                 }
 
                 // active listener on return barcode in header search
-                var returnBarcodeField = $("#checkin_search #ret_barcode");
+                var returnBarcodeField = $("#ret_barcode");
                 if (returnBarcodeField.length) {
                     returnBarcodeField.keydown(function (event) {
                         if (event.which == RFIDWebService.actionKey) {
-                            var barvalue = $(
-                                "#checkin_search #ret_barcode"
-                            ).val();
+                            var barvalue = $("#ret_barcode").val();
                             if (barvalue == "" || barvalue == " ") {
                                 event.preventDefault();
                                 RFIDWebService.ReadTagsAndStartAction(
