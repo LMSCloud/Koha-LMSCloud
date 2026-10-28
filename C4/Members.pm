@@ -428,7 +428,7 @@ sub IssueSlip {
                     lastreneweddate => { '>=' => $today_start, '<=' => $today_end, }
                 }
             },
-            { order_by => [ { -desc => 'date_due' }, { -desc => 'me.timestamp' }, { -desc => 'issuedate' } ] }
+            { order_by => [ { -asc => 'date_due' }, { -desc => 'me.timestamp' }, { -desc => 'issuedate' } ] }
         );
         my @checkouts;
 
@@ -457,7 +457,7 @@ sub IssueSlip {
         # Checkouts due in the future
         my $checkouts = $pending_checkouts->search(
             { date_due => { '>' => $today } },
-            { order_by => [ { -desc => 'date_due' }, { -desc => 'me.timestamp' }, { -desc => 'issuedate' } ] }
+            { order_by => [ { -asc => 'date_due' }, { -desc => 'me.timestamp' }, { -desc => 'issuedate' } ] }
         );
         my @checkouts;
         my @overdues;
@@ -477,7 +477,7 @@ sub IssueSlip {
         # Checkouts due in the past are overdues
         my $overdues = $pending_checkouts->search(
             { date_due => { '<=' => $today } },
-            { order_by => [ { -desc => 'date_due' }, { -desc => 'me.timestamp' }, { -desc => 'issuedate' } ] }
+            { order_by => [ { -asc => 'date_due' }, { -desc => 'me.timestamp' }, { -desc => 'issuedate' } ] }
         );
 
         # as_list rather than next: the resultset prefetches related rows and

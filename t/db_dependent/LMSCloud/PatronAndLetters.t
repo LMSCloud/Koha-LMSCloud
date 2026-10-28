@@ -19,13 +19,15 @@
 
 use Modern::Perl;
 
-use Test::More tests => 6;
+use Test::More tests => 7;
 use Test::NoWarnings;
 
 use C4::Context;
 use C4::Letters qw( GetAdhocNoticeLetters GetMessagesById EnqueueLetter GetPreparedLetter );
+use C4::Members qw( IssueSlip );
 
 use Koha::Database;
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Notice::Messages;
 use Koha::Patron::Relationships;
 use Koha::Patrons;
@@ -390,6 +392,65 @@ subtest 'GetPreparedLetter does not evaluate Template Toolkit syntax in data' =>
 
     like( $letter->{content}, qr/^List: \Q$tt\E$/m, 'A substitute value is inserted as text' );
     like( $letter->{content}, qr/^\Q$tt\E$/m,       'A table value in a repeated block is inserted as text' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'IssueSlip lists checkouts and overdues by ascending due date' => sub {
+    plan tests => 2;
+
+    $schema->storage->txn_begin;
+
+    my $library = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $patron  = $builder->build_object(
+        { class => 'Koha::Patrons', value => { branchcode => $library->branchcode, lang => 'default' } } );
+
+    $builder->build_object(
+        {
+            class => 'Koha::Notice::Templates',
+            value => {
+                module                 => 'circulation',
+                code                   => 'ISSUESLIP',
+                branchcode             => $library->branchcode,
+                lang                   => 'default',
+                message_transport_type => 'email',
+                is_html                => 0,
+                title                  => 'Slip',
+                content => "<checkedout><<items.barcode>> </checkedout>|<overdue><<items.barcode>> </overdue>",
+            }
+        }
+    );
+
+    my $now                 = dt_from_string;
+    my %barcode_due_in_days = ( later => 3, sooner => 1, middle => 2, overdue_older => -2, overdue_newer => -1 );
+    while ( my ( $barcode, $days ) = each %barcode_due_in_days ) {
+        my $item = $builder->build_sample_item( { library => $library->branchcode, barcode => $barcode } );
+        $builder->build_object(
+            {
+                class => 'Koha::Checkouts',
+                value => {
+                    borrowernumber  => $patron->borrowernumber,
+                    itemnumber      => $item->itemnumber,
+                    branchcode      => $library->branchcode,
+                    date_due        => $now->clone->add( days => $days ),
+                    issuedate       => $now->clone->subtract( days => 5 ),
+                    returndate      => undef,
+                    lastreneweddate => undef,
+                    onsite_checkout => 0,
+                }
+            }
+        );
+    }
+
+    my ( $checkouts, $overdues ) = split /\|/, IssueSlip( $library->branchcode, $patron->borrowernumber )->{content};
+    is_deeply(
+        [ split ' ', $checkouts ], [qw( sooner middle later )],
+        'Checkouts are listed from the earliest due date on'
+    );
+    is_deeply(
+        [ split ' ', $overdues ], [qw( overdue_older overdue_newer )],
+        'Overdues are listed from the earliest due date on'
+    );
 
     $schema->storage->txn_rollback;
 };
