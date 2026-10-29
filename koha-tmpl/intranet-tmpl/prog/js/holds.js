@@ -107,6 +107,10 @@ function display_pickup_location(state) {
 
 /* global __ borrowernumber SuspendHoldsIntranet */
 $(document).ready(function () {
+    window.coded_values = {
+        library: new Map(all_libraries.map(l => [l.branchname, l.branchcode])),
+    };
+
     let patron_page = holds_table_patron_page();
     function suspend_hold(hold_ids, end_date) {
         var params = { hold_ids: hold_ids };
@@ -147,6 +151,7 @@ $(document).ready(function () {
         var holds = new Array();
         if (!holdsTable) {
             var title;
+
             holdsTable = $("#holds-table").kohaTable(
                 {
                     autoWidth: false,
@@ -402,6 +407,10 @@ $(document).ready(function () {
                             visible: SuspendHoldsIntranet,
                             data: function (oObj) {
                                 holds[oObj.reserve_id] = oObj; //Store holds for later use
+
+                                if (!SuspendHoldsIntranet) {
+                                    return "";
+                                }
 
                                 if (oObj.found) {
                                     return "";
@@ -1531,24 +1540,25 @@ async function load_patron_holds_table(biblio_id, split_data) {
                     },
                 },
                 {
-                    data: "patron.cardnumber",
+                    data: HidePatronName
+                        ? "patron.cardnumber"
+                        : "patron.surname:patron.firstname:patron.cardnumber",
                     orderable: true,
                     searchable: true,
                     render: function (data, type, row, meta) {
-                        if (data == null) {
-                            let library = libraries.find(
+                        if (row.patron == null) {
+                            let library = all_libraries.find(
                                 library => library._id == row.pickup_library_id
                             );
                             return __("A patron from library %s").format(
-                                library.name
+                                library ? library._str : row.pickup_library_id
                             );
-                        } else {
-                            return $patron_to_html(row.patron, {
-                                url: true,
-                                display_cardnumber: true,
-                                hide_patron_name: HidePatronName,
-                            });
                         }
+                        return $patron_to_html(row.patron, {
+                            url: true,
+                            display_cardnumber: true,
+                            hide_patron_name: HidePatronName,
+                        });
                     },
                 },
                 {
@@ -1610,8 +1620,9 @@ async function load_patron_holds_table(biblio_id, split_data) {
                 },
                 {
                     data: "pickup_library_id",
+                    datatype: "coded_value:library",
                     orderable: true,
-                    searchable: false,
+                    searchable: true,
                     render: function (data, type, row, meta) {
                         var branchSelect =
                             "<select priority=" +

@@ -75,16 +75,18 @@ function togglePanel(node) {
     }
 }
 
-function apply_sticky(nodes) {
-    if (nodes) {
-        const observer = new IntersectionObserver(
-            ([e]) =>
-                e.target.classList.toggle("floating", e.intersectionRatio < 1),
-            { threshold: [1] }
-        );
+function apply_sticky(node) {
+    if (!node) return;
 
-        observer.observe(nodes);
-    }
+    const onScroll = () => {
+        const rect = node.getBoundingClientRect();
+        node.classList.toggle("floating", rect.top <= 0);
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+
+    return () => window.removeEventListener("scroll", onScroll);
 }
 
 $(document).ready(function () {

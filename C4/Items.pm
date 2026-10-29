@@ -1071,7 +1071,8 @@ sub _SearchItems_build_where_fragment {
         }
         my $where_str = '';
         if (@where_strs) {
-            $where_str      = '(' . join( ' ' . $filter->{conjunction} . ' ', @where_strs ) . ')';
+            my $conjunction = uc( $filter->{conjunction} // q{} ) eq 'OR' ? 'OR' : 'AND';
+            $where_str      = sprintf '(%s)', join( " $conjunction ", @where_strs );
             $where_fragment = {
                 str  => $where_str,
                 args => \@where_args,
@@ -1169,10 +1170,18 @@ sub _SearchItems_build_where_fragment {
                     };
                 }
             } elsif ( $op eq 'is' ) {
-                $where_fragment = {
-                    str  => "$column $op $query",
-                    args => [],
-                };
+                my $str = "";
+                if ( $query =~ /^null$/i ) {
+                    $str = "$column is null";
+                } elsif ( $query =~ /^not null$/i ) {
+                    $str = "$column is not null";
+                }
+                if ($str) {
+                    $where_fragment = {
+                        str  => $str,
+                        args => [],
+                    };
+                }
             } else {
                 if ( defined( $filter->{'handleNullLikeValue'} ) )
                 { # $filter->{'handleNullLikeValue'} specifies that a items record where items.$column IS NULL should be treated like a items record where items.$column = $filter->{'handleNullLikeValue'} (e.g. 0, or '')
@@ -1278,6 +1287,8 @@ sub SearchItems {
     $params->{sortorder} ||= 'ASC';
 
     my ( $where_str, @where_args );
+
+    #FIXME: Use SQL::Abstract to build the WHERE clause rather than this custom function
     my $where_fragment = _SearchItems_build_where_fragment($filter);
     if ($where_fragment) {
         $where_str  = $where_fragment->{str};

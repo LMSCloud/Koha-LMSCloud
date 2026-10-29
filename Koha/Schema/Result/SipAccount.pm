@@ -178,6 +178,7 @@ Pipe-delimited list of item types for which checkin is forbidden
 =head2 holds_get_captured
 
   data_type: 'tinyint'
+  default_value: 1
   is_nullable: 1
 
 =head2 inhouse_item_types
@@ -350,7 +351,7 @@ __PACKAGE__->add_columns(
   "holds_block_checkin",
   { data_type => "tinyint", is_nullable => 1 },
   "holds_get_captured",
-  { data_type => "tinyint", is_nullable => 1 },
+  { data_type => "tinyint", default_value => 1, is_nullable => 1 },
   "inhouse_item_types",
   { data_type => "varchar", is_nullable => 1, size => 255 },
   "inhouse_patron_categories",
@@ -564,7 +565,7 @@ __PACKAGE__->belongs_to(
 
 
 # Created by DBIx::Class::Schema::Loader v0.07051 @ 2026-09-18 07:51:04
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:zcQxOlQ9rgT5fmmH/iHNKw
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:SHzUXKgXZCapmUjPg98j8Q
 
 
 __PACKAGE__->add_columns(

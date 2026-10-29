@@ -225,6 +225,8 @@
                             <span>Target item is not for loan</span>
                         [% CASE 'damaged' %]
                             <span>Target item is damaged</span>
+                        [% CASE 'invalidPickupBranch' %]
+                            <span>Target item/record is an invalid pickup location</span>
                         [% CASE %]
                             <span>Error: [% fail.error | html %]</span>
                         [% END %]
@@ -1559,6 +1561,11 @@
         var AutoResumeSuspendedHolds = [% ( Koha.Preference('AutoResumeSuspendedHolds') ) ? 1 : 0 | html %];
         var AllowHoldDateInFuture = [% ( Koha.Preference('AllowHoldDateInFuture') ) ? 1 : 0 | html %];
         var HidePatronName = [% ( Koha.Preference('HidePatronName') ) ? 1 : 0 | html %];
+        var all_libraries = [% To.json(Branches.all) | $raw %].map(e => {
+            e['_id'] = e.branchcode;
+            e['_str'] = e.branchname;
+            return e;
+        });
         var CAN_user_reserveforothers_modify_holds_priority = [%CAN_user_reserveforothers_modify_holds_priority ? 1 : 0 | html %];
         var borrowernumber = "[% patron.borrowernumber | $raw %]";
         var patron_homebranch = "[% To.json( Branches.GetName( patron.branchcode ) ) | $raw %]";

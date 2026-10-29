@@ -37,7 +37,7 @@ use t::lib::Mocks;
 use t::lib::TestBuilder;
 
 use Test::NoWarnings;
-use Test::More tests => 15;
+use Test::More tests => 16;
 
 use Test::Warn;
 
@@ -663,6 +663,85 @@ subtest 'SearchItems test' => sub {
         t::lib::Mocks::mock_preference( 'SearchWithISSNVariations', 1 );
         ( $items, $total_results ) = SearchItems($filter_issn);
         is( $total_results, 1, "Search items finds ISSN with variations" );
+    };
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'SearchItems security tests' => sub {
+    plan tests => 7;
+
+    $schema->storage->txn_begin;
+
+    my $builder = t::lib::TestBuilder->new;
+    $builder->build_sample_item;
+    $builder->build_sample_item;
+
+    my ( $items, $total, $baseline_total );
+
+    ( undef, $baseline_total ) = SearchItems( {} );
+
+    # A time-based blind SQL injection payload. If it were interpolated into the
+    # SQL as-is, it would either error out, delay the response by 5 seconds, or
+    # (since SLEEP() returns 0/false) filter out every row - never matching the
+    # baseline count. The fix must recognise this is not a valid 'is'/'is not'
+    # value and drop the filter instead of building SQL from it.
+    my $sqli_payload = q{NULL) AND (SELECT 2540 FROM (SELECT(SLEEP(5)))xfIp)-- gHSR};
+    ( $items, $total ) = SearchItems( { field => 'homebranch', operator => 'is', query => $sqli_payload } );
+    is(
+        $total, $baseline_total,
+        "SQL injection payload is not executed - filter is dropped, count matches unfiltered baseline"
+    );
+
+    ($items) = SearchItems( { field => 'homebranch', operator => 'is', query => 'test' } );
+    ok( defined $items, "Invalid 'is' query does not throw a fatal error" );
+
+    ($items) = SearchItems( { field => 'homebranch', operator => 'is', query => 'null' } );
+    ok( defined $items, "'is null' query still works" );
+
+    ($items) = SearchItems( { field => 'homebranch', operator => 'is', query => 'NULL' } );
+    ok( defined $items, "'is NULL' query still works (case-insensitive)" );
+
+    ($items) = SearchItems( { field => 'homebranch', operator => 'is', query => 'not null' } );
+    ok( defined $items, "'is not null' query still works" );
+
+    ($items) = SearchItems( { field => 'homebranch', operator => 'is', query => 'not Null' } );
+    ok( defined $items, "'is not Null' query still works (case-insensitive)" );
+
+    subtest 'conjunction' => sub {
+        plan tests => 6;
+
+        my $item_1 = $builder->build_sample_item;
+        my $item_2 = $builder->build_sample_item;
+
+        my $build_filter = sub {
+            my ($conjunction) = @_;
+            return {
+                conjunction => $conjunction,
+                filters     => [
+                    { field => 'itemnumber', query => $item_1->itemnumber, operator => '=' },
+                    { field => 'itemnumber', query => $item_2->itemnumber, operator => '=' },
+                ],
+            };
+        };
+
+        ( undef, $total ) = SearchItems( $build_filter->('AND') );
+        is( $total, 0, "AND is applied" );
+
+        ( undef, $total ) = SearchItems( $build_filter->('OR') );
+        is( $total, 2, "OR is applied" );
+
+        ( undef, $total ) = SearchItems( $build_filter->('or') );
+        is( $total, 2, "or is applied" );
+
+        ( undef, $total ) = SearchItems( $build_filter->(undef) );
+        is( $total, 0, "defaults to AND" );
+
+        ( undef, $total ) = SearchItems( $build_filter->('OR 1=1 OR') );
+        is( $total, 0, "No SQL injection - defaults to 'AND'" );
+
+        ( undef, $total ) = SearchItems( $build_filter->('OR (SELECT SLEEP(5)) OR') );
+        is( $total, 0, "No SQL injection with SLEEP - defaults to 'AND'" );
     };
 
     $schema->storage->txn_rollback;

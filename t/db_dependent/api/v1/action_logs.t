@@ -18,7 +18,7 @@
 use Modern::Perl;
 
 use Test::NoWarnings;
-use Test::More tests => 6;
+use Test::More tests => 7;
 use Test::Mojo;
 
 use Mojo::JSON qw( encode_json );
@@ -136,7 +136,10 @@ subtest 'q DSL: multi-value, like, range' => sub {
     is( scalar @{ $t->tx->res->json }, 2, 'like operator on info matches both biblio rows' );
 
     # Object filter via typed param
-    $t->get_ok("//$userid:$password@/api/v1/action_logs?object=42")->status_is(200);
+    # _match=exact is required: the default 'contains' matching does a LIKE
+    # match even on integer columns, so plain ?object=42 would also match
+    # object values like 420 or 142.
+    $t->get_ok("//$userid:$password@/api/v1/action_logs?object=42&_match=exact")->status_is(200);
     is( scalar @{ $t->tx->res->json }, 2, 'object filter returns rows for object 42' );
 
     # Combined filter
@@ -189,6 +192,63 @@ subtest 'embeds' => sub {
         $patron->borrowernumber,
         'embedded patron.patron_id matches the row object'
     );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'item embed (CIRCULATION)' => sub {
+    plan tests => 14;
+    $schema->storage->txn_begin;
+
+    my ( $librarian, $patron, $password ) = build_fixtures();
+    my $userid = $librarian->userid;
+    my $auth   = { Authorization => _basic( $userid, $password ) };
+
+    my $item = $builder->build_sample_item;
+
+    # ISSUE/RENEWAL log a JSON payload carrying the itemnumber; RETURN logs a
+    # bare itemnumber string. Both must resolve to the same embedded item.
+    my $json_info = encode_json(
+        {
+            issue         => 1,
+            branchcode    => $item->homebranch,
+            itemnumber    => $item->itemnumber,
+            confirmations => [],
+            forced        => [],
+        }
+    );
+    logaction( 'CIRCULATION', 'ISSUE',  $patron->borrowernumber, $json_info,        'INTRANET' );
+    logaction( 'CIRCULATION', 'RETURN', $patron->borrowernumber, $item->itemnumber, 'INTRANET' );
+    logaction( 'MEMBERS',     'MODIFY', $patron->borrowernumber, 'no item here',    'INTRANET' );
+
+    # JSON payload (ISSUE): item resolved from info.itemnumber
+    $t->get_ok( "/api/v1/action_logs?module=CIRCULATION&action=ISSUE" => { 'x-koha-embed' => 'item', %$auth } )
+        ->status_is(200);
+    my $issue = $t->tx->res->json->[0];
+    is( $issue->{item}->{item_id},     $item->itemnumber,   'ISSUE: embedded item_id from JSON info' );
+    is( $issue->{item}->{external_id}, $item->barcode,      'ISSUE: embedded barcode (external_id)' );
+    is( $issue->{item}->{biblio_id},   $item->biblionumber, 'ISSUE: embedded biblio_id' );
+
+    # Bare itemnumber payload (RETURN)
+    $t->get_ok( "/api/v1/action_logs?module=CIRCULATION&action=RETURN" => { 'x-koha-embed' => 'item', %$auth } )
+        ->status_is(200);
+    is( $t->tx->res->json->[0]->{item}->{external_id}, $item->barcode, 'RETURN: item resolved from bare itemnumber' );
+
+    # Non-CIRCULATION row: item is null even when the embed is requested
+    $t->get_ok( "/api/v1/action_logs?module=MEMBERS" => { 'x-koha-embed' => 'item', %$auth } )->status_is(200);
+    is( $t->tx->res->json->[0]->{item}, undef, 'non-CIRCULATION row has null item' );
+
+    # Deleted item: CIRCULATION row whose itemnumber no longer exists -> null
+    my $gone    = $builder->build_sample_item;
+    my $gone_id = $gone->itemnumber;
+    $gone->delete;
+    logaction(
+        'CIRCULATION', 'RENEWAL', $patron->borrowernumber, encode_json( { itemnumber => $gone_id } ),
+        'INTRANET'
+    );
+    $t->get_ok( "/api/v1/action_logs?module=CIRCULATION&action=RENEWAL" => { 'x-koha-embed' => 'item', %$auth } )
+        ->status_is(200);
+    is( $t->tx->res->json->[0]->{item}, undef, 'deleted item resolves to null' );
 
     $schema->storage->txn_rollback;
 };

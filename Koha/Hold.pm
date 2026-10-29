@@ -214,14 +214,32 @@ sub move_hold {
         $new_itemnumber   = $item->itemnumber;
         $new_biblionumber = $item->biblionumber;
 
+        # need to make sure the item is being moved to a valid pickup location
+        return { success => 0, error => 'invalidPickupBranch' } unless $self->_pickup_valid_for_item( $item, $patron );
+
         $canReserve = C4::Reserves::CanItemBeReserved( $patron, $item, $self->branchcode, { ignore_hold_counts => 1 } );
     } elsif ( $args->{new_biblionumber} ) {
         $new_biblionumber = $args->{new_biblionumber};
+
+        # for record level holds we must check to make sure there is at least 1 item on the record that can fulfill the new hold
+        my @items = Koha::Items->search( { biblionumber => $new_biblionumber } )->as_list;
+
+        return { success => 0, error => 'noItemsOnBib' } unless @items;
+
+        my $valid_pickup_item = 0;
+        foreach my $candidate_item (@items) {
+            if ( $self->_pickup_valid_for_item( $candidate_item, $patron ) ) {
+                $valid_pickup_item = 1;
+                last;
+            }
+        }
+        return { success => 0, error => 'invalidPickupBranch' } unless $valid_pickup_item;
 
         $canReserve = C4::Reserves::CanBookBeReserved(
             $patron->borrowernumber, $new_biblionumber, $self->branchcode,
             { ignore_hold_counts => 1 }
         );
+
     } else {
         return { success => 0, error => 'Missing itemnumber or biblionumber' };
     }
@@ -1415,6 +1433,30 @@ sub strings_map {
     }
 
     return $strings;
+}
+
+=head3 _pickup_valid_for_item
+
+Helper method to determine if the pickup location for an item is valid when a hold is moved.
+Returns true if the pickup location is valid.
+
+=cut
+
+sub _pickup_valid_for_item {
+    my ( $self, $item, $patron ) = @_;
+
+    my $branchitemrule = C4::Circulation::GetBranchItemRule(
+        Koha::Policy::Holds->holds_control_library( $item, $patron ),
+        $item->effective_itemtype
+    );
+
+    my $policy = $branchitemrule->{hold_fulfillment_policy};
+
+    return 0
+        if ( $policy eq 'homebranch' || $policy eq 'holdingbranch' )
+        && $self->branchcode ne $item->$policy;
+
+    return 1;
 }
 
 =head2 Internal methods

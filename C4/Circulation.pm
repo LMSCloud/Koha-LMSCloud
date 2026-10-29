@@ -1971,7 +1971,7 @@ sub AddIssue {
 
             # If it costs to borrow this book, charge it to the patron's account.
             my ( $charge, $itemtype ) = GetIssuingCharges( $item_object->itemnumber, $patron->borrowernumber );
-            if ( $charge && $charge > 0 && $addIssuingRentalFee ) {
+            if ( $charge > 0 && $addIssuingRentalFee ) {
                 AddIssuingCharge( $issue, $charge, 'RENT' );
             }
 
@@ -3565,17 +3565,13 @@ sub CanBookBeRenewed {
 
         # If its cron, tell it it's too soon for a an auto renewal
         return ( 0, $auto_renew, { soonest_renew_date => $soonest } ) if $cron;
-
-        # Check if it's too soon for a manual renewal
-        my $soonestManual = GetSoonestRenewDate( $patron, $issue );
-        if ( $soonestManual > dt_from_string() ) {
-            return ( 0, "too_soon", { soonest_renew_date => $soonestManual } ) unless $override_limit;
-        }
     }
 
-    $soonest = GetSoonestRenewDate( $patron, $issue );
-    if ( $soonest > dt_from_string() ) {
-        return ( 0, "too_soon", { soonest_renew_date => $soonest } ) unless $override_limit;
+    unless ($cron) {
+        $soonest = GetSoonestRenewDate( $patron, $issue );
+        if ( $soonest > dt_from_string() ) {
+            return ( 0, "too_soon", { soonest_renew_date => $soonest } ) unless $override_limit;
+        }
     }
 
     return ( 0, "too_many" ) if $hasToMany;
@@ -4245,7 +4241,7 @@ sub GetIssuingCharges {
     my $patron;
     if ( my $item_data = $sth->fetchrow_hashref ) {
         $item_type = $item_data->{itemtype};
-        $charge    = $item_data->{rentalcharge};
+        $charge    = $item_data->{rentalcharge} || 0;
         if ($charge) {
 
             # FIXME This should follow CircControl

@@ -1112,9 +1112,9 @@ function _dt_add_filters(table_node, table_dt, filters_options = {}) {
                             optionValue = `^${this._id}$`;
                         }
 
-                        let o = $(
-                            `<option value="${optionValue}">${this._str}</option>`
-                        );
+                        let o = $("<option></option>")
+                            .val(optionValue)
+                            .text(this._str);
 
                         // Compare with lc, or selfreg won't match ^SELFREG$ for instance, see bug 32517
                         // This is only for category, we might want to apply it only in this case.
@@ -1122,7 +1122,10 @@ function _dt_add_filters(table_node, table_dt, filters_options = {}) {
                         if (
                             existing_search === this._id ||
                             (existing_search &&
-                                this._id.toLowerCase().match(existing_search))
+                                this._id
+                                    .toString()
+                                    .toLowerCase()
+                                    .match(existing_search))
                         ) {
                             o.prop("selected", "selected");
                         }
@@ -1283,6 +1286,13 @@ function _dt_save_restore_state(table_settings, external_filter_nodes = {}) {
         );
     };
     let stateLoadParams = function (settings, data) {
+        // The user choices are part of the column state, which is saved on
+        // every draw. They must be restored even when the search state is not.
+        if (data.user_choices) {
+            const tableId = settings.nTable.id;
+            kohaTableUserChoices[tableId] = data.user_choices;
+        }
+
         if (!$("#" + settings.nTable.id).data("loaded_from_state")) return;
 
         if (data.external_filters) {

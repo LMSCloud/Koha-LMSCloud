@@ -450,7 +450,7 @@ subtest "CanBookBeRenewed AllowRenewalIfOtherItemsAvailable multiple borrowers a
 };
 
 subtest "GetIssuingCharges tests" => sub {
-    plan tests => 4;
+    plan tests => 5;
     my $branch_discount    = $builder->build_object( { class => 'Koha::Libraries' } );
     my $branch_no_discount = $builder->build_object( { class => 'Koha::Libraries' } );
     Koha::CirculationRules->set_rule(
@@ -474,19 +474,28 @@ subtest "GetIssuingCharges tests" => sub {
             value => { rentalcharge => 0 }
         }
     );
+    my $itype_null_charge = $builder->build_object(
+        {
+            class => 'Koha::ItemTypes',
+            value => { rentalcharge => undef }
+        }
+    );
     my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
     my $item_1 = $builder->build_sample_item( { itype => $itype_charge->itemtype } );
     my $item_2 = $builder->build_sample_item( { itype => $itype_no_charge->itemtype } );
+    my $item_3 = $builder->build_sample_item( { itype => $itype_null_charge->itemtype } );
 
-    t::lib::Mocks::mock_userenv( { branchcode => $branch_no_discount->branchcode } );
+    t::lib::Mocks::mock_userenv( { patron => $patron, branchcode => $branch_no_discount->branchcode } );
 
     # For now the sub always uses the env branch, this should follow CircControl instead
     my ( $charge, $itemtype ) = GetIssuingCharges( $item_1->itemnumber, $patron->borrowernumber );
     is( $charge + 0, 10.00, "Charge fetched correctly when no discount exists" );
     ( $charge, $itemtype ) = GetIssuingCharges( $item_2->itemnumber, $patron->borrowernumber );
     is( $charge + 0, 0.00, "Charge fetched correctly when no discount exists and no charge" );
+    ( $charge, $itemtype ) = GetIssuingCharges( $item_3->itemnumber, $patron->borrowernumber );
+    is( $charge, 0, "NULL rentalcharge returns 0, not undef" );
 
-    t::lib::Mocks::mock_userenv( { branchcode => $branch_discount->branchcode } );
+    t::lib::Mocks::mock_userenv( { patron => $patron, branchcode => $branch_discount->branchcode } );
 
     # For now the sub always uses the env branch, this should follow CircControl instead
     ( $charge, $itemtype ) = GetIssuingCharges( $item_1->itemnumber, $patron->borrowernumber );
@@ -498,7 +507,7 @@ subtest "GetIssuingCharges tests" => sub {
 
 my ( $reused_itemnumber_1, $reused_itemnumber_2 );
 subtest "CanBookBeRenewed tests" => sub {
-    plan tests => 114;
+    plan tests => 117;
 
     C4::Context->set_preference( 'ItemsDeniedRenewal', '' );
 
@@ -1127,6 +1136,14 @@ subtest "CanBookBeRenewed tests" => sub {
     is( $renewokay,                  1,            'Bug 25393: Can auto renew' );
     is( $error,                      'auto_renew', 'Bug 25393: Can auto renew' );
     is( $info->{soonest_renew_date}, undef, "soonest_renew_date is not returned because this issue can be renewed" );
+
+    $dbh->do(q{UPDATE circulation_rules SET rule_value = '1' WHERE rule_name = 'norenewalbefore'});
+    Koha::Cache::Memory::Lite->flush();
+    ( $renewokay, $error, $info ) = CanBookBeRenewed( $renewing_borrower_obj, $auto_renew_issue, undef, 1 );
+    is( $renewokay,                  1,            'Bug 42298: No autorenew before rule is respected' );
+    is( $error,                      'auto_renew', 'Bug 42298: No autorenew before rule is respected' );
+    is( $info->{soonest_renew_date}, undef, "soonest_renew_date is not returned because this issue can be renewed" );
+    $dbh->do(q{UPDATE circulation_rules SET rule_value = '99' WHERE rule_name = 'norenewalbefore'});
 
     $renewing_borrower_obj->autorenew_checkouts(0)->store;
     ( $renewokay, $error ) = CanBookBeRenewed( $renewing_borrower_obj, $auto_renew_issue );
