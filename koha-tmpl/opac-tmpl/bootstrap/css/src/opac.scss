@@ -3410,6 +3410,10 @@ nav .pagination {
 	margin-top: 6px;
 	background: white;
 }
+/* Search suggestions above the sticky results toolbar (.sticky, z-index 999) */
+.ui-autocomplete.ui-front {
+    z-index: 1000;
+}
 #search-facets h4 a, #menu h4 a {
 	height: 27px;
 }
