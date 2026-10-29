@@ -553,15 +553,22 @@ function wireEnhancements(
         enhancementOptions && enhancementOptions.quickToggles === true;
     if (!isFeatureEnabled(variant, "customEnhancements") && !wantQuickToggles)
         return;
-    dataTable.on("init.dt", function () {
+    /**
+     * Apply the enhancements that live in the filter row
+     * @param {boolean} withQuickToggles - Also bind the quick toggle buttons
+     */
+    const enhanceFilterRow = withQuickToggles => {
         enhanceBookingTableFilters(
             dataTable,
             tableElement,
             additionalFilters,
             filterManager,
-            enhancementOptions
+            withQuickToggles
+                ? enhancementOptions
+                : { ...enhancementOptions, quickToggles: false }
         );
         updateDynamicFilterDropdowns(tableElement, filterManager);
+        restoreSelectFilterValues(dataTable, tableElement);
 
         // Enhance itemtype filter to expand parent selections to include children
         const parentMap =
@@ -576,9 +583,41 @@ function wireEnhancements(
                 groups || []
             );
         }
+    };
+
+    dataTable.on("init.dt", function () {
+        enhanceFilterRow(true);
+    });
+    // kohaTable rebuilds the filter row whenever a column is shown or hidden;
+    // the quick toggle buttons sit outside it and keep their bindings
+    dataTable.on("column-visibility.dt", function () {
+        enhanceFilterRow(false);
     });
     dataTable.on("xhr.dt", function () {
         updateDynamicFilterDropdowns(tableElement, filterManager);
+    });
+}
+
+/**
+ * Select the active column search in dropdown filters that came back empty,
+ * such as those filled from table data after kohaTable rebuilt the filter row
+ * @param {any} dataTable - The DataTables instance
+ * @param {jQuery|string} tableElement - The table element or selector
+ */
+function restoreSelectFilterValues(dataTable, tableElement) {
+    const $root = $(/** @type {any} */ (tableElement));
+    const filterRowIndex = BOOKING_TABLE_CONSTANTS.FILTER_ROW_INDEX;
+    $root.find("thead tr:eq(" + filterRowIndex + ") th").each(function () {
+        const $select = $(this).find("select");
+        if ($select.length === 0 || $select.val()) return;
+        const column = dataTable.column(this);
+        if (typeof column.index() === "undefined") return;
+        const search = column.search();
+        if (!search) return;
+        const match = $select
+            .find("option")
+            .filter((_i, option) => $(option).val() === search);
+        if (match.length) $select.val(search);
     });
 }
 
@@ -639,6 +678,14 @@ function enhanceItemTypeFilterSearch(
 
         const $select = $th.find("select");
         if ($select.length === 0) return;
+
+        // Show the selection still applied through additionalFilters (the
+        // parent comes first when it expands to its children)
+        const current = additionalFilters["item.item_type_id"];
+        if (typeof current === "function") {
+            const value = current();
+            $select.val(Array.isArray(value) ? value[0] : value);
+        }
 
         // Replace the default change handler with one that uses additionalFilters
         $select.off("keyup change").on("change", function () {

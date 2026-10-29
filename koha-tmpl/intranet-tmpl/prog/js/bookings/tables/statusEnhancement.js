@@ -70,7 +70,9 @@ export function enhanceStatusFilter(
             }
         });
         statusDropdown.append(`<option value="all">${__("All")}</option>`);
-        statusDropdown.val("active-pending");
+        statusDropdown.val(
+            filterManager.selectedSyntheticStatus || "active-pending"
+        );
     }
 
     const columnIndex = statusColumnIndex;
@@ -80,10 +82,10 @@ export function enhanceStatusFilter(
     if (!filterManager.statusFilterFunction) {
         // Build server-side filter conditions for synthetic statuses
         filterManager.statusFilterFunction = function () {
+            // The dropdown is replaced whenever kohaTable rebuilds the filter
+            // row, so the selection lives in the filter manager
             const selectedValue =
-                getSelectValueString(statusDropdown) ||
-                filterManager.selectedSyntheticStatus ||
-                "active-pending";
+                filterManager.selectedSyntheticStatus || "active-pending";
             const nowIso = new Date().toISOString();
             switch (selectedValue) {
                 case "active-pending":

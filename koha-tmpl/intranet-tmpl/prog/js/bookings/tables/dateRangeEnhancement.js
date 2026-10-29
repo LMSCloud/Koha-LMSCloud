@@ -26,6 +26,9 @@ export function enhanceDateRangeFilters(
     if (!filterManager.dateRangeFilters) {
         filterManager.dateRangeFilters = new Map();
     }
+    if (!filterManager.dateRangeInputs) {
+        filterManager.dateRangeInputs = new Map();
+    }
 
     const $root = $(/** @type {any} */ (tableElement));
     $root
@@ -46,8 +49,19 @@ export function enhanceDateRangeFilters(
             }
             const columnData = columnInfo.dataSrc();
             const apiFieldName = mapColumnDataToApiField(columnData);
+
+            // A rebuilt filter row keeps the range chosen in the input it replaces
+            const previous = filterManager.dateRangeInputs.get(apiFieldName);
+            /** @type {any} */
+            const previousFp = previous && previous.get(0)?._flatpickr;
+            const previousDates = previousFp
+                ? previousFp.selectedDates.slice()
+                : [];
+            if (previousFp) previousFp.destroy();
+
             const inputId = "date_range_col_" + actualColumnIndex;
             const $input = buildDateRangeInput($th, inputId);
+            filterManager.dateRangeInputs.set(apiFieldName, $input);
 
             filterManager.dateRangeFilters.set(apiFieldName, function () {
                 /** @type {any} */
@@ -74,6 +88,9 @@ export function enhanceDateRangeFilters(
                 const fp = win("flatpickr")(
                     "#" + inputId,
                     getFlatpickrConfig({
+                        defaultDate: previousDates.length
+                            ? previousDates
+                            : undefined,
                         onChange: function () {
                             dataTable.column(actualColumnIndex).search("");
                             clearTimeout($input.data("drawTimeout"));
