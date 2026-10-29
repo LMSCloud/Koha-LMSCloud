@@ -231,6 +231,20 @@ export function createBookingsTable(
     let finalFilterOptions =
         columnFiltersFlag === 1 ? getBookingsFilterOptions(variant) : {};
 
+    // kohaTable renders a dropdown filter only for columns that name their
+    // option list in dataFilter; the status column brings its own dropdown
+    if (columnFiltersFlag === 1) {
+        columns.forEach(col => {
+            if (col.name === "status") return;
+            const filterType = getColumnFilterType(
+                variant,
+                col,
+                finalColumnOptions
+            );
+            if (filterType) col.dataFilter = filterType;
+        });
+    }
+
     // Create headers with data-filter attributes before kohaTable initialization
     /** @type {any} */
     const $root = $(/** @type {any} */ (tableElement));
