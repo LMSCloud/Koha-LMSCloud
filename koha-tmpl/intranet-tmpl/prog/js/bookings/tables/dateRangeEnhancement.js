@@ -29,6 +29,9 @@ export function enhanceDateRangeFilters(
     if (!filterManager.dateRangeInputs) {
         filterManager.dateRangeInputs = new Map();
     }
+    if (!filterManager.dateRangeSelections) {
+        filterManager.dateRangeSelections = new Map();
+    }
 
     const $root = $(/** @type {any} */ (tableElement));
     $root
@@ -50,14 +53,14 @@ export function enhanceDateRangeFilters(
             const columnData = columnInfo.dataSrc();
             const apiFieldName = mapColumnDataToApiField(columnData);
 
-            // A rebuilt filter row keeps the range chosen in the input it replaces
+            // The selected range lives in the filter manager, so a rebuilt
+            // filter row shows the range chosen in the input it replaces
             const previous = filterManager.dateRangeInputs.get(apiFieldName);
             /** @type {any} */
             const previousFp = previous && previous.get(0)?._flatpickr;
-            const previousDates = previousFp
-                ? previousFp.selectedDates.slice()
-                : [];
             if (previousFp) previousFp.destroy();
+            const selectedDates =
+                filterManager.dateRangeSelections.get(apiFieldName) || [];
 
             const inputId = "date_range_col_" + actualColumnIndex;
             const $input = buildDateRangeInput($th, inputId);
@@ -85,13 +88,20 @@ export function enhanceDateRangeFilters(
             }
 
             requestAnimationFrame(() => {
+                const inputEl = $input.get(0);
+                // A rebuild in the same frame has already replaced this input
+                if (!inputEl || !inputEl.isConnected) return;
                 const fp = win("flatpickr")(
-                    "#" + inputId,
+                    inputEl,
                     getFlatpickrConfig({
-                        defaultDate: previousDates.length
-                            ? previousDates
+                        defaultDate: selectedDates.length
+                            ? selectedDates
                             : undefined,
-                        onChange: function () {
+                        onChange: function (/** @type {Date[]} */ dates) {
+                            filterManager.dateRangeSelections.set(
+                                apiFieldName,
+                                dates.slice()
+                            );
                             dataTable.column(actualColumnIndex).search("");
                             clearTimeout($input.data("drawTimeout"));
                             $input.data(

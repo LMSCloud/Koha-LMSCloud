@@ -44,15 +44,19 @@ describe("LMSCloud bookings page filters", () => {
 
     afterEach(function () {
         cy.visit("/cgi-bin/koha/mainpage.pl");
-        cy.task("query", {
-            sql: "UPDATE itemtypes SET parent_type = NULL WHERE itemtype = ?",
-            values: [this.biblio.item_type.item_type_id],
-        });
-        cy.task("lmsDeleteSampleObjects", [
+        // Clean up whatever beforeEach got to create before a failure
+        if (this.biblio) {
+            cy.task("query", {
+                sql: "UPDATE itemtypes SET parent_type = NULL WHERE itemtype = ?",
+                values: [this.biblio.item_type.item_type_id],
+            });
+        }
+        const created = [
             this.biblio,
             this.objects,
-            { item_type: this.parent_type },
-        ]);
+            this.parent_type && { item_type: this.parent_type },
+        ].filter(Boolean);
+        if (created.length) cy.task("lmsDeleteSampleObjects", created);
     });
 
     /**
@@ -144,6 +148,7 @@ describe("LMSCloud bookings page filters", () => {
         filterCell("Start date")
             .find("input.booking-date-range-filter")
             .should("not.have.value", "");
+        filterCell("Start date").find(".clear_date").should("have.length", 1);
 
         cy.window().then(win =>
             (win as any).$("#bookingst").DataTable().draw()
