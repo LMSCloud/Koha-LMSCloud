@@ -59,7 +59,7 @@ export default {
                                         op: "add_form",
                                     },
                                 },
-                                title: "Basket",
+                                title: $__("Basket"),
                                 callback: toolbarComponent => {
                                     const url = toolbarComponent.handleQuery(
                                         toolbarComponent.to
@@ -75,7 +75,7 @@ export default {
                                         op: "add_form",
                                     },
                                 },
-                                title: "Contract",
+                                title: $__("Contract"),
                                 callback: toolbarComponent => {
                                     const url = toolbarComponent.handleQuery(
                                         toolbarComponent.to
