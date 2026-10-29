@@ -145,7 +145,7 @@
     <div class="container-fluid">
         <div class="row">
             [% IF ( opacfacets && total ) %]
-                <div class="col-lg-2">
+                <div class="col-lg-3">
                     <div id="facetcontainer">
                         <!-- FACETS START -->
                         [% INCLUDE 'additional-offer-facets.inc' %]
@@ -165,7 +165,7 @@
 
             [% SET column_class = "col maincontent" %]
             [% IF ( opacfacets && total ) %]
-                [% column_class = "col-lg-10 maincontent" %]
+                [% column_class = "col-lg-9 maincontent" %]
             [% ELSIF ( opacfacets && ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) || Koha.Preference( 'BrockhausSearchActive' ) || Koha.Preference( 'FilmfriendSearchActive' ) || Koha.Preference( 'HelimaSearchActive' ) ) ) %]
                 [% column_class = "col-lg-9 maincontent" %]
             [% END %]
