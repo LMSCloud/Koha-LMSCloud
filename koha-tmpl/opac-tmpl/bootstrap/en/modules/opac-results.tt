@@ -260,7 +260,7 @@
 
                                                 [% IF Koha.Preference('OPACnumSearchResultsDropdown') %]
                                                     <label for="results_per_page">Results per page: </label>
-                                                    <select id="results_per_page" class="form-select" name="count">
+                                                    <select id="results_per_page" name="count">
                                                         [% IF Koha.Preference('OPACnumSearchResults') %]
                                                             [% IF results_per_page == Koha.Preference('OPACnumSearchResults') %]
                                                                 <option value="[% Koha.Preference('OPACnumSearchResults') | html %]" selected="selected">[% Koha.Preference('OPACnumSearchResults') | html %] (default)</option>
