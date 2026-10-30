@@ -1519,6 +1519,8 @@ sub get_marc_notes {
                 $sub =~ s/^\s+|\s+$//g;                                        # trim
                 push @marcnotes, { marcnote => $sub, tag => $tag };
             }
+        } elsif ( $tag eq '520' && $field->indicator(1) eq '1' && $field->subfield('b') && $field->subfield('a') ) {
+            push @marcnotes, { marcnote => $field->subfield('b'), tag => $tag };
         } else {
             push @marcnotes, { marcnote => $field->as_string(), tag => $tag };
         }
