@@ -94,6 +94,12 @@ Cataloging:
                   UNIMARC: UNIMARC
             - format.
         -
+            - pref: MARC21FixedLengthWarning
+              choices:
+                  1: Warn
+                  0: "Don't warn"
+            - in the cataloging editor when a MARC21 record has fixed-length control fields (005, 006, 007, 008) with an invalid length.
+        -
             - pref: EnableItemGroups
               choices:
                    1: Enable

@@ -483,6 +483,7 @@ INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `
 ('makePreviousSerialAvailable','0',NULL,'make previous serial automatically available when collecting a new serial. Please note that the item-level_itypes syspref must be set to specific item.','YesNo'),
 ('Mana','2',NULL,'request to Mana Webservice. Mana centralize common information between other Koha to facilitate the creation of new subscriptions, vendors, report queries etc... You can search, share, import and comment the content of Mana.','Choice'),
 ('ManaToken','',NULL,'Security token used for authentication on Mana KB service (anti spam)','Textarea'),
+('MARC21FixedLengthWarning','0',NULL,'Warn in the cataloging editor about MARC21 fixed-length control fields with an invalid length','YesNo'),
 ('MARCAuthorityControlField008','|| aca||aabn           | a|a     d',NULL,'Define the contents of MARC21 authority control field 008 position 06-39','Textarea'),
 ('MarcFieldDocURL', '', NULL, 'URL used for MARC field documentation. Following substitutions are available: {MARC} = marc flavour, eg. "MARC21" or "UNIMARC". {FIELD} = field number, eg. "000" or "048". {LANG} = user language, eg. "en" or "fi-FI"', 'Free'),
 ('MarcFieldForCreatorId','',NULL,'Where to store the borrowernumber of the record\'s creator','Free'),
