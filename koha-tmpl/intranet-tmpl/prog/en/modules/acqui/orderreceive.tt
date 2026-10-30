@@ -1208,7 +1208,7 @@
                     $("#unitprice_hint").html(TAX_EXC);
                 }
                 $("#rrp").html(rrp_txt);
-                $("#replacementprice").val(row.replacement_price);
+                $("#replacementprice").val(row.replacement_price != null ? Number(row.replacement_price).format_price() : "");
                 $("#ecost").html(ecost_txt);
                 $("#order_internalnote").val(row.internal_note);
                 if(row.vendor_note) {
