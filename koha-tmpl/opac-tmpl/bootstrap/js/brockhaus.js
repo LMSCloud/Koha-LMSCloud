@@ -103,8 +103,8 @@ function showBrockhausFacetEntries(facetData, query) {
                 spanElement.innerHTML = "&#160;";
                 facetElement.appendChild(spanElement);
                 spanElement = document.createElement("span");
-                spanElement.setAttribute("class", "facet-count");
-                spanElement.textContent = "(" + facetData[i].numFound + ")";
+                spanElement.setAttribute("class", "badge bg-info-subtle facet-count");
+                spanElement.textContent = facetData[i].numFound;
                 facetElement.appendChild(spanElement);
                 listElement.appendChild(facetElement);
                 foundHits += facetData[i].numFound;

@@ -121,8 +121,8 @@ function showMunzingerFacetEntries(facetData, query) {
         spanElement.innerHTML = "&#160;";
         facetElement.appendChild(spanElement);
         spanElement = document.createElement("span");
-        spanElement.setAttribute("class", "facet-count");
-        spanElement.textContent = "(" + facetData.categories[i].count + ")";
+        spanElement.setAttribute("class", "badge bg-info-subtle facet-count");
+        spanElement.textContent = facetData.categories[i].count;
         facetElement.appendChild(spanElement);
         listElement.appendChild(facetElement);
     }

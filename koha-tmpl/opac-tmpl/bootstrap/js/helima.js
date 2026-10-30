@@ -101,8 +101,8 @@ function showHeLiMaFacetEntries(facetData,query) {
                 spanElement.innerHTML = '&#160;';
                 facetElement.appendChild(spanElement);
                 spanElement  = document.createElement("span");
-                spanElement.setAttribute('class','facet-count');
-                spanElement.textContent = "(" +  facetData[i].hits + ")";
+                spanElement.setAttribute('class','badge bg-info-subtle facet-count');
+                spanElement.textContent = facetData[i].hits;
                 facetElement.appendChild(spanElement);
                 listElement.appendChild(facetElement);
                 foundHits += facetData[i].hits;
