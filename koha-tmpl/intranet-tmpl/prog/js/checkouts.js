@@ -671,6 +671,9 @@ function LoadIssuesTable() {
                 $("#totalprice").html(total_price.format_price());
             },
             paging: false,
+            // FixedHeader measures the table on every scroll event, which
+            // stalls scrolling through long unpaged checkout lists
+            fixedHeader: false,
             processing: true,
             serverSide: false,
             ajax: {
