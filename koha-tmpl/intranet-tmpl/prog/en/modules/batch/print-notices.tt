@@ -23,13 +23,13 @@
 </head>
 <body id="batch_print-notices" class="batch">
 [% FOREACH message IN messages %]
-    <div class="message">
-        [% IF ( message.is_html ) %]
-            [% message.content | $raw %]
-        [% ELSE %]
+    [% IF ( message.is_html ) %]
+        [% message.content | $raw %]
+    [% ELSE %]
+        <div class="message">
             <pre>[% message.content | $raw %]</pre>
-        [% END %]
-    </div>
+        </div>
+    [% END %]
 [% END %]
 </body>
 <!-- prettier-ignore-start -->

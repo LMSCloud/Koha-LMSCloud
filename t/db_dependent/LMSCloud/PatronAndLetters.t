@@ -19,18 +19,22 @@
 
 use Modern::Perl;
 
-use Test::More tests => 7;
+use Test::More tests => 8;
 use Test::NoWarnings;
+
+use CGI;
 
 use C4::Context;
 use C4::Letters qw( GetAdhocNoticeLetters GetMessagesById EnqueueLetter GetPreparedLetter );
 use C4::Members qw( IssueSlip );
+use C4::Templates;
 
 use Koha::Database;
 use Koha::DateUtils qw( dt_from_string );
 use Koha::Notice::Messages;
 use Koha::Patron::Relationships;
 use Koha::Patrons;
+use Koha::Plugins;
 
 use t::lib::Mocks;
 use t::lib::TestBuilder;
@@ -453,4 +457,28 @@ subtest 'IssueSlip lists checkouts and overdues by ascending due date' => sub {
     );
 
     $schema->storage->txn_rollback;
+};
+
+subtest 'Print notices leave HTML notices unwrapped for NoticeCSS' => sub {
+    plan tests => 3;
+
+    my $template = C4::Templates::gettemplate( 'batch/print-notices.tt', 'intranet', CGI->new );
+    $template->param(
+        today    => '2026-11-03',
+        messages => [
+            { is_html => 1, content => '<table class="message"><tr><td>HTML notice</td></tr></table>' },
+            { is_html => 0, content => 'Text notice' },
+        ],
+    );
+    my $html = $template->output;
+
+    like(
+        $html, qr{<body[^>]*>\s*<table class="message">},
+        'an HTML notice starts directly in the body, as on 22.11'
+    );
+    is( () = $html =~ /class="message"/g, 2, 'no wrapper around the HTML notice' );
+    like(
+        $html, qr{<div class="message">\s*<pre>Text notice</pre>\s*</div>},
+        'a text notice keeps its page-break wrapper'
+    );
 };
