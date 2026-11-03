@@ -459,7 +459,7 @@ subtest 'IssueSlip lists checkouts and overdues by ascending due date' => sub {
     $schema->storage->txn_rollback;
 };
 
-subtest 'Print notices leave HTML notices unwrapped for NoticeCSS' => sub {
+subtest 'Print notices wrap HTML notices without the message class' => sub {
     plan tests => 3;
 
     my $template = C4::Templates::gettemplate( 'batch/print-notices.tt', 'intranet', CGI->new );
@@ -473,10 +473,10 @@ subtest 'Print notices leave HTML notices unwrapped for NoticeCSS' => sub {
     my $html = $template->output;
 
     like(
-        $html, qr{<body[^>]*>\s*<table class="message">},
-        'an HTML notice starts directly in the body, as on 22.11'
+        $html, qr{<body[^>]*>\s*<div class="print-notice">\s*<table class="message">},
+        'an HTML notice gets its own print-notice wrapper'
     );
-    is( () = $html =~ /class="message"/g, 2, 'no wrapper around the HTML notice' );
+    is( () = $html =~ /class="message"/g, 2, 'only the markup of the notice carries the message class' );
     like(
         $html, qr{<div class="message">\s*<pre>Text notice</pre>\s*</div>},
         'a text notice keeps its page-break wrapper'

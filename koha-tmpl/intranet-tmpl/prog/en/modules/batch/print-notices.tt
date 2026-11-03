@@ -11,7 +11,7 @@
 <!-- prettier-ignore-start -->
     <style>
         <!--
-        .message { page-break-after: always }
+        .print-notice, .message { page-break-after: always }
         pre { font-family: monospace }
         pre {white-space: pre-wrap;}
         -->
@@ -24,7 +24,9 @@
 <body id="batch_print-notices" class="batch">
 [% FOREACH message IN messages %]
     [% IF ( message.is_html ) %]
-        [% message.content | $raw %]
+        <div class="print-notice">
+            [% message.content | $raw %]
+        </div>
     [% ELSE %]
         <div class="message">
             <pre>[% message.content | $raw %]</pre>
