@@ -265,6 +265,10 @@ $.fn.dataTableExt.oSort["num-html-desc"] = function (a, b) {
             return a < b ? 1 : a > b ? -1 : 0;
         },
     });
+
+    // Search with tags stripped and diacritics normalised, as for HTML columns:
+    // DataTables normalises the search term, so raw cell data would not match it
+    DataTable.ext.type.search["anti-the"] = DataTable.ext.type.search.html;
 })();
 
 // Remove string between NSB NSB characters
