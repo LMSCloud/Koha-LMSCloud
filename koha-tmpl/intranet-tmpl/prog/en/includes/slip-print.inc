@@ -6,11 +6,11 @@
         [% Koha.Preference('IntranetSlipPrinterJS') | $raw %]
     [% ELSE %]
         let autoprint = true;
+        window.onafterprint = function () {
+            window.close();
+        }
         window.addEventListener('load', function() {
             window.print();
-            window.onafterprint = function () {
-                window.close();
-            }
         });
     [% END %]
 </script>
