@@ -25,7 +25,7 @@
 use Modern::Perl;
 use utf8;
 
-use Test::More tests => 9;
+use Test::More tests => 10;
 
 use MARC::Field;
 use MARC::Record;
@@ -200,6 +200,26 @@ subtest 'The LMSCloud query aliases search existing fields' => sub {
         is( query_string( undef, ["$alias:x"] ), "($field:x)", "$alias searches $field" );
         ok( Koha::SearchFields->find( { name => $field } ), "$field is a search field of mappings.yaml" );
     }
+
+    rollback();
+};
+
+subtest 'Sorting by publication year uses publyear, which falls back to 260c/264c' => sub {
+    plan tests => 3;
+
+    $schema->storage->txn_begin;
+    reset_mappings();
+
+    my ( undef, $query ) = Koha::SearchEngine::Elasticsearch::QueryBuilder->new( { index => 'biblios' } )
+        ->build_query_compat( undef, ['x'], undef, undef, ['pubdate_asc'] );
+    is_deeply( $query->{sort}->[0], { publyear__sort => { order => 'asc' } }, 'pubdate sorts on publyear' );
+
+    my $doc = document(
+        MARC::Field->new( '008', '261103s        gw            000 0 ger d' ),
+        MARC::Field->new( '264', ' ', '1', c => '2021' )
+    );
+    is_deeply( $doc->{publyear__sort},              ['2021'], 'a record without a year in 008 sorts by 264$c' );
+    is_deeply( $doc->{'date-of-publication__sort'}, [''],     'date-of-publication would sort it as an empty year' );
 
     rollback();
 };
