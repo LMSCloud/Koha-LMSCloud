@@ -33,7 +33,8 @@
 <script type="importmap">
     {
         "imports": {
-            "@fetch/": "/intranet-tmpl/prog/js/fetch/"
+            "@fetch/": "/intranet-tmpl/prog/js/fetch/"[% FOREACH module IN Asset.module_urls('js/fetch') %],
+            "[% module.url | $raw %]": "[% module.versioned | $raw %]"[% END %]
         }
     }
 </script>

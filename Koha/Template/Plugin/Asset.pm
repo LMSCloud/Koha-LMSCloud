@@ -151,6 +151,45 @@ sub url {
     }
 }
 
+=head2 module_urls
+
+Returns the plain and the versioned URL of every JS module in the given
+directory, for an import map that versions the modules' own imports
+
+    [% FOREACH module IN Asset.module_urls('js/fetch') %]
+        "[% module.url %]": "[% module.versioned %]"
+    [% END %]
+
+=cut
+
+sub module_urls {
+    my ( $self, $directory ) = @_;
+
+    my $stash     = $self->{_CONTEXT}->stash();
+    my $interface = $stash->get('interface');
+    my $theme     = $stash->get('theme');
+
+    my $configkey = $interface =~ /opac/ ? 'opachtdocs' : 'intrahtdocs';
+    my $root      = C4::Context->config($configkey);
+
+    foreach my $dir ( "$theme", "." ) {
+        my $absdir = File::Spec->catdir( $root, $dir, $directory );
+        next unless -d $absdir;
+
+        my @files = sort map { ( fileparse($_) )[0] } glob( File::Spec->catfile( $absdir, '*.js' ) );
+        return [
+            map {
+                {
+                    url       => File::Spec->catfile( $interface, $dir, $directory, $_ ),
+                    versioned => $self->url( File::Spec->catfile( $directory, $_ ) ),
+                }
+            } @files
+        ];
+    }
+
+    return [];
+}
+
 =head2 _tag
 
 Returns an HTML tag with given name and attributes.
