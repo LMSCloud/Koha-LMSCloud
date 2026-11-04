@@ -12,6 +12,7 @@
 >
 [% INCLUDE 'doc-head-close.inc' popup => 1 %]
 [% Asset.css("css/spinelabel.css") | $raw %]
+[% INCLUDE 'print-window-root.inc' %]
 <style>
     @media print {
         .noprint {

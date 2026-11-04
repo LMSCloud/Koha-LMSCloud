@@ -18,6 +18,7 @@
 [% Asset.css("css/printreceiptinvoice.css") | $raw %] <!-- prettier-ignore-start -->
 [% IF style %]<style>[% style | $raw %]</style>[% END %]
 <!-- prettier-ignore-end -->
+[% INCLUDE 'print-window-root.inc' %]
 [% INCLUDE 'blocking_errors.inc' %]
 </head>
 

@@ -1,5 +1,6 @@
 [% USE raw %]
 <!-- slip-print.inc -->
+[% INCLUDE 'print-window-root.inc' %]
 <script>
     [% IF ( Koha.Preference('IntranetSlipPrinterJS') ) %]
         let autoprint = false;
