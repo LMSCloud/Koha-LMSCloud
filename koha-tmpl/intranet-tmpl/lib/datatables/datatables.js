@@ -104714,9 +104714,15 @@ $.extend(FixedHeader.prototype, {
 			itemDom.placeholder = itemElement.clone(false);
 			itemDom.placeholder.find('*[id]').removeAttr('id');
 
-			// Move the thead / tfoot elements around - original into the floating
-			// element and clone into the original table
-			itemDom.host.prepend(itemDom.placeholder);
+			// Move the thead / tfoot elements around - original into the
+			// floating element and clone into the original table. Note that the
+			// order is important in Chrome. It must be colgroup, thead, tbody,
+			// tfoot. Otherwise a "jitter" when scrolling will occur.
+			$(itemDom.placeholder).insertAfter(
+				item === 'header'
+					? $('colgroup', itemDom.host)
+					: $('tbody', itemDom.host)
+			);
 			itemDom.floating.append(itemElement);
 
 			this._widths(itemDom);
@@ -104834,11 +104840,13 @@ $.extend(FixedHeader.prototype, {
 				itemDom.placeholder = null;
 			}
 
-			if (item === 'header') {
-				itemDom.host.prepend(tablePart);
-			}
-			else {
-				itemDom.host.append(tablePart);
+			if (!$.contains(itemDom.host[0], tablePart[0])) {
+				if (item === 'header') {
+					tablePart.insertAfter($('colgroup', itemDom.host));
+				}
+				else {
+					itemDom.host.append(tablePart);
+				}
 			}
 
 			if (itemDom.floating) {
