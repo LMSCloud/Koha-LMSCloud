@@ -337,7 +337,6 @@ sub _setUserenvToSepaCashRegisterManager {
         return 0;
     }
 
-    C4::Context->_new_userenv('');
     C4::Context->set_userenv(
         $manager->borrowernumber,
         $manager->userid,
@@ -345,12 +344,9 @@ sub _setUserenvToSepaCashRegisterManager {
         $manager->firstname,
         $manager->surname,
         $manager->branchcode,
-        '',       # branchname
+        '',    # branchname
         $manager->flags,
         $manager->email,
-        undef,    # branchprinter
-        undef,    # shibboleth
-        ''        # branchcategory
     );
 
     print STDERR "Koha::SEPAPayment::_setUserenvToSepaCashRegisterManager() userenv gesetzt auf "
@@ -517,7 +513,7 @@ sub renewMembershipForSepaDirectDebitPatrons {
     print STDERR
         "Koha::SEPAPayment::renewMembershipForSepaDirectDebitPatrons returns renewMembershipCount:$renewMembershipCount: renewedMembershipCount:$renewedMembershipCount:\n"
         if $self->{verbose} > 0;
-    C4::Context->_new_userenv('');
+    C4::Context->unset_userenv;
     return ( $renewMembershipCount, $renewedMembershipCount );
 }
 
