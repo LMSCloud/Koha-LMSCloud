@@ -12,6 +12,9 @@
         }
         window.addEventListener('load', function() {
             window.print();
+            // Firefox fires afterprint before the print dialog closes and ignores
+            // window.close() while it is open; print() returns once it is closed
+            window.close();
         });
     [% END %]
 </script>
