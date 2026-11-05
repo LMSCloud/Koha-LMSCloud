@@ -168,6 +168,7 @@ use Pod::Usage   qw( pod2usage );
 use Koha::Script -cron;
 use C4::Context;
 use C4::Letters;
+use C4::Members::Messaging;
 use C4::Log qw( cronlogaction );
 
 use Koha::Patrons;
@@ -298,11 +299,19 @@ while ( my $expiring_patron = $upcoming_mem_expires->next ) {
         },
     };
 
+    # LMS divergence from Bug 30300: up to 22.11 a patron without an email
+    # address got no expiry email and no letter instead. Koha::Patron::queue_notice
+    # sends a print notice for an email transport without an address, so drop it.
+    my $messaging_prefs = C4::Members::Messaging::GetMessagingPreferences(
+        { borrowernumber => $expiring_patron->borrowernumber, message_name => 'Patron_Expiry' } );
+    my @transports = keys %{ $messaging_prefs->{transports} // {} };
+    @transports = grep { $_ ne 'email' } @transports unless $expiring_patron->notice_email_address;
+
     my $sending_params = {
-        letter_params => $letter_params,
-        message_name  => 'Patron_Expiry',
-        forceprint    => $forceprint,
-        test_mode     => $nomail,
+        letter_params      => $letter_params,
+        message_transports => \@transports,
+        forceprint         => $forceprint,
+        test_mode          => $nomail,
     };
 
     my $categorycode        = $expiring_patron->categorycode;

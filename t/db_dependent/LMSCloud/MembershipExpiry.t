@@ -49,7 +49,7 @@ sub run_membership_expiry {
 # A library with its own MEMBERSHIP_EXPIRY notice, so only patrons built here are picked up.
 sub build_library {
     my $library = $builder->build_object( { class => 'Koha::Libraries' } );
-    for my $mtt (qw( email print )) {
+    for my $mtt (qw( email print sms )) {
         $builder->build_object(
             {
                 class => 'Koha::Notice::Templates',
@@ -170,20 +170,37 @@ subtest 'Only categories that enforce the notice make it mandatory' => sub {
     $schema->storage->txn_rollback;
 };
 
-subtest 'A patron without an email address gets a print notice' => sub {
-    plan tests => 1;
+subtest 'A patron without an email address gets no print notice instead' => sub {
+    plan tests => 5;
 
     $schema->storage->txn_begin;
 
     my $library = build_library();
     my $category =
         $builder->build_object( { class => 'Koha::Patron::Categories', value => { enforce_expiry_notice => 0 } } );
-    my $patron = build_expiring_patron( $library, $category, undef );
-    set_expiry_preference( $patron, 'email' );
+    my $email_only = build_expiring_patron( $library, $category, undef );
+    set_expiry_preference( $email_only, 'email' );
+    my $email_and_sms = build_expiring_patron( $library, $category, undef );
+    $email_and_sms->smsalertnumber('0123456789')->store;
+    set_expiry_preference( $email_and_sms, 'email', 'sms' );
+    my $work_address = build_expiring_patron( $library, $category, undef );
+    $work_address->emailpro('work@example.com')->store;
+    set_expiry_preference( $work_address, 'email' );
+    my $enforcing =
+        $builder->build_object( { class => 'Koha::Patron::Categories', value => { enforce_expiry_notice => 1 } } );
+    my $enforced = build_expiring_patron( $library, $enforcing, undef );
+    set_expiry_preference( $enforced, 'email' );
 
     run_membership_expiry( '-c', '-branch', $library->branchcode );
 
-    is_deeply( queued_transports($patron), ['print'], 'The email falls back to print' );
+    is_deeply( queued_transports($email_only),    [],        'Email only: no notice' );
+    is_deeply( queued_transports($email_and_sms), ['sms'],   'Email and SMS: only the SMS' );
+    is_deeply( queued_transports($work_address),  ['email'], 'A work address counts as an address' );
+    is_deeply( queued_transports($enforced), ['print'], 'A category that enforces the notice still gets a letter' );
+
+    Koha::Notice::Messages->search( { borrowernumber => $email_only->borrowernumber } )->delete;
+    run_membership_expiry( '-c', '-p', '-branch', $library->branchcode );
+    is_deeply( queued_transports($email_only), ['print'], '-p still prints' );
 
     $schema->storage->txn_rollback;
 };
