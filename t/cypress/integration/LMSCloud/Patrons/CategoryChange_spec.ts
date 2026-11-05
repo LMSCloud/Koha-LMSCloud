@@ -1,7 +1,9 @@
 /**
  * Changing an existing patron's category asks whether to reset the expiry date
  * and the messaging preferences; UpdateExpiryDateOnCategoryChange decides
- * whether the expiry date question is asked, preselected, or skipped.
+ * whether the expiry date question is asked, preselected, or skipped. Applying
+ * the messaging defaults must leave the transports of an advance notice
+ * enabled, or they are not saved.
  */
 
 /**
@@ -90,6 +92,63 @@ describe("Patron category change: expiry date", () => {
                     );
                 });
             });
+        });
+    });
+});
+
+describe("Patron category change: advance notice defaults", () => {
+    let current;
+    let target;
+
+    beforeEach(() => {
+        cy.login();
+        cy.title().should("eq", "Koha staff interface");
+        cy.task("insertSamplePatron").then(o => (current = o));
+        cy.task("insertSamplePatron").then(o => {
+            target = o;
+            const categorycode = o.patron_category.patron_category_id;
+            // Advance_Notice (message attribute 2): 3 days in advance by email
+            cy.task("query", {
+                sql: "INSERT INTO borrower_message_preferences (categorycode, message_attribute_id, days_in_advance, wants_digest) VALUES (?, 2, 3, 0)",
+                values: [categorycode],
+            });
+            cy.task("query", {
+                sql: "INSERT INTO borrower_message_transport_preferences (borrower_message_preference_id, message_transport_type) SELECT borrower_message_preference_id, 'email' FROM borrower_message_preferences WHERE categorycode = ? AND message_attribute_id = 2",
+                values: [categorycode],
+            });
+        });
+        cy.set_syspref("UpdateExpiryDateOnCategoryChange", "no");
+    });
+
+    afterEach(() => {
+        cy.visit("/cgi-bin/koha/mainpage.pl");
+        cy.set_syspref("UpdateExpiryDateOnCategoryChange", "softyes");
+        cy.set_syspref("UpdateMessagingPrefsOnCategoryChange", "softyes");
+        cy.task("deleteSampleObjects", [current, target]);
+    });
+
+    ["softyes", "yes"].forEach(value => {
+        it(`${value}: the email transport can be saved with the days`, () => {
+            cy.set_syspref("UpdateMessagingPrefsOnCategoryChange", value);
+            cy.visit(
+                `/cgi-bin/koha/members/memberentry.pl?op=edit_form&borrowernumber=${current.patron.patron_id}`
+            );
+            cy.get("#email2").should("be.disabled");
+            cy.intercept(
+                "GET",
+                "/cgi-bin/koha/members/default_messageprefs.pl*"
+            ).as("defaults");
+            cy.get("#categorycode_entry").select(
+                target.patron_category.patron_category_id
+            );
+            if (value === "softyes") {
+                cy.get("#categoryChangeModal").should("be.visible");
+                cy.get("#categoryChangeConfirmBtn").click();
+            }
+            cy.wait("@defaults");
+            cy.get('select[name="2-DAYS"]').should("have.value", "3");
+            // a disabled checkbox is not submitted, so the transport would be lost
+            cy.get("#email2").should("be.enabled").and("be.checked");
         });
     });
 });
