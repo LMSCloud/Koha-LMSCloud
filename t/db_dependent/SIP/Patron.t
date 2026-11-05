@@ -558,7 +558,7 @@ subtest "Patron messages tests" => sub {
     $schema->storage->txn_rollback;
 };
 
-subtest "hold_items counts all holds ( Bug 42700 )" => sub {
+subtest "hold_items counts only waiting holds" => sub {
     plan tests => 2;
 
     $schema->storage->txn_begin;
@@ -582,8 +582,8 @@ subtest "hold_items counts all holds ( Bug 42700 )" => sub {
     my $sip_patron = C4::SIP::ILS::Patron->new( $patron->cardnumber );
 
     is(
-        scalar @{ $sip_patron->{hold_items} }, 5,
-        "hold_items contains all holds ( waiting + non-waiting )"
+        scalar @{ $sip_patron->{hold_items} }, 2,
+        "hold_items contains only the waiting holds"
     );
     is(
         scalar @{ $sip_patron->{unavail_holds} }, 3,

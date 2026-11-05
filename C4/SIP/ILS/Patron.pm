@@ -148,6 +148,10 @@ sub new {
     # Fetch holds once and derive hold_items and unavail_holds from the result
     my @holds = $patron->holds->as_list;
 
+    # LMS divergence from Bug 42700: self-check clients take hold_items as the
+    # holds ready for pickup and add unavail_holds for the total
+    my @waiting_holds = grep { ( $_->found // '' ) eq 'W' } @holds;
+
     {
         no warnings;    # any of these $kp->{fields} being concat'd could be undef
         %ilspatron = (
@@ -178,7 +182,7 @@ sub new {
             screen_msg     => 'Greetings from Koha. ' . $kp->{opacnote} . $fines_msg,
             print_line     => '',
             items          => [],
-            hold_items     => [ map { $_->unblessed } @holds ],
+            hold_items     => [ map { $_->unblessed } @waiting_holds ],
             overdue_items  => $flags->{ODUES}->{itemlist},
             too_many_overdue => $circ_blocked,
             fine_items       => [],
