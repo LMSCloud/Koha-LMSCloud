@@ -21,6 +21,28 @@ use strict;
 use warnings;
 
 use utf8;
+
+# Read the raw request body BEFORE any Koha module is loaded.
+# Since Koha 25.11 some module in the load chain of the EKZ modules (e.g. via C4::Budgets) consumes STDIN
+# at load time, so the SOAP request was empty when read later (-> empty request, HTTP 500).
+my $rawRequestBody;
+BEGIN {
+    binmode( STDIN, ':raw' );
+    my $len = $ENV{CONTENT_LENGTH};
+    if ( defined $len && $len =~ /^\d+$/ && $len > 0 ) {
+        my $got = 0;
+        while ( $got < $len ) {
+            my $n = sysread( STDIN, $rawRequestBody, $len - $got, $got );
+            last unless $n;    # EOF or error
+            $got += $n;
+        }
+    } elsif ( !-t STDIN ) {
+        local $/;    # no CONTENT_LENGTH (e.g. chunked): read until EOF
+        $rawRequestBody = <STDIN>;
+    }
+    $rawRequestBody = '' unless defined $rawRequestBody;
+    utf8::decode($rawRequestBody);    # same result as the former binmode(STDIN, ':utf8')
+}
 use Data::Dumper;
 use XML::Parser;
 use XML::Writer;
@@ -46,8 +68,7 @@ my $logger       = Koha::Logger->get( { interface => 'C4::External::EKZ' } );
 $logger->info( "ekz-media-services.pl ENV:" . Dumper( \%ENV ) . ":" );
 
 # read the SOAP request from STDIN into $soapEnvelope
-while (<STDIN>) {
-    my $stdinLine = $_;
+for my $stdinLine ( split /^/, $rawRequestBody ) {
     $logger->info( "ekz-media-services.pl STDIN:" . $stdinLine . ":" );
     $soapEnvelope .= $stdinLine;
 }
