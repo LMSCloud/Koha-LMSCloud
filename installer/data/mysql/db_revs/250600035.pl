@@ -297,6 +297,15 @@ return {
         }
 
         # Accounts #
+
+        # SIPconfig.xml flags were read as Perl booleans ("yes" or "true" switched an option on); the
+        # tinyint columns would store such text as 0
+        my $flag = sub {
+            my ($value) = @_;
+            return unless defined $value;
+            return $value ? 1 : 0;
+        };
+
         my @account_keys = keys %{ $SIPconfig->{accounts} };
         foreach my $account_key (@account_keys) {
             next unless $SIPconfig->{accounts}->{$account_key}->{id};
@@ -312,28 +321,29 @@ return {
             my $sip_institution_id = $sip_institution->get_column('sip_institution_id');
             my $ae_field_template  = $SIPconfig->{accounts}->{$account_key}->{ae_field_template};
             my $allow_additional_materials_checkout =
-                $SIPconfig->{accounts}->{$account_key}->{allow_additional_materials_checkout};
-            my $allow_empty_passwords = $SIPconfig->{accounts}->{$account_key}->{allow_empty_passwords};
+                $flag->( $SIPconfig->{accounts}->{$account_key}->{allow_additional_materials_checkout} );
+            my $allow_empty_passwords = $flag->( $SIPconfig->{accounts}->{$account_key}->{allow_empty_passwords} );
             my $allow_fields          = $SIPconfig->{accounts}->{$account_key}->{allow_fields};
             my $av_field_template     = $SIPconfig->{accounts}->{$account_key}->{av_field_template};
             my $blocked_item_types    = $SIPconfig->{accounts}->{$account_key}->{blocked_item_types};
-            my $checked_in_ok         = $SIPconfig->{accounts}->{$account_key}->{checked_in_ok};
+            my $checked_in_ok         = $flag->( $SIPconfig->{accounts}->{$account_key}->{checked_in_ok} );
             my $convert_nonprinting_characters =
-                $SIPconfig->{accounts}->{$account_key}->{convert_nonprinting_characters};
+                $flag->( $SIPconfig->{accounts}->{$account_key}->{convert_nonprinting_characters} );
             my $cr_item_field         = $SIPconfig->{accounts}->{$account_key}->{cr_item_field};
-            my $ct_always_send        = $SIPconfig->{accounts}->{$account_key}->{ct_always_send};
-            my $cv_send_00_on_success = $SIPconfig->{accounts}->{$account_key}->{cv_send_00_on_success};
-            my $cv_triggers_alert     = $SIPconfig->{accounts}->{$account_key}->{cv_triggers_alert};
+            my $ct_always_send        = $flag->( $SIPconfig->{accounts}->{$account_key}->{ct_always_send} );
+            my $cv_send_00_on_success = $flag->( $SIPconfig->{accounts}->{$account_key}->{cv_send_00_on_success} );
+            my $cv_triggers_alert     = $flag->( $SIPconfig->{accounts}->{$account_key}->{cv_triggers_alert} );
             my $da_field_template     = $SIPconfig->{accounts}->{$account_key}->{da_field_template};
             my $delimiter             = $SIPconfig->{accounts}->{$account_key}->{delimiter} || '|';
             my $deliver_hold_shelf_patron_with_bg =
-                $SIPconfig->{accounts}->{$account_key}->{deliver_hold_shelf_patron_with_BG};
-            my $disable_checkins_with_holds = $SIPconfig->{accounts}->{$account_key}->{disable_checkins_with_holds};
+                $flag->( $SIPconfig->{accounts}->{$account_key}->{deliver_hold_shelf_patron_with_BG} );
+            my $disable_checkins_with_holds =
+                $flag->( $SIPconfig->{accounts}->{$account_key}->{disable_checkins_with_holds} );
             my $disabled_ccodes_for_checkins =
                 $SIPconfig->{accounts}->{$account_key}->{disabled_ccodes_for_checkins};
             my $disabled_itypes_for_checkins =
                 $SIPconfig->{accounts}->{$account_key}->{disabled_itypes_for_checkins};
-            my $disallow_overpayment = $SIPconfig->{accounts}->{$account_key}->{disallow_overpayment};
+            my $disallow_overpayment = $flag->( $SIPconfig->{accounts}->{$account_key}->{disallow_overpayment} );
             my $encoding             = $SIPconfig->{accounts}->{$account_key}->{encoding};
 
             my $error_detect;
@@ -341,30 +351,31 @@ return {
                 $error_detect = $SIPconfig->{accounts}->{$account_key}->{'error-detect'} eq 'enabled' ? 1 : 0;
             }
 
-            my $format_due_date             = $SIPconfig->{accounts}->{$account_key}->{format_due_date};
-            my $hide_fields                 = $SIPconfig->{accounts}->{$account_key}->{hide_fields};
-            my $holds_block_checkin         = $SIPconfig->{accounts}->{$account_key}->{holds_block_checkin};
-            my $holds_get_captured          = $SIPconfig->{accounts}->{$account_key}->{holds_get_captured};
-            my $inhouse_item_types          = $SIPconfig->{accounts}->{$account_key}->{inhouse_item_types};
-            my $inhouse_patron_categories   = $SIPconfig->{accounts}->{$account_key}->{inhouse_patron_categories};
-            my $login_id                    = $SIPconfig->{accounts}->{$account_key}->{id};
-            my $lost_block_checkout         = $SIPconfig->{accounts}->{$account_key}->{lost_block_checkout};
-            my $lost_block_checkout_value   = $SIPconfig->{accounts}->{$account_key}->{lost_block_checkout_value};
-            my $lost_status_for_missing     = $SIPconfig->{accounts}->{$account_key}->{lost_status_for_missing};
-            my $only_local_checkins         = $SIPconfig->{accounts}->{$account_key}->{only_local_checkins};
-            my $overdues_block_checkout     = $SIPconfig->{accounts}->{$account_key}->{overdues_block_checkout};
-            my $payment_type_writeoff       = $SIPconfig->{accounts}->{$account_key}->{payment_type_writeoff};
-            my $prevcheckout_block_checkout = $SIPconfig->{accounts}->{$account_key}->{prevcheckout_block_checkout};
-            my $register_id                 = $SIPconfig->{accounts}->{$account_key}->{register_id} || undef;
-            my $seen_on_item_information    = $SIPconfig->{accounts}->{$account_key}->{seen_on_item_information};
-            my $send_patron_class_as_fu     = $SIPconfig->{accounts}->{$account_key}->{send_patron_class_as_FU};
+            my $format_due_date           = $flag->( $SIPconfig->{accounts}->{$account_key}->{format_due_date} );
+            my $hide_fields               = $SIPconfig->{accounts}->{$account_key}->{hide_fields};
+            my $holds_block_checkin       = $flag->( $SIPconfig->{accounts}->{$account_key}->{holds_block_checkin} );
+            my $holds_get_captured        = $flag->( $SIPconfig->{accounts}->{$account_key}->{holds_get_captured} );
+            my $inhouse_item_types        = $SIPconfig->{accounts}->{$account_key}->{inhouse_item_types};
+            my $inhouse_patron_categories = $SIPconfig->{accounts}->{$account_key}->{inhouse_patron_categories};
+            my $login_id                  = $SIPconfig->{accounts}->{$account_key}->{id};
+            my $lost_block_checkout       = $SIPconfig->{accounts}->{$account_key}->{lost_block_checkout};
+            my $lost_block_checkout_value = $SIPconfig->{accounts}->{$account_key}->{lost_block_checkout_value};
+            my $lost_status_for_missing   = $SIPconfig->{accounts}->{$account_key}->{lost_status_for_missing};
+            my $only_local_checkins       = $flag->( $SIPconfig->{accounts}->{$account_key}->{only_local_checkins} );
+            my $overdues_block_checkout = $flag->( $SIPconfig->{accounts}->{$account_key}->{overdues_block_checkout} );
+            my $payment_type_writeoff   = $SIPconfig->{accounts}->{$account_key}->{payment_type_writeoff};
+            my $prevcheckout_block_checkout =
+                $flag->( $SIPconfig->{accounts}->{$account_key}->{prevcheckout_block_checkout} );
+            my $register_id              = $SIPconfig->{accounts}->{$account_key}->{register_id} || undef;
+            my $seen_on_item_information = $SIPconfig->{accounts}->{$account_key}->{seen_on_item_information};
+            my $send_patron_class_as_fu  = $flag->( $SIPconfig->{accounts}->{$account_key}->{send_patron_class_as_FU} );
             my $send_patron_home_library_in_af =
-                $SIPconfig->{accounts}->{$account_key}->{send_patron_home_library_in_af};
-            my $show_checkin_message    = $SIPconfig->{accounts}->{$account_key}->{show_checkin_message};
-            my $show_outstanding_amount = $SIPconfig->{accounts}->{$account_key}->{show_outstanding_amount};
+                $flag->( $SIPconfig->{accounts}->{$account_key}->{send_patron_home_library_in_af} );
+            my $show_checkin_message    = $flag->( $SIPconfig->{accounts}->{$account_key}->{show_checkin_message} );
+            my $show_outstanding_amount = $flag->( $SIPconfig->{accounts}->{$account_key}->{show_outstanding_amount} );
             my $terminator              = $SIPconfig->{accounts}->{$account_key}->{terminator} || 'CRLF';
             my $use_location_instead_ccode_for_cr =
-                $SIPconfig->{accounts}->{$account_key}->{use_location_instead_ccode_for_CR};
+                $flag->( $SIPconfig->{accounts}->{$account_key}->{use_location_instead_ccode_for_CR} );
 
             $insert_accounts->execute(
                 $sip_institution_id,
