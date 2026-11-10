@@ -15,6 +15,7 @@
     </div>
 [% END %]
 [% USE scalar %]
+[% PROCESS 'i18n.inc' %]
 <div id="toolbar" class="btn-toolbar">
     [% IF CAN_user_borrowers_edit_borrowers %]
         <a id="editpatron" class="btn btn-default" href="/cgi-bin/koha/members/memberentry.pl?op=edit_form&amp;destination=circ&amp;borrowernumber=[% patron.borrowernumber | html %]"
@@ -276,7 +277,7 @@
                             [% END %]
 
                             <li class="form-group form-row" id="subject_form" style="display: none;">
-                                <label for="borrower_subject" class="col-form-label">Subject:</label>
+                                <label for="borrower_subject" class="col-form-label">[% tp('Email message', 'Subject:') | html %]</label>
                                 <input type="text" size="60" name="borrower_subject" class="form-control" id="borrower_subject" />
                             </li>
                             <li class="form-group form-row">
