@@ -21,6 +21,7 @@ use Koha::Logger;
 
 use File::Spec;
 use IO::File;
+use JSON qw( encode_json );
 use Net::SFTP::Foreign;
 use Try::Tiny;
 use Fcntl qw( S_ISDIR S_ISREG );
