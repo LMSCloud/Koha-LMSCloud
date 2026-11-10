@@ -23,6 +23,10 @@ return {
                 for my $edi_vendor (@$edi_vendors) {
                     my $id       = $edi_vendor->{id};
                     my $password = $edi_vendor->{password};
+
+                    # 22.11.06 encrypts the same passwords in db_rev 221106001
+                    next if defined $password && $password =~ /^53616c7465645f5f[0-9a-f]+$/;
+
                     $password = $e->encrypt_hex($password);
                     $dbh->do("UPDATE vendor_edi_accounts SET password = '$password' WHERE id = $id");
                 }
