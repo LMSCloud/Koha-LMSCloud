@@ -92,7 +92,9 @@ sub upload_file {
     my ( $self, $local_file, $remote_file ) = @_;
     my $operation = "upload";
 
-    $self->{connection}->put( $local_file, $remote_file ) or return $self->_abort_operation($operation);
+    # Copying permissions and timestamps needs a setstat, which some servers reject
+    $self->{connection}->put( $local_file, $remote_file, copy_perm => 0, copy_time => 0 )
+        or return $self->_abort_operation($operation);
 
     $self->add_message(
         {
