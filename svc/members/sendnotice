@@ -143,6 +143,8 @@ sub SendAdhocNotices {
                 $lettertemplates->{$transfer}->{'readOverdues'} =
                     ( $letter->{'content'} =~ /(<overdue>.*<\/overdue>)/s ) ? 1 : 0;
                 $lettertemplates->{$transfer}->{'readNews'} = ( $letter->{'content'} =~ /(<news>.*<\/news>)/s ) ? 1 : 0;
+                $lettertemplates->{$transfer}->{'isTT'} =
+                    ( grep { defined && /\[%/ } @$letter{qw( title content )} ) ? 1 : 0;
                 $lettertemplates->{$transfer}->{'transportType'} = $transfer;
             }
         }
@@ -177,9 +179,8 @@ sub SendAdhocNotices {
             $substitute->{issue_count}   = $issue_count;
 
             # Template Toolkit notices get the ISO date from C4::Letters, which $KohaDates requires
-            my $letter = $lettertemplates->{$transport_type} && $lettertemplates->{$transport_type}->{'letter'};
             $substitute->{today} = output_pref( { dt => dt_from_string, dateonly => 1 } )
-                unless $letter && grep { defined && /\[%/ } @$letter{qw( title content )};
+                unless $lettertemplates->{$transport_type} && $lettertemplates->{$transport_type}->{'isTT'};
 
             $overdue_count                    = $patron->has_family_overdues();
             $issue_count                      = $patron->family_checkout_count();
@@ -197,11 +198,13 @@ sub SendAdhocNotices {
                 my $readItems    = $lettertemplates->{$transport_type}->{'readItems'};
                 my $readOverdues = $lettertemplates->{$transport_type}->{'readOverdues'};
                 my $readNews     = $lettertemplates->{$transport_type}->{'readNews'};
+                my $isTT         = $lettertemplates->{$transport_type}->{'isTT'};
 
                 my $repeat = {};
+                my $loops  = {};
 
                 my @items;
-                if ( $readItems || $readOverdues ) {
+                if ( $readItems || $readOverdues || $isTT ) {
 
                     # Select all items of the user
                     my $select =
@@ -251,7 +254,7 @@ sub SendAdhocNotices {
                             'issues'      => $iteminfo->{'itemnumber'},
                         } if ($readItems);
 
-                        if ( $readOverdues && $today gt $iteminfo->{'date_due'} ) {
+                        if ( ( $readOverdues || $isTT ) && $today gt $iteminfo->{'date_due'} ) {
                             push @overdue_tables, {
                                 'biblio'      => $iteminfo->{'biblionumber'},
                                 'biblioitems' => $iteminfo->{'biblionumber'},
@@ -274,6 +277,12 @@ sub SendAdhocNotices {
                     $repeat->{item}       = \@item_tables    if ($readItems);
                     $repeat->{checkedout} = \@item_tables    if ($readItems);
                     $repeat->{overdue}    = \@overdue_tables if ($readOverdues);
+
+                    # Template Toolkit notices read the same lists as the overdue and reminder runs
+                    if ($isTT) {
+                        $loops->{overdues}       = [ map { $_->{items}->{itemnumber} } @overdue_tables ];
+                        $substitute->{checkouts} = \@items;
+                    }
 
                     if ($readNews) {
                         my $news = Koha::AdditionalContents->search_for_display(
@@ -345,6 +354,7 @@ sub SendAdhocNotices {
                     tables                 => \%tables,
                     substitute             => $substitute,
                     repeat                 => $repeat,
+                    loops                  => $loops,
                     message_transport_type => $lettertemplates->{$transport_type}->{'transportType'},
                 );
 
