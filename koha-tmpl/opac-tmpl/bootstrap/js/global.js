@@ -215,7 +215,7 @@ const checkError = function (response) {
 if (typeof enquire == "object") {
     enquire.register("screen and (max-width:608px)", {
         match: function () {
-            if ($("body.scrollto").length > 0) {
+            if ($("body.scrollto").length > 0 && $(".maincontent").length > 0) {
                 window.scrollTo(0, $(".maincontent").offset().top);
             }
         },
