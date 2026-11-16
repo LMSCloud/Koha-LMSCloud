@@ -1356,11 +1356,11 @@
         <xsl:with-param name="tag" select="$ContentWarningField" />
     </xsl:call-template>
 
-    <xsl:if test="marc:datafield[@tag=856 and not(marc:subfield[@code='n' and text()='Wikipedia']) and not(marc:subfield[@code='3' and text()='Titelbild']) and not(marc:subfield[@code='z' and text()='content sample']) and not(marc:subfield[@code='n' and text()='Antolin']) and not(marc:subfield[@code='q' and (text()='cover/jpg' or text()='cover/jpeg') ]) and marc:subfield[@code='u']]">
+    <xsl:if test="marc:datafield[@tag=856 and not(marc:subfield[@code='n' and text()='Wikipedia']) and not(marc:subfield[@code='3' and text()='Titelbild']) and not(marc:subfield[@code='z' and text()='content sample']) and not(marc:subfield[@code='n' and text()='Antolin']) and not(marc:subfield[@code='q' and (text()='cover/jpg' or text()='cover/jpeg' or text()='cover/png') ]) and marc:subfield[@code='u']]">
          <div class="results_summary online_resources">
                <span class="label">Online resources: </span>
                     <ul class="resource_list">
-                            <xsl:for-each select="marc:datafield[@tag=856 and marc:subfield[@code='u']]">
+                            <xsl:for-each select="marc:datafield[@tag=856 and not(marc:subfield[@code='n' and text()='Wikipedia']) and not(marc:subfield[@code='3' and text()='Titelbild']) and not(marc:subfield[@code='z' and text()='content sample']) and not(marc:subfield[@code='n' and text()='Antolin']) and not(marc:subfield[@code='q' and (text()='cover/jpg' or text()='cover/jpeg' or text()='cover/png') ]) and marc:subfield[@code='u']]">
                             <xsl:variable name="SubqText"><xsl:value-of select="marc:subfield[@code='q']"/></xsl:variable>
                             <xsl:if test="$OPACURLOpenInNewWindow='0'">
 			      <li><a>
