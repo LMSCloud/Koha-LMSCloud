@@ -61,11 +61,11 @@
                 <label for="altcontacttitle" [% IF ( mandatoryaltcontacttitle ) %]class="required"[% END %]> Salutation: </label>
                 <select id="altcontacttitle" name="altcontacttitle">
                     <option value=""></option>
-                    [% FOREACH t IN Koha.Preference('BorrowersTitles').split('\|') %]
-                        [% IF patron.altcontacttitle == t %]
-                            <option value="[% t | html %]" selected="selected">[% t | html %]</option>
+                    [% FOREACH altcontact_title IN Koha.Preference('BorrowersTitles').split('\|') %]
+                        [% IF patron.altcontacttitle == altcontact_title %]
+                            <option value="[% altcontact_title | html %]" selected="selected">[% altcontact_title | html %]</option>
                         [% ELSE %]
-                            <option value="[% t | html %]">[% t | html %]</option>
+                            <option value="[% altcontact_title | html %]">[% altcontact_title | html %]</option>
                         [% END %]
                     [% END %]
                 </select>
