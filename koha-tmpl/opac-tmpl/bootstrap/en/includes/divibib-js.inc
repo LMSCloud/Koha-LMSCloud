@@ -130,6 +130,41 @@
                             }
                         }
                         // check whether the item can be reserved
+                        else if ( data.titles[i].result.Reservable > 0 && !/^\d{4}-\d{2}-\d{2}/.test(data.titles[i].result.DateAvailable || '') ) {
+                            // The Onleihe reports titles without a return date, e.g. if the
+                            // license expires. Such titles are still reservable.
+                            [% IF Koha.Preference( 'DivibibTitleAccessURL' ) %]
+                            var accessURL = '[% Koha.Preference( 'DivibibTitleAccessURL' ) | html %]';
+                            accessURL = accessURL.replace('{TITLEID}',data.titles[i].result.ItemId);
+                            statusDisplay = '<a class="external-offer-link" href="'
+                                            + accessURL
+                                            + '" alt="'
+                                            + _("Link to Onleihe")
+                                            + '" target="_blank"><b><span class="available">'
+                                            + _("Currently not available.")
+                                            + ' '
+                                            + _("Click here to make a reservation.")
+                                            + '</span></b></a>';
+                            [% ELSE %]
+                            statusDisplay = '<b>'
+                                            + _("Currently not available.")
+                                            + ' '
+                                            + _("Reservable for logged in users.")
+                                            + '</b>';
+                            [% END %]
+                            if ( loggedIn ) {
+                                statusDisplay = '<a class="external-offer-link" href="#" onclick="accessDivibibResource('
+                                                + "'reservation','"
+                                                + data.titles[i].result.ItemId
+                                                + "'); return false;"
+                                                + '">'
+                                                + '<b><span class="available">'
+                                                + _("Currently not available.")
+                                                + ' '
+                                                + _("Click here to place a hold.")
+                                                + '</span></b></a>';
+                            }
+                        }
                         else if ( data.titles[i].result.Reservable > 0 ) {
                             // get available date
                             var availableFrom = data.titles[i].result.DateAvailable.split("-");

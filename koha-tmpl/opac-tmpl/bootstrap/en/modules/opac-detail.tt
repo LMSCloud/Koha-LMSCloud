@@ -1582,6 +1582,21 @@
                                             <span class="available">Download available for logged in users.</span>
                                         [% END %]
                                     [% END %]
+                                [% ELSIF ITEM_RESULT.reservable && !ITEM_RESULT.datedue %]
+                                    [%# The Onleihe reports titles without a return date, e.g. if the license expires. %]
+                                    [% IF ( loggedinusername ) %]
+                                        <a class="external-offer-link" href="#" onclick="accessDivibibResource('reservation','[% ITEM_RESULT.itemId | html %]'); return false;">
+                                            <b><span class="available">Currently not available.</span> <span class="available">Click here to place a hold.</span></b></a
+                                        >
+                                    [% ELSE %]
+                                        [% IF Koha.Preference( 'DivibibTitleAccessURL' ) %]
+                                            <a class="external-offer-link" href="[% Koha.Preference( 'DivibibTitleAccessURL' ).replace('{TITLEID}',ITEM_RESULT.itemId) | url %]" alt="Link to Onleihe" target="_blank"
+                                                ><b><span class="available">Currently not available.</span> <span class="available">Click here to make a reservation.</span></b></a
+                                            >
+                                        [% ELSE %]
+                                            <span class="available"><b><span>Currently not available.</span> <span>Reservable for logged in users.</span></b></span>
+                                        [% END %]
+                                    [% END %]
                                 [% ELSIF ITEM_RESULT.reservable %]
                                     [% IF ( loggedinusername ) %]
                                         <a class="external-offer-link" href="#" onclick="accessDivibibResource('reservation','[% ITEM_RESULT.itemId | html %]'); return false;">
