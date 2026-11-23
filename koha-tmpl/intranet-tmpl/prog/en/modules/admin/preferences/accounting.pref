@@ -119,7 +119,7 @@ Accounting:
         -
             - "Text used in XML file containing SEPA direct debits for XML-element &lt;PmtInf&gt;&lt;DrctDbtTxInf&gt;&lt;RmtInf&gt;&lt;Ustrd&gt; "
             - pref: SepaDirectDebitRemittanceInfo
-            - ".<br>By many banks only the first 27 characters are used."
+            - ".<br>By many banks only the first 27 characters are used. Max. length: 140.<br>Placeholders:<br>century:&lt;&lt;cc&gt;&gt;<br>year:&lt;&lt;yy&gt;&gt;<br>month:&lt;&lt;mm&gt;&gt;<br>day:&lt;&lt;dd&gt;&gt; (date of the creation of the file)<br>patron fields:&lt;&lt;borrowers.cardnumber&gt;&gt;, &lt;&lt;borrowers.borrowernumber&gt;&gt;, &lt;&lt;borrowers.surname&gt;&gt;, &lt;&lt;borrowers.firstname&gt;&gt;, &lt;&lt;borrowers.branchcode&gt;&gt;<br>Example: 441-&lt;&lt;borrowers.cardnumber&gt;&gt;-Jahresentgelt"
         -
             - "Default lettercode of note sent to patron informing about the upcoming SEPA direct debit for the membership fee or other fines "
             - pref: SepaDirectDebitBorrowerNoticeLettercode
@@ -136,6 +136,14 @@ Accounting:
             - "Text used in XML file containing SEPA direct debits for &lt;PmtInf&gt;&lt;PmtTpInf&gt;&lt;LclInstrm&gt;&lt;Cd&gt;. One of 'CORE', 'COR1' "
             - pref: SepaDirectDebitLocalInstrumentCode
             - "."
+        -
+            - "Format version of the XML file containing the SEPA direct debits: "
+            - pref: SepaDirectDebitPainFormat
+              default: pain.008.001.08
+              choices:
+                  pain.008.001.02: "pain.008.001.02 (DK version 3.6 and older, GBIC 3)"
+                  pain.008.001.08: "pain.008.001.08 (DK version 3.7, 3.8, 3.9, GBIC 4 and 5)"
+            - ".<br>Many banks accept only pain.008.001.08 from november 2026. Ask your bank which format it expects."
         -
             - "Pattern for the name of the file containing the SEPA direct debit payment instructions for the bank. "
             - pref: SepaDirectDebitPaymentInstructionFileName

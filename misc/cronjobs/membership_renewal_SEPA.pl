@@ -120,7 +120,11 @@ Relevant system preferences:
 
 'SepaDirectDebitMessageIdHeader': Text that, after appending the current date, will be used in XML file containing SEPA direct debits for XML-element <GrpHdr><MsgId>. Max. length: 27 (+8 for the date)
 
-'SepaDirectDebitRemittanceInfo': Text used in XML file containing SEPA direct debits for XML-element <PmtInf><DrctDbtTxInf><RmtInf><Ustrd>. By many banks only the first 27 characters are used.
+'SepaDirectDebitRemittanceInfo': Text used in XML file containing SEPA direct debits for XML-element <PmtInf><DrctDbtTxInf><RmtInf><Ustrd>. By many banks only the first 27 characters are used. Max. length: 140.
+Placeholders: <<cc>>, <<yy>>, <<mm>>, <<dd>> (century, year, month and day of the creation of the file) and the patron fields <<borrowers.cardnumber>>, <<borrowers.borrowernumber>>, <<borrowers.surname>>, <<borrowers.firstname>>, <<borrowers.branchcode>>.
+Example: 441-<<borrowers.cardnumber>>-Jahresentgelt
+
+'SepaDirectDebitPainFormat': Format version of the XML file containing the SEPA direct debits. One of 'pain.008.001.02' (default, DK version 3.0 - 3.6) or 'pain.008.001.08' (DK version 3.7 and later). Many banks accept only pain.008.001.08 from november 2026.
 
 'SepaDirectDebitBorrowerNoticeLettercode': Default lettercode of note sent to patron informing about the upcoming SEPA direct debit for the membership fee or other fines.
 

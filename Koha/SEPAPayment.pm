@@ -153,6 +153,8 @@ sub checkSepaDirectDebitConfiguration {
         ,    # e.g. '5.00'. Value '' or undef results in default value 0.01.
         { variable => 'SepaDirectDebitLocalInstrumentCode', mandatory => 1 }
         , # e.g. 'CORE'. 'COR1'.'B2B' (CORE = SEPA Basis-Lastschrift (Verbraucher); COR1 entspricht CORE, jedoch mit auf 1 Bankarbeitstag reduzierter Bearbeitungszeit)
+        { variable => 'SepaDirectDebitPainFormat', mandatory => 0 }
+        , # 'pain.008.001.02' (default if empty or unknown) or 'pain.008.001.08' (DK version 3.7 and later, GBIC 4)
         {
             variable  => 'SepaDirectDebitPaymentInstructionFileName',
             mandatory => 1
@@ -1219,7 +1221,7 @@ sub writeSepaDirectDebitFile {
     my $creDtTm      = sprintf( "%04d-%02d-%02dT%02d:%02d:%02d", $year + 1900, $mon + 1, $mday, $hour, $min, $sec );
     my $reqdColltnDt = output_pref( { 'dt' => $requestedCollectionDate, dateformat => 'iso', dateonly => 1 } )
         ;    # requested collection date (vorgesehenes Datum für Lastschrifteinzug)
-    my $remittanceInfo    = sprintf( "%-.140s", $self->{sepaSysPrefs}->{SepaDirectDebitRemittanceInfo} );
+    my $painFormat        = $self->sepaPainFormat();    # 'pain.008.001.02' or 'pain.008.001.08'
     my $success           = 0;
     my $ctrlSum           = 0.0;
     my $directDebitsCount = 0
@@ -1249,11 +1251,13 @@ sub writeSepaDirectDebitFile {
     #                            'xsi:schemaLocation' => 'urn:iso:std:iso:20022:tech:xsd:pain.008.003.02 pain.008.003.02.xsd');
 
     # pain.008.001.02.xsd is valid from SEPA V3.0 on (since 20.11.2016). Is in use here since Koha-LMSCloud 21.05. (i. e. since april 2022)
+    # pain.008.001.08.xsd is used by DK version 3.7 and later (GBIC 4). Many banks stop accepting pain.008.001.02 in november 2026.
+    # The format is selected by system preference SepaDirectDebitPainFormat, default is pain.008.001.02.
     $xmlwriter->startTag(
         'Document',    # root element 'Document'
-        'xmlns'              => 'urn:iso:std:iso:20022:tech:xsd:pain.008.001.02',
+        'xmlns'              => "urn:iso:std:iso:20022:tech:xsd:$painFormat",
         'xmlns:xsi'          => 'http://www.w3.org/2001/XMLSchema-instance',
-        'xsi:schemaLocation' => 'urn:iso:std:iso:20022:tech:xsd:pain.008.001.02 pain.008.001.02.xsd'
+        'xsi:schemaLocation' => "urn:iso:std:iso:20022:tech:xsd:$painFormat $painFormat.xsd"
     );
     $xmlwriter->startTag('CstmrDrctDbtInitn');    # CustomerDirectDebitInitialization
 
@@ -1261,6 +1265,8 @@ sub writeSepaDirectDebitFile {
     $xmlwriter->dataElement( 'MsgId'   => $msgId );                # MessageId
     $xmlwriter->dataElement( 'CreDtTm' => $creDtTm );              # CreationDateTime
     $xmlwriter->dataElement( 'NbOfTxs' => $directDebitsCount );    # NumberOfTransactions
+    $xmlwriter->dataElement( 'CtrlSum' => sprintf( "%.2f", $ctrlSum ) )
+        ; # ControlSum of the group header. Optional in the ISO schema, but mandatory in the DK specification (Anlage 3, GBIC 3 and later) and checked by banks and S-Firm.
     $xmlwriter->startTag('InitgPty');                              # InitiatingParty
     $xmlwriter->dataElement( 'Nm' => $self->{sepaSysPrefs}->{SepaDirectDebitInitiatingPartyName} )
         ;                                                          # InitiatingParty.Name
@@ -1299,8 +1305,8 @@ sub writeSepaDirectDebitFile {
 
     $xmlwriter->startTag('CdtrAgt');       # CreditorAgent
     $xmlwriter->startTag('FinInstnId');    # FinancialInstitutionIdentification
-    $xmlwriter->dataElement( 'BIC' => $self->{sepaSysPrefs}->{SepaDirectDebitCreditorBic} )
-        ;                                  # FinancialInstitutionIdentification.BIC
+    $xmlwriter->dataElement( $self->bicElementName($painFormat) => $self->{sepaSysPrefs}->{SepaDirectDebitCreditorBic} )
+        ;                                  # FinancialInstitutionIdentification.BIC (pain.008.001.02) or .BICFI (pain.008.001.08)
     $xmlwriter->endTag('FinInstnId');
     $xmlwriter->endTag('CdtrAgt');
 
@@ -1362,7 +1368,8 @@ sub writeSepaDirectDebitFile {
         $xmlwriter->startTag('DbtrAgt');                               # DebtorAgent
         $xmlwriter->startTag('FinInstnId');                            # FinancialInstitutionIdentification (mandatory)
         if ($bic) {
-            $xmlwriter->dataElement( 'BIC' => $bic );    # FinancialInstitutionIdentification.BIC (optional)
+            $xmlwriter->dataElement( $self->bicElementName($painFormat) => $bic )
+                ;    # FinancialInstitutionIdentification.BIC (pain.008.001.02) or .BICFI (pain.008.001.08) (optional)
         } else {
             $xmlwriter->startTag('Othr');                # SEPA-Konvention bei fehlendem BIC
             $xmlwriter->dataElement( 'Id' => 'NOTPROVIDED' );
@@ -1381,6 +1388,8 @@ sub writeSepaDirectDebitFile {
         $xmlwriter->endTag('Id');
         $xmlwriter->endTag('DbtrAcct');
 
+        my $remittanceInfo = $self->remittanceInfo( $self->{sepaSysPrefs}->{SepaDirectDebitRemittanceInfo},
+            $borrFeesPaid->{borrowers}, $year, $mon, $mday );
         $xmlwriter->startTag('RmtInf');                           # RemittanceInfo (Verwendungszweck)
         $xmlwriter->dataElement( 'Ustrd' => $remittanceInfo );    # RemittanceInfo.Unstructured (max. 140 chars)
         $xmlwriter->endTag('RmtInf');
@@ -1442,6 +1451,59 @@ sub writeSepaDirectDebitFile {
         . ": returns success:$success:\n"
         if $self->{verbose} > 1;
     return $success;
+}
+
+# Returns the pain.008 format version to be used for the SEPA direct debit file.
+# Controlled by system preference SepaDirectDebitPainFormat. Empty or unknown values result in the old default 'pain.008.001.02',
+# so existing installations keep creating the same file as before until the library switches the format.
+sub sepaPainFormat {
+    my $self   = shift;
+    my $format = $self->{sepaSysPrefs}->{SepaDirectDebitPainFormat};
+    $format = '' unless defined $format;
+    $format =~ s/^\s+|\s+$//g;
+    return 'pain.008.001.08' if $format eq 'pain.008.001.08';
+    return 'pain.008.001.02';
+}
+
+# The XML element for the BIC of a financial institution is called 'BIC' in pain.008.001.02 and 'BICFI' in pain.008.001.08.
+sub bicElementName {
+    my $self      = shift;
+    my $painFormat = shift;
+    return ( defined($painFormat) && $painFormat eq 'pain.008.001.08' ) ? 'BICFI' : 'BIC';
+}
+
+# Builds the remittance information (Verwendungszweck) of one direct debit from the template stored in system preference
+# SepaDirectDebitRemittanceInfo. Supported placeholders:
+#   <<cc>> <<yy>> <<mm>> <<dd>>  century, year, month and day of the date the file is created (same as in the file name pattern)
+#   <<borrowers.COLUMN>>         COLUMN is one of cardnumber, borrowernumber, surname, firstname, branchcode
+#                                (the patron fields read by paySelectedFeesForSepaDirectDebitPatrons)
+# Patron values are transliterated to ASCII, as it is done for the debtor name. Unknown placeholders are left unchanged.
+# A template without placeholders results in the unchanged text, as before. The result is cut to 140 characters.
+sub remittanceInfo {
+    my $self = shift;
+    my ( $template, $borrower, $year, $mon, $mday ) = @_;
+    $template = '' unless defined $template;
+    $borrower = {} unless ref($borrower) eq 'HASH';
+
+    my %dateValues = (
+        cc => sprintf( "%02d", int( ( $year + 1900 ) / 100 ) ),
+        yy => sprintf( "%02d", ( $year + 1900 ) % 100 ),
+        mm => sprintf( "%02d", $mon + 1 ),
+        dd => sprintf( "%02d", $mday ),
+    );
+    $template =~ s/<<(cc|yy|mm|dd)>>/$dateValues{$1}/g;
+    $template =~ s{<<borrowers\.(\w+)>>}{
+        my $column = $1;
+        if ( exists( $borrower->{$column} ) ) {
+            my $value = defined( $borrower->{$column} ) ? unidecode( $borrower->{$column} ) : '';
+            $value =~ s/^\s+|\s+$//g;
+            $value;
+        } else {
+            "<<borrowers.$column>>";
+        }
+    }ge;
+
+    return sprintf( "%-.140s", $template );
 }
 
 sub debtorName {
