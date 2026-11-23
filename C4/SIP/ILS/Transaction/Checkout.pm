@@ -175,6 +175,10 @@ sub do_checkout {
     }
 
     if ($no_block_due_date) {
+
+        # A due date that is not in the future is ignored,
+        # so the due date is calculated from the circulation rules
+        undef $no_block_due_date if DateTime->compare( $no_block_due_date, dt_from_string ) <= 0;
         $overridden_duedate = $no_block_due_date;
         my ( $msg, $checkout ) = ProcessOfflineIssue(
             {

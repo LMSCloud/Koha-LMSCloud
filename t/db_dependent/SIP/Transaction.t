@@ -5,7 +5,7 @@
 
 use Modern::Perl;
 use Test::NoWarnings;
-use Test::More tests => 22;
+use Test::More tests => 23;
 use Test::Warn;
 
 use DateTime;
@@ -1131,15 +1131,61 @@ subtest do_checkout_with_noblock => sub {
     $transaction->item($sip_item_2);
 
     # Set no_block_due_date to test the fix (YYYYMMDDZZZZHHMMSS)
-    my $expected_due_date = '20250115    000000';
+    my $future_due        = dt_from_string->add( years => 1 );
+    my $expected_due_date = $future_due->ymd('') . '    000000';
     my $checkout_result   = $transaction->do_checkout( undef, $expected_due_date );
 
     my $checkout_obj = $patron->checkouts->find( { itemnumber => $item->itemnumber } );
     isnt( $checkout_obj, undef, 'Checkout object exists after no block checkout' );
-    like(
-        dt_from_string( $checkout_obj->date_due )->ymd(''), qr/^20250115/,
-        'No block due date is honored in SIP checkout'
+    is(
+        dt_from_string( $checkout_obj->date_due )->ymd(''), $future_due->ymd(''),
+        'No block due date in the future is honored in SIP checkout'
     );
+};
+
+subtest do_checkout_with_noblock_due_date_not_in_future => sub {
+    plan tests => 4;
+
+    my $library = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $patron  = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => { branchcode => $library->branchcode },
+        }
+    );
+    t::lib::Mocks::mock_userenv( { branchcode => $library->branchcode, flags => 1 } );
+
+    my $item = $builder->build_sample_item( { library => $library->branchcode } );
+    Koha::CirculationRules->set_rules(
+        {
+            categorycode => undef,
+            itemtype     => undef,
+            branchcode   => undef,
+            rules        => { issuelength => 14, lengthunit => 'days' },
+        }
+    );
+    my $expected_due = dt_from_string->add( days => 14 )->ymd('');
+
+    for my $case (
+        [ 'transaction time', dt_from_string->strftime('%Y%m%d    %H%M%S') ],
+        [ 'past date',        '20200101    120000' ],
+        )
+    {
+        my ( $label, $no_block_due_date ) = @$case;
+
+        my $transaction = C4::SIP::ILS::Transaction::Checkout->new();
+        $transaction->patron( C4::SIP::ILS::Patron->new( $patron->cardnumber ) );
+        $transaction->item( C4::SIP::ILS::Item->new( $item->barcode ) );
+        $transaction->do_checkout( undef, $no_block_due_date );
+
+        my $checkout = $patron->checkouts->find( { itemnumber => $item->itemnumber } );
+        isnt( $checkout, undef, "No block checkout is recorded ($label)" );
+        is(
+            dt_from_string( $checkout->date_due )->ymd(''), $expected_due,
+            "Due date is calculated from the circulation rules ($label)"
+        );
+        $checkout->delete;
+    }
 };
 
 subtest do_checkout_with_holds => sub {
