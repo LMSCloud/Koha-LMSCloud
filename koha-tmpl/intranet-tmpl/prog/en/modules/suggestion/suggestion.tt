@@ -1498,7 +1498,7 @@
                                     },
                                     {
                                         data: "staff_note",
-                                        searchable: false,
+                                        searchable: true,
                                         orderable: true,
                                         render: function (data, type, row, meta) {
                                             return escape_str(row.staff_note ? row.staff_note : '');
