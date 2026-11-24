@@ -228,6 +228,18 @@ describe("createDisableFunction (lead period from today)", () => {
         expect(fn(new Date(2026, 2, 17))).to.be.false;
     });
 
+    it("counts only open days for the lead period", () => {
+        // bookings_lead_period=3, today=Mar 15, closed Mar 16-17 → the open
+        // days are Mar 18, 19 and 20, so the earliest start is Mar 20.
+        const fn = makeDisableFn({
+            rules: { bookings_lead_period: 3 },
+            holidays: ["2026-03-16", "2026-03-17"],
+        });
+        expect(fn(new Date(2026, 2, 18))).to.be.true;
+        expect(fn(new Date(2026, 2, 19))).to.be.true;
+        expect(fn(new Date(2026, 2, 20))).to.be.false;
+    });
+
     it("blocks a candidate start whose own lead window hits an existing booking's marks", () => {
         // bookings_lead_period=3 with an existing booking starting Mar 25
         // (server marks its lead window Mar 22-24): a new start at Mar 23

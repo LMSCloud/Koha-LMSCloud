@@ -94,3 +94,26 @@ describe("getDateFeedbackMessage - effective maxPeriod", () => {
         );
     });
 });
+
+describe("getDateFeedbackMessage - lead time from today", () => {
+    beforeEach(() => {
+        cy.clock(new Date("2026-09-15T12:00:00Z").getTime(), ["Date"]);
+    });
+
+    it("counts only open days, so a closed day moves the earliest start", () => {
+        // bookings_lead_period=2, today=Sep 15, closed Sep 16 → the open
+        // days are Sep 17 and 18, so Sep 17 is still inside the lead time.
+        const feedback = getDateFeedbackMessage(new Date("2026-09-17"), {
+            isDisabled: true,
+            selectedDateRange: [],
+            leadDays: 2,
+            unavailableByDate: {},
+            holidays: ["2026-09-16"],
+        });
+
+        expect(feedback).to.not.equal(null);
+        expect(feedback.message).to.equal(
+            "Cannot select: insufficient lead time (2 days required before start)"
+        );
+    });
+});
