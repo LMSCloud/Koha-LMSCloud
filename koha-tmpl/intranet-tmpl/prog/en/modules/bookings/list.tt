@@ -81,7 +81,7 @@
     <script nonce="[% Koha.CSPNonce | $raw %]">
         $(document).ready(function () {
             var items = $.ajax({
-                url: '/api/v1/biblios/%s/items?bookable=1'.format(biblionumber),
+                url: '/api/v1/biblios/%s/items?bookable=1&_per_page=-1'.format(biblionumber),
                 dataType: 'json',
                 type: 'GET'
             });
