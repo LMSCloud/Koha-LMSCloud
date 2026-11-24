@@ -7,7 +7,7 @@
  * @module markers
  */
 
-import { formatYMD, toDay, today } from "./dates.js";
+import { addOpenDays, formatYMD, toDay, today } from "./dates.js";
 import { calculateMaxEndDate } from "./availability/predicate.js";
 import { idsEqual } from "../../utils/functions.js";
 import { $__ } from "@koha-vue/i18n";
@@ -204,7 +204,11 @@ function getDisabledReason(d, dateKey, ctx) {
 
     // Insufficient lead time from today
     if (ctx.isSelectingStart && ctx.leadDays > 0) {
-        const minStart = ctx.today.add(ctx.leadDays, "day");
+        const minStart = addOpenDays(
+            ctx.today,
+            ctx.leadDays,
+            new Set(ctx.holidays || [])
+        );
         if (d.isBefore(minStart, "day")) {
             return $__(
                 "Cannot select: insufficient lead time (%s days required before start)"

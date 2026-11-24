@@ -72,6 +72,30 @@ export function addDays(input, days) {
 }
 
 /**
+ * Add open days to a date-like value, skipping the closed days in
+ * holidaySet. Without closed days this is the same as addDays.
+ *
+ * @param {import("dayjs").ConfigType} input
+ * @param {number} days
+ * @param {Set<string>} [holidaySet] Closed days as YYYY-MM-DD
+ * @returns {import("dayjs").Dayjs}
+ * @throws {Error} When input is null/undefined - see addDays.
+ */
+export function addOpenDays(input, days, holidaySet) {
+    const day = toDay(input);
+    if (!day) throw new Error(`addOpenDays: invalid date input: ${input}`);
+    if (!holidaySet || holidaySet.size === 0) return day.add(days, "day");
+
+    let date = day;
+    let remaining = days;
+    while (remaining > 0) {
+        date = date.add(1, "day");
+        if (!holidaySet.has(date.format("YYYY-MM-DD"))) remaining--;
+    }
+    return date;
+}
+
+/**
  * Add whole calendar months to a date-like value.
  *
  * @param {import("dayjs").ConfigType} input

@@ -326,9 +326,10 @@ sub _mark_holidays {
 =head3 _mark_lead_windows
 
 Marks the C<lead_floor> window (no new booking can start until the lead
-period from today has passed) and, for each existing booking, the
-C<lead_theoretical> window of a hypothetical follow-up booking placed
-right after its trail period. Does nothing unless a lead period applies.
+period from today, counted in open days of the pickup library, has
+passed) and, for each existing booking, the C<lead_theoretical> window
+of a hypothetical follow-up booking placed right after its trail period.
+Does nothing unless a lead period applies.
 
 =cut
 
@@ -340,12 +341,20 @@ sub _mark_lead_windows {
 
     my $today = dt_from_string->set_time_zone('floating')->truncate( to => 'day' );
 
+    # The lead period from today counts open days of the pickup library
+    my $calendar = $self->{pickup_library_id} ? Koha::Calendar->new( branchcode => $self->{pickup_library_id} ) : undef;
+    my $min_start = $today->clone;
+    for ( my $remaining = $lead_days ; $remaining > 0 ; ) {
+        $min_start->add( days => 1 );
+        $remaining-- unless $calendar && $calendar->is_holiday($min_start);
+    }
+
     $self->_soft_mark(
         {
             item_id => $_,
             reason  => 'lead_floor',
             start   => $today->clone,
-            end     => $today->clone->add( days => $lead_days - 1 ),
+            end     => $min_start->clone->subtract( days => 1 ),
         }
     ) for @{ $self->{bookable_item_ids} };
 

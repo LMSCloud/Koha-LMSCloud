@@ -13,7 +13,7 @@
  * @module availability/predicate
  */
 
-import { toDay, today as todayDate } from "../dates.js";
+import { addOpenDays, toDay, today as todayDate } from "../dates.js";
 
 export const CONSTRAINT_MODE_END_DATE_ONLY = "end_date_only";
 import {
@@ -220,9 +220,10 @@ export function createDisableFunction(
             // range mode would reset and start a new range)
             if (leadDays > 0) {
                 // Enforce minimum advance booking: start date must be
-                // >= today + leadDays. This applies even for the first
-                // booking (no existing bookings to conflict with)
-                if (d.isBefore(today.add(leadDays, "day"), "day")) return true;
+                // >= today + leadDays open days. This applies even for the
+                // first booking (no existing bookings to conflict with)
+                if (d.isBefore(addOpenDays(today, leadDays, holidaySet), "day"))
+                    return true;
             }
 
             if (
