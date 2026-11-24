@@ -329,6 +329,10 @@ sub _assign_item_for_booking {
 
     my $bookable_items = $biblio->bookable_items->search($item_search_conditions);
 
+    # Prefer items that are not checked out, fall back to all free items
+    my $on_shelf = $bookable_items->search( { 'me.onloan' => undef } );
+    $bookable_items = $on_shelf if $on_shelf->count;
+
     # Use optimal selection instead of random selection
     my $optimal_item = $self->_select_optimal_item($bookable_items);
 
