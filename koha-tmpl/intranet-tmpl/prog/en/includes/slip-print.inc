@@ -7,14 +7,14 @@
         [% Koha.Preference('IntranetSlipPrinterJS') | $raw %]
     [% ELSE %]
         let autoprint = true;
-        window.onafterprint = function () {
-            window.close();
-        }
         window.addEventListener('load', function() {
-            window.print();
-            // Firefox fires afterprint before the print dialog closes and ignores
-            // window.close() while it is open; print() returns once it is closed
-            window.close();
+            // Browsers postpone a print() called while the page is still loading,
+            // which includes the load event, and return at once. Called after it,
+            // print() returns once the print dialog is closed
+            setTimeout(function () {
+                window.print();
+                window.close();
+            });
         });
     [% END %]
 </script>
